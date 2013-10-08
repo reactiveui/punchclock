@@ -10,7 +10,6 @@ namespace Punchclock
     abstract class KeyedOperation
     {
         public string Key { get; set; }
-        public int Id { get; set; }
         public abstract IObservable<Unit> EvaluateFunc();
     }
 
@@ -30,16 +29,14 @@ namespace Punchclock
 
     public class OperationQueue
     {
-        readonly IScheduler scheduler;
-        static int sequenceNumber = 1;
+        const string defaultKey = "__NONE__";
+
         readonly Subject<KeyedOperation> queuedOps = new Subject<KeyedOperation>();
         readonly IConnectableObservable<KeyedOperation> resultObs;
         AsyncSubject<Unit> shutdownObs;
 
         public OperationQueue(IScheduler scheduler)
         {
-            this.scheduler = scheduler;
-
             resultObs = queuedOps
                 .GroupBy(x => x.Key)
                 .Select(x => x.Select(ProcessOperation).Concat())
@@ -47,33 +44,6 @@ namespace Punchclock
                 .Multicast(new Subject<KeyedOperation>());
 
             resultObs.Connect();
-        }
-
-        /// <summary>
-        ///   Queue an operation to run in the background. All operations with the same key will run in sequence,
-        ///   waiting for the previous operation to complete.
-        /// </summary>
-        /// <param name = "key">The key to use</param>
-        /// <param name = "action">A method to run in the background</param>
-        /// <returns>A future representing when the operation completes</returns>
-        public IObservable<Unit> EnqueueOperation(string key, Action action)
-        {
-            return EnqueueOperation(key, () => {
-                action();
-                return Unit.Default;
-            });
-        }
-
-        /// <summary>
-        ///   Queue an operation to run in the background that returns a value. All operations with the same key will run in sequence,
-        ///   waiting for the previous operation to complete.
-        /// </summary>
-        /// <param name="key">The key to use</param>
-        /// <param name="calculationFunc">A method to run in the background that returns a single value</param>
-        /// <returns>A future value</returns>
-        public IObservable<T> EnqueueOperation<T>(string key, Func<T> calculationFunc)
-        {
-            return EnqueueObservableOperation(key, () => SafeStart(calculationFunc));
         }
 
         /// <summary>
@@ -86,11 +56,10 @@ namespace Punchclock
         /// <returns>A future stream of values</returns>
         public IObservable<T> EnqueueObservableOperation<T>(string key, Func<IObservable<T>> asyncCalculationFunc)
         {
-            int id = Interlocked.Increment(ref sequenceNumber);
-            key = key ?? "__NONE__";
+            key = key ?? defaultKey;
 
             var item = new KeyedOperation<T> {
-                Key = key, Id = id,
+                Key = key,
                 Func = asyncCalculationFunc,
             };
 
@@ -127,22 +96,6 @@ namespace Punchclock
             return Observable.Defer(operation.EvaluateFunc)
                 .Select(_ => operation)
                 .Catch(Observable.Return(operation));
-        }
-
-        IObservable<T> SafeStart<T>(Func<T> calculationFunc)
-        {
-            var ret = new AsyncSubject<T>();
-            Observable.Start(() => {
-                try {
-                    var val = calculationFunc();
-                    ret.OnNext(val);
-                    ret.OnCompleted();
-                } catch (Exception ex) {
-                    ret.OnError(ex);
-                }
-            }, scheduler);
-
-            return ret;
         }
     }
 }
