@@ -9,14 +9,15 @@ using System.Threading.Tasks;
 
 namespace Punchclock
 {
-    class SemaphoreSubject<T> : ISubject<T>
+    class PrioritySemaphoreSubject<T> : ISubject<T>
+        where T : IComparable<T>
     {
         readonly ISubject<T> _inner;
-        Queue<T> _nextItems = new Queue<T>();
+        PriorityQueue<T> _nextItems = new PriorityQueue<T>();
         int _count;
         readonly int _maxCount;
 
-        public SemaphoreSubject(int maxCount, IScheduler sched = null)
+        public PrioritySemaphoreSubject(int maxCount, IScheduler sched = null)
         {
             _inner = (sched != null ? (ISubject<T>)new ScheduledSubject<T>(sched) : new Subject<T>());
             _maxCount = maxCount;
@@ -49,7 +50,7 @@ namespace Punchclock
 
             T[] items;
             lock (queue) {
-                items = queue.ToArray();
+                items = queue.DequeueAll();
             }
 
             foreach (var v in items) {

@@ -104,6 +104,20 @@ namespace Punchclock
             return result;
         }
 
+        public T[] DequeueAll()
+        {
+            if (_size == 0) {
+                return new T[0];
+            }
+
+            var ret = new T[_size];
+            for (int i = 0; i < _size; i++) {
+                ret[i] = Dequeue();
+            }
+
+            return ret;
+        }
+
         public void Enqueue(T item)
         {
             if (_size >= _items.Length) {
