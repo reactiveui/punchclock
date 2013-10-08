@@ -7,14 +7,21 @@ using System.Threading;
 
 namespace Punchclock
 {
-    abstract class KeyedOperation
+    abstract class KeyedOperation : IComparable<KeyedOperation>
     {
+        public int Priority { get; set; }
         public string Key { get; set; }
         public abstract IObservable<Unit> EvaluateFunc();
+
+        public int CompareTo(KeyedOperation other)
+        {
+            return this.Priority.CompareTo(other.Priority);
+        }
     }
 
     class KeyedOperation<T> : KeyedOperation
     {
+        public int Priority { get; set; }
         public Func<IObservable<T>> Func { get; set; }
         public readonly ReplaySubject<T> Result = new ReplaySubject<T>();
 
@@ -35,31 +42,30 @@ namespace Punchclock
         readonly IConnectableObservable<KeyedOperation> resultObs;
         AsyncSubject<Unit> shutdownObs;
 
-        public OperationQueue(IScheduler scheduler)
+        public OperationQueue(int maximumConcurrent = 4)
         {
+            var scheduledGate = new PrioritySemaphoreSubject<KeyedOperation>(maximumConcurrent);
+
             resultObs = queuedOps
+                .Multicast(scheduledGate)
                 .GroupBy(x => x.Key)
-                .Select(x => x.Select(ProcessOperation).Concat())
+                .Select(x => {
+                    var ret = x.Select(y => 
+                        ProcessOperation(y).Finally(() => scheduledGate.Release()));
+
+                    return x.Key == defaultKey ? ret.Merge() : ret.Concat();
+                })
                 .Merge()
                 .Multicast(new Subject<KeyedOperation>());
 
             resultObs.Connect();
         }
 
-        /// <summary>
-        ///   Queue an operation to run in the background that returns a stream of values. All operations with the same key will run in sequence,
-        ///   waiting for the previous operation to complete.
-        ///   If you want to queue an operation that already returns IObservable, this is your guy.
-        /// </summary>
-        /// <param name="key">The key to use</param>
-        /// <param name="asyncCalculationFunc">A method to run in the background that returns a stream of values</param>
-        /// <returns>A future stream of values</returns>
-        public IObservable<T> EnqueueObservableOperation<T>(string key, Func<IObservable<T>> asyncCalculationFunc)
+        public IObservable<T> EnqueueObservableOperation<T>(int priority, string key, Func<IObservable<T>> asyncCalculationFunc)
         {
-            key = key ?? defaultKey;
-
             var item = new KeyedOperation<T> {
                 Key = key,
+                Priority = priority,
                 Func = asyncCalculationFunc,
             };
 
@@ -68,6 +74,11 @@ namespace Punchclock
             }
 
             return item.Result;
+        }
+
+        public IObservable<T> EnqueueObservableOperation<T>(int priority, Func<IObservable<T>> asyncCalculationFunc)
+        {
+            return EnqueueObservableOperation(priority, defaultKey, asyncCalculationFunc);
         }
 
         public IObservable<Unit> ShutdownQueue()
