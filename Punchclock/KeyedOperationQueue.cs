@@ -58,8 +58,7 @@ namespace Punchclock
         /// <returns>A future representing when the operation completes</returns>
         public IObservable<Unit> EnqueueOperation(string key, Action action)
         {
-            return EnqueueOperation(key, () =>
-            {
+            return EnqueueOperation(key, () => {
                 action();
                 return Unit.Default;
             });
