@@ -47,7 +47,7 @@ namespace Punchclock
             var scheduledGate = new PrioritySemaphoreSubject<KeyedOperation>(maximumConcurrent);
 
             resultObs = queuedOps
-                .Multicast(scheduledGate)
+                .Multicast(scheduledGate).RefCount()
                 .GroupBy(x => x.Key)
                 .Select(x => {
                     var ret = x.Select(y => 
