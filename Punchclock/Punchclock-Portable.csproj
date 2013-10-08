@@ -54,6 +54,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="KeyedOperationQueue.cs" />
+    <Compile Include="PriorityQueue.cs" />
     <Compile Include="ScheduledSubject.cs" />
     <Compile Include="SemaphoreSubject.cs" />
   </ItemGroup>
