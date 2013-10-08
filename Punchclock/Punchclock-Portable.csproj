@@ -53,7 +53,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="KeyedOperationQueue.cs" />
+    <Compile Include="OperationQueue.cs" />
     <Compile Include="PriorityQueue.cs" />
     <Compile Include="ScheduledSubject.cs" />
     <Compile Include="PrioritySemaphoreSubject.cs" />

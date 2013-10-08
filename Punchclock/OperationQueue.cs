@@ -28,7 +28,7 @@ namespace Punchclock
         }
     }
 
-    class KeyedOperationQueue
+    public class OperationQueue
     {
         readonly IScheduler scheduler;
         static int sequenceNumber = 1;
@@ -36,7 +36,7 @@ namespace Punchclock
         readonly IConnectableObservable<KeyedOperation> resultObs;
         AsyncSubject<Unit> shutdownObs;
 
-        public KeyedOperationQueue(IScheduler scheduler)
+        public OperationQueue(IScheduler scheduler)
         {
             this.scheduler = scheduler;
 
