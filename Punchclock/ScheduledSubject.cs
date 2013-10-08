@@ -7,7 +7,7 @@ using System.Threading;
 
 namespace Punchclock
 {
-    public class ScheduledSubject<T> : ISubject<T>
+    class ScheduledSubject<T> : ISubject<T>
     {
         public ScheduledSubject(IScheduler scheduler, IObserver<T> defaultObserver = null)
         {
