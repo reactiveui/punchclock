@@ -56,7 +56,7 @@
     <Compile Include="KeyedOperationQueue.cs" />
     <Compile Include="PriorityQueue.cs" />
     <Compile Include="ScheduledSubject.cs" />
-    <Compile Include="SemaphoreSubject.cs" />
+    <Compile Include="PrioritySemaphoreSubject.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
