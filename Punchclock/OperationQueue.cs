@@ -57,6 +57,7 @@ namespace Punchclock
         readonly int maximumConcurrent;
 
         int pauseRefCount = 0;
+
         AsyncSubject<Unit> shutdownObs;
 
         public OperationQueue(int maximumConcurrent = 4)
