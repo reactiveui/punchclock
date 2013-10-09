@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
@@ -11,17 +12,28 @@ namespace Punchclock
     {
         public int Priority { get; set; }
         public string Key { get; set; }
+        
         public abstract IObservable<Unit> EvaluateFunc();
+
+        public bool KeyIsDefault {
+            get { return (String.IsNullOrEmpty(Key) || Key == OperationQueue.defaultKey); }
+        }
 
         public int CompareTo(KeyedOperation other)
         {
+            // NB: Non-keyed operations always come before keyed operations in
+            // order to make sure that serialized keyed operations don't take 
+            // up concurrency slots
+            if (this.KeyIsDefault != other.KeyIsDefault) {
+                return this.KeyIsDefault ? -1 : 1;
+            }
+
             return this.Priority.CompareTo(other.Priority);
         }
     }
 
     class KeyedOperation<T> : KeyedOperation
     {
-        public int Priority { get; set; }
         public Func<IObservable<T>> Func { get; set; }
         public readonly ReplaySubject<T> Result = new ReplaySubject<T>();
 
@@ -36,7 +48,7 @@ namespace Punchclock
 
     public class OperationQueue
     {
-        const string defaultKey = "__NONE__";
+        internal const string defaultKey = "__NONE__";
 
         readonly Subject<KeyedOperation> queuedOps = new Subject<KeyedOperation>();
         readonly IConnectableObservable<KeyedOperation> resultObs;
@@ -50,9 +62,7 @@ namespace Punchclock
                 .Multicast(scheduledGate).RefCount()
                 .GroupBy(x => x.Key)
                 .Select(x => {
-                    var ret = x.Select(y => 
-                        ProcessOperation(y).Finally(() => scheduledGate.Release()));
-
+                    var ret = x.Select(y => ProcessOperation(y).Finally(() => scheduledGate.Release()));
                     return x.Key == defaultKey ? ret.Merge() : ret.Concat();
                 })
                 .Merge()
@@ -85,10 +95,10 @@ namespace Punchclock
         {
             lock (queuedOps) {
                 if (shutdownObs != null) return shutdownObs;
+                shutdownObs = new AsyncSubject<Unit>();
 
                 queuedOps.OnCompleted();
 
-                shutdownObs = new AsyncSubject<Unit>();
                 resultObs.Materialize()
                     .Where(x => x.Kind != NotificationKind.OnNext)
                     .SelectMany(x =>
@@ -96,7 +106,7 @@ namespace Punchclock
                             Observable.Throw<Unit>(x.Exception) :
                             Observable.Return(Unit.Default))
                     .Multicast(shutdownObs)
-                    .Subscribe(_ => {});
+                    .Connect();
 
                 return shutdownObs;
             }
