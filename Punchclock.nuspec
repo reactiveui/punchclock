@@ -4,7 +4,6 @@
         <id>Punchclock</id>
         <version>1.0.0</version>
         <authors>Paul Betts</authors>
-        <iconUrl>http://f.cl.ly/items/1307401C3x2g3F2p2Z36/Logo.png</iconUrl>
         <licenseUrl>https://github.com/paulcbetts/punchclock/blob/master/COPYING</licenseUrl>
         <projectUrl>https://github.com/paulcbetts/punchclock</projectUrl>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
