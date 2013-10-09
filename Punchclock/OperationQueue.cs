@@ -171,6 +171,8 @@ namespace Punchclock
 
             return Disposable.Create(() => {
                 if (Interlocked.Decrement(ref pauseRefCount) > 0) return;
+                if (shutdownObs != null) return;
+
                 scheduledGate.MaximumCount = maximumConcurrent;
             });
         }
@@ -186,6 +188,9 @@ namespace Punchclock
             lock (queuedOps) {
                 if (shutdownObs != null) return shutdownObs;
                 shutdownObs = new AsyncSubject<Unit>();
+
+                // Disregard paused queue
+                scheduledGate.MaximumCount = maximumConcurrent;
 
                 queuedOps.OnCompleted();
 
