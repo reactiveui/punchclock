@@ -16,7 +16,14 @@ namespace Punchclock
         PriorityQueue<T> _nextItems = new PriorityQueue<T>();
         int _count;
 
-        public int MaximumCount { get; set; }
+        int _MaximumCount;
+        public int MaximumCount {
+            get { return _MaximumCount; }
+            set {
+                _MaximumCount = value;
+                yieldUntilEmptyOrBlocked();
+            }
+        }
 
         public PrioritySemaphoreSubject(int maxCount, IScheduler sched = null)
         {
