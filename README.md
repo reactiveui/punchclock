@@ -22,10 +22,14 @@ var wc = new WebClient();
 var opQueue = new OperationQueue(2 /*at a time*/);
 
 // Download a bunch of images
-var foo = opQueue.Enqueue(1, () => wc.DownloadFile("https://example.com/foo.jpg", "foo.jpg"));
-var bar = opQueue.Enqueue(1, () => wc.DownloadFile("https://example.com/bar.jpg", "bar.jpg"));
-var baz = opQueue.Enqueue(1, () => wc.DownloadFile("https://example.com/baz.jpg", "baz.jpg"));
-var bamf = opQueue.Enqueue(1, () => wc.DownloadFile("https://example.com/bamf.jpg", "bamf.jpg"));
+var foo = opQueue.Enqueue(1, 
+    () => wc.DownloadFile("https://example.com/foo.jpg", "foo.jpg"));
+var bar = opQueue.Enqueue(1, 
+    () => wc.DownloadFile("https://example.com/bar.jpg", "bar.jpg"));
+var baz = opQueue.Enqueue(1, 
+    () => wc.DownloadFile("https://example.com/baz.jpg", "baz.jpg"));
+var bamf = opQueue.Enqueue(1, 
+    () => wc.DownloadFile("https://example.com/bamf.jpg", "bamf.jpg"));
 
 // We'll be downloading the images two at a time, even though we started 
 // them all at once
