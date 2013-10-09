@@ -194,5 +194,45 @@ namespace Punchclock.Tests
             unpause2.Dispose();
             Assert.Equal(2, pauseOutput.Count);
         }
+
+        [Fact]
+        public void CancellingItemsShouldNotResultInThemBeingReturned()
+        {
+            var subj1 = new AsyncSubject<int>();
+            var subj2 = new AsyncSubject<int>();
+
+            var fixture = new OperationQueue(2);
+
+            // Block up the queue
+            foreach (var v in new[] { subj1, subj2, }) {
+                fixture.EnqueueObservableOperation(5, () => v);
+            }
+
+            var cancel1 = new Subject<Unit>();
+            var item1 = new AsyncSubject<int>();
+            var output = new[] {
+                fixture.EnqueueObservableOperation(5, "foo", cancel1, () => item1),
+                fixture.EnqueueObservableOperation(5, "baz", () => Observable.Return(42)),
+            }.Merge().CreateCollection();
+
+            // Still blocked by subj1,2
+            Assert.Equal(0, output.Count);
+
+            // Still blocked by subj1,2, only baz is in queue
+            cancel1.OnNext(Unit.Default); cancel1.OnCompleted();
+            Assert.Equal(0, output.Count);
+
+            // foo was cancelled, baz is still good
+            subj1.OnNext(42); subj1.OnCompleted();
+            Assert.Equal(1, output.Count);
+
+            // don't care that cancelled item finished
+            item1.OnNext(42); item1.OnCompleted();
+            Assert.Equal(1, output.Count);
+
+            // still shouldn't see anything
+            subj2.OnNext(42); subj2.OnCompleted();
+            Assert.Equal(1, output.Count);
+        }
     }
 }
