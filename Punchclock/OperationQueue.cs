@@ -50,6 +50,21 @@ namespace Punchclock
         }
     }
 
+    /// <summary>
+    /// OperationQueue is the core of PunchClock, and represents a scheduler for
+    /// deferred actions, such as network requests. This scheduler supports 
+    /// scheduling via priorities, as well as serializing requests that access
+    /// the same data.
+    ///
+    /// The queue allows a fixed number of concurrent in-flight operations at a
+    /// time. When there are available "slots", items are dispatched as they come
+    /// in. When the slots are full, the queueing policy starts to apply.
+    /// 
+    /// The queue, similar to Akavache's KeyedOperationQueue, also allows keys to
+    /// be specified to serialize operations - if you have three "foo" items, they
+    /// will wait in line and only one "foo" can run. However, a "bar" and "baz" 
+    /// item can run at the same time as a "foo" item.
+    /// </summary>
     public class OperationQueue
     {
         internal const string defaultKey = "__NONE__";
@@ -59,10 +74,15 @@ namespace Punchclock
         readonly PrioritySemaphoreSubject<KeyedOperation> scheduledGate;
         readonly int maximumConcurrent;
 
+        static int sequenceNumber = 0;
         int pauseRefCount = 0;
 
         AsyncSubject<Unit> shutdownObs;
 
+        /// <summary>
+        /// Createa a new operation queue
+        /// </summary>
+        /// <param name="maximumConcurrent">The maximum number of concurrent operations.</param>
         public OperationQueue(int maximumConcurrent = 4)
         {
             this.maximumConcurrent = maximumConcurrent;
@@ -81,7 +101,15 @@ namespace Punchclock
             resultObs.Connect();
         }
 
-        static int sequenceNumber = 0;
+        /// <summary>
+        /// This method enqueues an action to be run at a later time, according
+        /// to the scheduling policies (i.e. via priority and key).
+        /// </summary>
+        /// <param name="priority">Higher priorities run before lower ones.</param>
+        /// <param name="key">Items with the same key will be run in order.</param>
+        /// <param name="cancel">If signalled, the operation will be cancelled.</param>
+        /// <param name="asyncCalculationFunc">The async method to execute when scheduled.</param>
+        /// <returns>The result of the async calculation.</returns>
         public IObservable<T> EnqueueObservableOperation<T, TDontCare>(int priority, string key, IObservable<TDontCare> cancel, Func<IObservable<T>> asyncCalculationFunc)
         {
             var id = Interlocked.Increment(ref sequenceNumber);
@@ -104,16 +132,37 @@ namespace Punchclock
             return item.Result;
         }
 
+        /// <summary>
+        /// This method enqueues an action to be run at a later time, according
+        /// to the scheduling policies (i.e. via priority and key).
+        /// </summary>
+        /// <param name="priority">Higher priorities run before lower ones.</param>
+        /// <param name="key">Items with the same key will be run in order.</param>
+        /// <param name="asyncCalculationFunc">The async method to execute when scheduled.</param>
+        /// <returns>The result of the async calculation.</returns>
         public IObservable<T> EnqueueObservableOperation<T>(int priority, string key, Func<IObservable<T>> asyncCalculationFunc)
         {
             return EnqueueObservableOperation(priority, key, Observable.Never<Unit>(), asyncCalculationFunc);
         }
 
+        /// <summary>
+        /// This method enqueues an action to be run at a later time, according
+        /// to the scheduling policies (i.e. via priority)
+        /// </summary>
+        /// <param name="priority">Higher priorities run before lower ones.</param>
+        /// <param name="asyncCalculationFunc">The async method to execute when scheduled.</param>
+        /// <returns>The result of the async calculation.</returns>
         public IObservable<T> EnqueueObservableOperation<T>(int priority, Func<IObservable<T>> asyncCalculationFunc)
         {
             return EnqueueObservableOperation(priority, defaultKey, Observable.Never<Unit>(), asyncCalculationFunc);
         }
 
+        /// <summary>
+        /// This method pauses the dispatch queue. Inflight operations will not
+        /// be canceled, but new ones will not be processed until the queue is
+        /// resumed.
+        /// </summary>
+        /// <returns>A Disposable that resumes the queue when disposed.</returns>
         public IDisposable PauseQueue()
         {
             if (Interlocked.Increment(ref pauseRefCount) == 1) {
@@ -126,6 +175,12 @@ namespace Punchclock
             });
         }
 
+        /// <summary>
+        /// Shuts down the queue and notifies when all outstanding items have
+        /// been processed.
+        /// </summary>
+        /// <returns>An Observable that will signal when all items are complete.
+        /// </returns>
         public IObservable<Unit> ShutdownQueue()
         {
             lock (queuedOps) {
