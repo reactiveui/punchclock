@@ -70,7 +70,7 @@ namespace Punchclock
 
         public void OnError(Exception error)
         {
-            var queue = Interlocked.Exchange(ref _nextItems, null);
+            Interlocked.Exchange(ref _nextItems, null);
             _inner.OnError(error);
         }
 
