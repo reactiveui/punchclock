@@ -12,7 +12,7 @@ namespace Punchclock
     {
         public int Priority { get; set; }
         public string Key { get; set; }
-
+        
         public abstract IObservable<Unit> EvaluateFunc();
 
         public bool KeyIsDefault {
@@ -22,7 +22,7 @@ namespace Punchclock
         public int CompareTo(KeyedOperation other)
         {
             // NB: Non-keyed operations always come before keyed operations in
-            // order to make sure that serialized keyed operations don't take
+            // order to make sure that serialized keyed operations don't take 
             // up concurrency slots
             if (this.KeyIsDefault != other.KeyIsDefault) {
                 return this.KeyIsDefault ? -1 : 1;
@@ -62,9 +62,7 @@ namespace Punchclock
                 .Multicast(scheduledGate).RefCount()
                 .GroupBy(x => x.Key)
                 .Select(x => {
-                    var ret = x.Select(y => 
-                        ProcessOperation(y).Finally(() => scheduledGate.Release()));
-
+                    var ret = x.Select(y => ProcessOperation(y).Finally(() => scheduledGate.Release()));
                     return x.Key == defaultKey ? ret.Merge() : ret.Concat();
                 })
                 .Merge()
@@ -97,10 +95,10 @@ namespace Punchclock
         {
             lock (queuedOps) {
                 if (shutdownObs != null) return shutdownObs;
+                shutdownObs = new AsyncSubject<Unit>();
 
                 queuedOps.OnCompleted();
 
-                shutdownObs = new AsyncSubject<Unit>();
                 resultObs.Materialize()
                     .Where(x => x.Kind != NotificationKind.OnNext)
                     .SelectMany(x =>
@@ -108,7 +106,7 @@ namespace Punchclock
                             Observable.Throw<Unit>(x.Exception) :
                             Observable.Return(Unit.Default))
                     .Multicast(shutdownObs)
-                    .Subscribe(_ => {});
+                    .Connect();
 
                 return shutdownObs;
             }
