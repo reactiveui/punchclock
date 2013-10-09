@@ -42,8 +42,8 @@ away, you can specify it via the priority:
 // This file is super important, we don't care if it cuts in line in front
 // of some images or other stuff
 var wc = new WebClient();
-opQueue.Enqueue(10 /* It's Important */, 
-    () => wc.DownloadFileTaskAsync("http://example.com/supercool.txt", "./supercool.txt"))
+await opQueue.Enqueue(10 /* It's Important */, 
+    () => wc.DownloadFileTaskAsync("http://example.com/cool.txt", "./cool.txt"));
 ```
 
 ## What else can this library do
