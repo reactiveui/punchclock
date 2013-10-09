@@ -159,5 +159,39 @@ namespace Punchclock.Tests
             Assert.True(outputs.All(x => x.Count == 1));
             Assert.Equal(1, shutdown.Count);
         }
+
+        [Fact]
+        public void PausingTheQueueShouldHoldItemsUntilUnpaused()
+        {
+            var item = Observable.Return(42);
+
+            var fixture = new OperationQueue(2);
+            var prePauseOutput = new[] {
+                fixture.EnqueueObservableOperation(4, () => item),
+                fixture.EnqueueObservableOperation(4, () => item),
+            }.Merge().CreateCollection();
+
+            Assert.Equal(2, prePauseOutput.Count);
+
+            var unpause1 = fixture.PauseQueue();
+
+            // The queue is halted, but we should still eventually process these
+            // once it's no longer halted
+            var pauseOutput = new[] {
+                fixture.EnqueueObservableOperation(4, () => item),
+                fixture.EnqueueObservableOperation(4, () => item),
+            }.Merge().CreateCollection();
+
+            Assert.Equal(0, pauseOutput.Count);
+
+            var unpause2 = fixture.PauseQueue();
+            Assert.Equal(0, pauseOutput.Count);
+
+            unpause1.Dispose();
+            Assert.Equal(0, pauseOutput.Count);
+
+            unpause2.Dispose();
+            Assert.Equal(2, pauseOutput.Count);
+        }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reactive;
 using System.Reactive.Concurrency;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
@@ -54,11 +55,17 @@ namespace Punchclock
 
         readonly Subject<KeyedOperation> queuedOps = new Subject<KeyedOperation>();
         readonly IConnectableObservable<KeyedOperation> resultObs;
+        readonly PrioritySemaphoreSubject<KeyedOperation> scheduledGate;
+        readonly int maximumConcurrent;
+
+        int pauseRefCount = 0;
+
         AsyncSubject<Unit> shutdownObs;
 
         public OperationQueue(int maximumConcurrent = 4)
         {
-            var scheduledGate = new PrioritySemaphoreSubject<KeyedOperation>(maximumConcurrent);
+            this.maximumConcurrent = maximumConcurrent;
+            scheduledGate = new PrioritySemaphoreSubject<KeyedOperation>(maximumConcurrent);
 
             resultObs = queuedOps
                 .Multicast(scheduledGate).RefCount()
@@ -94,6 +101,18 @@ namespace Punchclock
         public IObservable<T> EnqueueObservableOperation<T>(int priority, Func<IObservable<T>> asyncCalculationFunc)
         {
             return EnqueueObservableOperation(priority, defaultKey, asyncCalculationFunc);
+        }
+
+        public IDisposable PauseQueue()
+        {
+            if (Interlocked.Increment(ref pauseRefCount) == 1) {
+                scheduledGate.MaximumCount = 0;
+            }
+
+            return Disposable.Create(() => {
+                if (Interlocked.Decrement(ref pauseRefCount) > 0) return;
+                scheduledGate.MaximumCount = maximumConcurrent;
+            });
         }
 
         public IObservable<Unit> ShutdownQueue()
