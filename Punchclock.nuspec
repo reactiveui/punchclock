@@ -2,15 +2,14 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <metadata>
         <id>Punchclock</id>
-        <version>0.1.0</version>
+        <version>1.0.0</version>
         <authors>Paul Betts</authors>
         <iconUrl>http://f.cl.ly/items/1307401C3x2g3F2p2Z36/Logo.png</iconUrl>
         <licenseUrl>https://github.com/paulcbetts/punchclock/blob/master/COPYING</licenseUrl>
         <projectUrl>https://github.com/paulcbetts/punchclock</projectUrl>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
-	<description></description>
-	<summary></summary>
-        <tags>portable</tags>
+	<description>Make sure your asynchronous operations show up to work on time</description>
+        <tags>portable, async, rx</tags>
     </metadata>
     <files>
         <file src="Punchclock\bin\Release\**\Punchclock*" target="lib" />
