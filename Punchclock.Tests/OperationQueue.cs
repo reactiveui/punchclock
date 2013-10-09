@@ -107,17 +107,57 @@ namespace Punchclock.Tests
             Assert.Equal(1, out2.Count);
         }
 
-
         [Fact]
         public void NonkeyedItemsShouldRunInParallel()
         {
-            Assert.False(true);
+            var unkeyed1Subj = new AsyncSubject<int>();
+            var unkeyed1SubCount = 0;
+            var unkeyed1 = Observable.Defer(() => {
+                unkeyed1SubCount++;
+                return unkeyed1Subj;
+            });
+
+            var unkeyed2Subj = new AsyncSubject<int>();
+            var unkeyed2SubCount = 0;
+            var unkeyed2 = Observable.Defer(() => {
+                unkeyed2SubCount++;
+                return unkeyed2Subj;
+            });
+
+            var fixture = new OperationQueue(2);
+            Assert.Equal(0, unkeyed1SubCount);
+            Assert.Equal(0, unkeyed2SubCount);
+
+            fixture.EnqueueObservableOperation(5, () => unkeyed1);
+            fixture.EnqueueObservableOperation(5, () => unkeyed2);
+            Assert.Equal(1, unkeyed1SubCount);
+            Assert.Equal(1, unkeyed2SubCount);
         }
 
         [Fact]
         public void ShutdownShouldSignalOnceEverythingCompletes()
         {
-            Assert.False(true);
+            var subjects = Enumerable.Range(0, 5).Select(x => new AsyncSubject<int>()).ToArray();
+            var priorities = new[] {5,5,5,10,1,};
+            var fixture = new OperationQueue(2);
+
+            // The two at the front are solely to stop up the queue, they get subscribed 
+            // to immediately.
+            var outputs = subjects.Zip(priorities,
+                (inp, pri) => fixture.EnqueueObservableOperation(pri, () => inp).CreateCollection()) 
+                .ToArray();
+
+            var shutdown = fixture.ShutdownQueue().CreateCollection();
+            Assert.True(outputs.All(x => x.Count == 0));
+            Assert.Equal(0, shutdown.Count);
+
+            for (int i = 0; i < 4; i++) { subjects[i].OnNext(42); subjects[i].OnCompleted(); } 
+            Assert.Equal(0, shutdown.Count);
+
+            // Complete the last one, that should signal that we're shut down
+            subjects[4].OnNext(42); subjects[4].OnCompleted();
+            Assert.True(outputs.All(x => x.Count == 1));
+            Assert.Equal(1, shutdown.Count);
         }
     }
 }
