@@ -43,7 +43,7 @@ namespace Punchclock
 
         public override IObservable<Unit> EvaluateFunc()
         {
-            var ret = Func().Multicast(Result);
+            var ret = Func().TakeUntil(CancelSignal).Multicast(Result);
             ret.Connect();
 
             return ret.Select(_ => Unit.Default);
@@ -84,11 +84,15 @@ namespace Punchclock
         static int sequenceNumber = 0;
         public IObservable<T> EnqueueObservableOperation<T, TDontCare>(int priority, string key, IObservable<TDontCare> cancel, Func<IObservable<T>> asyncCalculationFunc)
         {
+            var id = Interlocked.Increment(ref sequenceNumber);
+            var cancelReplay = new ReplaySubject<TDontCare>();
+            cancel.Multicast(cancelReplay).Connect();
+
             var item = new KeyedOperation<T> {
                 Key = key,
-                Id = Interlocked.Increment(ref sequenceNumber),
+                Id = id,
                 Priority = priority,
-                CancelSignal = cancel.Select(_ => Unit.Default),
+                CancelSignal = cancelReplay.Select(_ => Unit.Default).Do(_ => Debug.WriteLine("Cancelling {0}", id)),
                 Func = asyncCalculationFunc,
             };
 
