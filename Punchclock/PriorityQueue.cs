@@ -111,7 +111,8 @@ namespace Punchclock
             }
 
             var ret = new T[_size];
-            for (int i = 0; i < _size; i++) {
+            var origSize = _size;
+            for (int i = 0; i < origSize; i++) {
                 ret[i] = Dequeue();
             }
 
