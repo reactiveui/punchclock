@@ -100,6 +100,11 @@ namespace Punchclock
             return item.Result;
         }
 
+        public IObservable<T> EnqueueObservableOperation<T>(int priority, string key, Func<IObservable<T>> asyncCalculationFunc)
+        {
+            return EnqueueObservableOperation(priority, key, Observable.Never<Unit>(), asyncCalculationFunc);
+        }
+
         public IObservable<T> EnqueueObservableOperation<T>(int priority, Func<IObservable<T>> asyncCalculationFunc)
         {
             return EnqueueObservableOperation(priority, defaultKey, Observable.Never<Unit>(), asyncCalculationFunc);
