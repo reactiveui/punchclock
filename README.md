@@ -22,17 +22,14 @@ var wc = new WebClient();
 var opQueue = new OperationQueue(2 /*at a time*/);
 
 // Download a bunch of images
-var images = new[] {
-    "foo.jpg",
-    "bar.jpg",
-    "baz.jpg",
-};
+var foo = opQueue.Enqueue(1, () => wc.DownloadFile("https://example.com/foo.jpg", "foo.jpg"));
+var bar = opQueue.Enqueue(1, () => wc.DownloadFile("https://example.com/bar.jpg", "bar.jpg"));
+var baz = opQueue.Enqueue(1, () => wc.DownloadFile("https://example.com/baz.jpg", "baz.jpg"));
+var bamf = opQueue.Enqueue(1, () => wc.DownloadFile("https://example.com/bamf.jpg", "bamf.jpg"));
 
-var downloadTasks = images.Select(name =>
-    opQueue.Enqueue(1, () => wc.DownloadFile("https://example.com/" + name, name)));
-
-// Download the images two at a time
-await Task.WaitAll(downloadTasks);
+// We'll be downloading the images two at a time, even though we started 
+// them all at once
+await Task.WaitAll(foo, bar, baz, bamf);
 ```
 
 Now, in a completely different part of your app, if you need something right
