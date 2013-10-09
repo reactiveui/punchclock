@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ReactiveUI;
 using Xunit;
+using System.Reactive;
 
 namespace Punchclock.Tests
 {
@@ -78,8 +79,8 @@ namespace Punchclock.Tests
             }
 
             // subj1,2 are live, input1,2 are in queue
-            var out1 = fixture.EnqueueObservableOperation(5, "key", () => input1).CreateCollection();
-            var out2 = fixture.EnqueueObservableOperation(5, "key", () => input2).CreateCollection();
+            var out1 = fixture.EnqueueObservableOperation(5, "key", Observable.Never<Unit>(), () => input1).CreateCollection();
+            var out2 = fixture.EnqueueObservableOperation(5, "key", Observable.Never<Unit>(), () => input2).CreateCollection();
             Assert.Equal(0, subscribeCount1);
             Assert.Equal(0, subscribeCount2);
 
