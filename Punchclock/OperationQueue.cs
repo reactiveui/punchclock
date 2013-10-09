@@ -15,6 +15,7 @@ namespace Punchclock
         public int Priority { get; set; }
         public int Id { get; set; }
         public string Key { get; set; }
+        public IObservable<Unit> CancelSignal { get; set; }
         
         public abstract IObservable<Unit> EvaluateFunc();
 
@@ -42,7 +43,7 @@ namespace Punchclock
 
         public override IObservable<Unit> EvaluateFunc()
         {
-            var ret = Func().Multicast(Result);
+            var ret = Func().TakeUntil(CancelSignal).Multicast(Result);
             ret.Connect();
 
             return ret.Select(_ => Unit.Default);
@@ -71,7 +72,7 @@ namespace Punchclock
                 .Multicast(scheduledGate).RefCount()
                 .GroupBy(x => x.Key)
                 .Select(x => {
-                    var ret = x.Select(y => ProcessOperation(y).Finally(() => scheduledGate.Release()));
+                    var ret = x.Select(y => ProcessOperation(y).TakeUntil(y.CancelSignal).Finally(() => scheduledGate.Release()));
                     return x.Key == defaultKey ? ret.Merge() : ret.Concat();
                 })
                 .Merge()
@@ -81,12 +82,17 @@ namespace Punchclock
         }
 
         static int sequenceNumber = 0;
-        public IObservable<T> EnqueueObservableOperation<T>(int priority, string key, Func<IObservable<T>> asyncCalculationFunc)
+        public IObservable<T> EnqueueObservableOperation<T, TDontCare>(int priority, string key, IObservable<TDontCare> cancel, Func<IObservable<T>> asyncCalculationFunc)
         {
+            var id = Interlocked.Increment(ref sequenceNumber);
+            var cancelReplay = new ReplaySubject<TDontCare>();
+            cancel.Multicast(cancelReplay).Connect();
+
             var item = new KeyedOperation<T> {
                 Key = key,
-                Id = Interlocked.Increment(ref sequenceNumber),
+                Id = id,
                 Priority = priority,
+                CancelSignal = cancelReplay.Select(_ => Unit.Default).Do(_ => Debug.WriteLine("Cancelling {0}", id)),
                 Func = asyncCalculationFunc,
             };
 
@@ -98,9 +104,14 @@ namespace Punchclock
             return item.Result;
         }
 
+        public IObservable<T> EnqueueObservableOperation<T>(int priority, string key, Func<IObservable<T>> asyncCalculationFunc)
+        {
+            return EnqueueObservableOperation(priority, key, Observable.Never<Unit>(), asyncCalculationFunc);
+        }
+
         public IObservable<T> EnqueueObservableOperation<T>(int priority, Func<IObservable<T>> asyncCalculationFunc)
         {
-            return EnqueueObservableOperation(priority, defaultKey, asyncCalculationFunc);
+            return EnqueueObservableOperation(priority, defaultKey, Observable.Never<Unit>(), asyncCalculationFunc);
         }
 
         public IDisposable PauseQueue()
