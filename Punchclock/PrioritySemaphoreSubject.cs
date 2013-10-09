@@ -15,12 +15,20 @@ namespace Punchclock
         readonly ISubject<T> _inner;
         PriorityQueue<T> _nextItems = new PriorityQueue<T>();
         int _count;
-        readonly int _maxCount;
+
+        int _MaximumCount;
+        public int MaximumCount {
+            get { return _MaximumCount; }
+            set {
+                _MaximumCount = value;
+                yieldUntilEmptyOrBlocked();
+            }
+        }
 
         public PrioritySemaphoreSubject(int maxCount, IScheduler sched = null)
         {
             _inner = (sched != null ? (ISubject<T>)new ScheduledSubject<T>(sched) : new Subject<T>());
-            _maxCount = maxCount;
+            MaximumCount = maxCount;
         }
 
         public void OnNext(T value)
@@ -79,7 +87,7 @@ namespace Punchclock
                 return;
             }
 
-            while (_count < _maxCount) {
+            while (_count < MaximumCount) {
                 T next;
                 lock (queue) {
                     if (queue.Count == 0) {
@@ -91,7 +99,7 @@ namespace Punchclock
 
                 _inner.OnNext(next);
 
-                if (Interlocked.Increment(ref _count) >= _maxCount) {
+                if (Interlocked.Increment(ref _count) >= MaximumCount) {
                     break;
                 }
             }
