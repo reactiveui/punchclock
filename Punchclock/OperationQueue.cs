@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
@@ -12,6 +13,7 @@ namespace Punchclock
     abstract class KeyedOperation : IComparable<KeyedOperation>
     {
         public int Priority { get; set; }
+        public int Id { get; set; }
         public string Key { get; set; }
         
         public abstract IObservable<Unit> EvaluateFunc();
@@ -26,10 +28,10 @@ namespace Punchclock
             // order to make sure that serialized keyed operations don't take 
             // up concurrency slots
             if (this.KeyIsDefault != other.KeyIsDefault) {
-                return this.KeyIsDefault ? -1 : 1;
+                return this.KeyIsDefault ? 1 : -1;
             }
 
-            return this.Priority.CompareTo(other.Priority);
+            return other.Priority.CompareTo(this.Priority);
         }
     }
 
@@ -78,15 +80,18 @@ namespace Punchclock
             resultObs.Connect();
         }
 
+        static int sequenceNumber = 0;
         public IObservable<T> EnqueueObservableOperation<T>(int priority, string key, Func<IObservable<T>> asyncCalculationFunc)
         {
             var item = new KeyedOperation<T> {
                 Key = key,
+                Id = Interlocked.Increment(ref sequenceNumber),
                 Priority = priority,
                 Func = asyncCalculationFunc,
             };
 
             lock (queuedOps) {
+                Debug.WriteLine("Queued item {0}, priority {1}", item.Id, item.Priority);
                 queuedOps.OnNext(item);
             }
 
@@ -133,6 +138,7 @@ namespace Punchclock
 
         static IObservable<KeyedOperation> ProcessOperation(KeyedOperation operation)
         {
+            Debug.WriteLine("Processing item {0}, priority {1}", operation.Id, operation.Priority);
             return Observable.Defer(operation.EvaluateFunc)
                 .Select(_ => operation)
                 .Catch(Observable.Return(operation));
