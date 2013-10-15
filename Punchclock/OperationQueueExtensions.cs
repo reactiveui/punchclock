@@ -15,14 +15,27 @@ namespace Punchclock
     {
         public static Task<T> Enqueue<T>(this OperationQueue This, int priority, string key, CancellationToken token, Func<Task<T>> asyncOperation)
         {
+            var cancel = RegisterToken(token);
+            return This.EnqueueObservableOperation(priority, key, cancel, () => asyncOperation().ToObservable()).ToTask(token);
+        }     
+        
+        public static Task Enqueue(this OperationQueue This, int priority, string key, CancellationToken token, Func<Task> asyncOperation)
+        {
+            var cancel = RegisterToken(token);
+            return This.EnqueueObservableOperation(priority, key, cancel, () => asyncOperation().ToObservable()).ToTask(token);
+        }
+  
+        private static AsyncSubject<Unit> RegisterToken(CancellationToken token)
+        {
             var cancel = new AsyncSubject<Unit>();
 
-            if (token.IsCancellationRequested) {
+            if (token.IsCancellationRequested)
+            {
                 throw new ArgumentException("Token is already cancelled");
             }
 
             token.Register(() => { cancel.OnNext(Unit.Default); cancel.OnCompleted(); });
-            return This.EnqueueObservableOperation(priority, key, cancel, () => asyncOperation().ToObservable()).ToTask(token);
+            return cancel;
         }
 
         public static Task<T> Enqueue<T>(this OperationQueue This, int priority, string key, Func<Task<T>> asyncOperation)
@@ -30,7 +43,17 @@ namespace Punchclock
             return This.EnqueueObservableOperation(priority, key, Observable.Never<Unit>(), () => asyncOperation().ToObservable()).ToTask();
         }
 
+        public static Task Enqueue(this OperationQueue This, int priority, string key, Func<Task> asyncOperation)
+        {
+            return This.EnqueueObservableOperation(priority, key, Observable.Never<Unit>(), () => asyncOperation().ToObservable()).ToTask();
+        }
+
         public static Task<T> Enqueue<T>(this OperationQueue This, int priority, Func<Task<T>> asyncOperation)
+        {
+            return This.EnqueueObservableOperation(priority, () => asyncOperation().ToObservable()).ToTask();
+        }
+
+        public static Task Enqueue(this OperationQueue This, int priority, Func<Task> asyncOperation)
         {
             return This.EnqueueObservableOperation(priority, () => asyncOperation().ToObservable()).ToTask();
         }
