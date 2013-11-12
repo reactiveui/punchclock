@@ -234,5 +234,48 @@ namespace Punchclock.Tests
             subj2.OnNext(42); subj2.OnCompleted();
             Assert.Equal(1, output.Count);
         }
+
+        [Fact]
+        public void CancellingItemsShouldntEvenBeEvaluated()
+        {
+            var subj1 = new AsyncSubject<int>();
+            var subj2 = new AsyncSubject<int>();
+
+            var fixture = new OperationQueue(2);
+
+            // Block up the queue
+            foreach (var v in new[] { subj1, subj2, }) {
+                fixture.EnqueueObservableOperation(5, () => v);
+            }
+
+            var cancel1 = new Subject<Unit>();
+            bool wasCalled = false;
+            var item1 = new AsyncSubject<int>();
+
+            var output = fixture.EnqueueObservableOperation(5, "foo", cancel1, () => {
+                wasCalled = true;
+                return item1;
+            }).CreateCollection();
+
+            // Still blocked by subj1,2
+            Assert.Equal(0, output.Count);
+            Assert.False(wasCalled);
+
+            // Still blocked by subj1,2 - however, we've cancelled foo before
+            // it even had a chance to run - if that's the case, we shouldn't 
+            // even call the evaluation func
+            cancel1.OnNext(Unit.Default); cancel1.OnCompleted();
+            Assert.Equal(0, output.Count);
+            Assert.False(wasCalled);
+
+            // Unblock subj1,2, we still shouldn't see wasCalled = true
+            subj1.OnNext(42); subj1.OnCompleted();
+            Assert.Equal(0, output.Count);
+            Assert.False(wasCalled);
+
+            subj2.OnNext(42); subj2.OnCompleted();
+            Assert.Equal(0, output.Count);
+            Assert.False(wasCalled);
+        }
     }
 }

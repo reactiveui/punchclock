@@ -12,6 +12,7 @@ namespace Punchclock
 {
     abstract class KeyedOperation : IComparable<KeyedOperation>
     {
+        public bool CancelledEarly { get; set; }
         public int Priority { get; set; }
         public int Id { get; set; }
         public string Key { get; set; }
@@ -43,6 +44,8 @@ namespace Punchclock
 
         public override IObservable<Unit> EvaluateFunc()
         {
+            if (CancelledEarly) return Observable.Empty<Unit>();
+
             var ret = Func().TakeUntil(CancelSignal).Multicast(Result);
             ret.Connect();
 
@@ -114,15 +117,21 @@ namespace Punchclock
         {
             var id = Interlocked.Increment(ref sequenceNumber);
             var cancelReplay = new ReplaySubject<TDontCare>();
-            cancel.Multicast(cancelReplay).Connect();
 
             var item = new KeyedOperation<T> {
                 Key = key,
                 Id = id,
                 Priority = priority,
-                CancelSignal = cancelReplay.Select(_ => Unit.Default).Do(_ => Debug.WriteLine("Cancelling {0}", id)),
+                CancelSignal = cancelReplay.Select(_ => Unit.Default),
                 Func = asyncCalculationFunc,
             };
+
+            cancel
+                .Do(_ => {
+                    Debug.WriteLine("Cancelling {0}", id);
+                    item.CancelledEarly = true;
+                })
+                .Multicast(cancelReplay).Connect();
 
             lock (queuedOps) {
                 Debug.WriteLine("Queued item {0}, priority {1}", item.Id, item.Priority);
