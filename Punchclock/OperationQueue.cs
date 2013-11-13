@@ -119,7 +119,7 @@ namespace Punchclock
             var cancelReplay = new ReplaySubject<TDontCare>();
 
             var item = new KeyedOperation<T> {
-                Key = key,
+                Key = key ?? OperationQueue.defaultKey,
                 Id = id,
                 Priority = priority,
                 CancelSignal = cancelReplay.Select(_ => Unit.Default),
