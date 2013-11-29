@@ -277,5 +277,104 @@ namespace Punchclock.Tests
             Assert.Equal(0, output.Count);
             Assert.False(wasCalled);
         }
+
+        [Fact]
+        public void QueueShouldRespectMaximumConcurrent()
+        {
+            var unkeyed1Subj = new AsyncSubject<int>();
+            var unkeyed1SubCount = 0;
+            var unkeyed1 = Observable.Defer(() =>
+            {
+                unkeyed1SubCount++;
+                return unkeyed1Subj;
+            });
+
+            var unkeyed2Subj = new AsyncSubject<int>();
+            var unkeyed2SubCount = 0;
+            var unkeyed2 = Observable.Defer(() =>
+            {
+                unkeyed2SubCount++;
+                return unkeyed2Subj;
+            });
+
+            var unkeyed3Subj = new AsyncSubject<int>();
+            var unkeyed3SubCount = 0;
+            var unkeyed3 = Observable.Defer(() =>
+            {
+                unkeyed3SubCount++;
+                return unkeyed3Subj;
+            });
+
+            var fixture = new OperationQueue(2);
+            Assert.Equal(0, unkeyed1SubCount);
+            Assert.Equal(0, unkeyed2SubCount);
+            Assert.Equal(0, unkeyed3SubCount);
+
+            fixture.EnqueueObservableOperation(5, () => unkeyed1);
+            fixture.EnqueueObservableOperation(5, () => unkeyed2);
+            fixture.EnqueueObservableOperation(5, () => unkeyed3);
+            Assert.Equal(1, unkeyed1SubCount);
+            Assert.Equal(1, unkeyed2SubCount);
+            Assert.Equal(0, unkeyed3SubCount);
+        }
+
+        [Fact]
+        public void ShouldBeAbleToChangeTheMaximunConcurrentValueOfAnExistingQueue()
+        {
+            var unkeyed1Subj = new AsyncSubject<int>();
+            var unkeyed1SubCount = 0;
+            var unkeyed1 = Observable.Defer(() =>
+            {
+                unkeyed1SubCount++;
+                return unkeyed1Subj;
+            });
+
+            var unkeyed2Subj = new AsyncSubject<int>();
+            var unkeyed2SubCount = 0;
+            var unkeyed2 = Observable.Defer(() =>
+            {
+                unkeyed2SubCount++;
+                return unkeyed2Subj;
+            });
+
+            var unkeyed3Subj = new AsyncSubject<int>();
+            var unkeyed3SubCount = 0;
+            var unkeyed3 = Observable.Defer(() =>
+            {
+                unkeyed3SubCount++;
+                return unkeyed3Subj;
+            });
+
+            var unkeyed4Subj = new AsyncSubject<int>();
+            var unkeyed4SubCount = 0;
+            var unkeyed4 = Observable.Defer(() =>
+            {
+                unkeyed4SubCount++;
+                return unkeyed4Subj;
+            });
+
+            var fixture = new OperationQueue(2);
+            Assert.Equal(0, unkeyed1SubCount);
+            Assert.Equal(0, unkeyed2SubCount);
+            Assert.Equal(0, unkeyed3SubCount);
+            Assert.Equal(0, unkeyed4SubCount);
+
+            fixture.EnqueueObservableOperation(5, () => unkeyed1);
+            fixture.EnqueueObservableOperation(5, () => unkeyed2);
+            fixture.EnqueueObservableOperation(5, () => unkeyed3);
+            fixture.EnqueueObservableOperation(5, () => unkeyed4);
+            
+            Assert.Equal(1, unkeyed1SubCount);
+            Assert.Equal(1, unkeyed2SubCount);
+            Assert.Equal(0, unkeyed3SubCount);
+            Assert.Equal(0, unkeyed4SubCount);
+            
+            fixture.ChangeMaximunConcurrent(3);
+            
+            Assert.Equal(1, unkeyed1SubCount);
+            Assert.Equal(1, unkeyed2SubCount);
+            Assert.Equal(1, unkeyed3SubCount);
+            Assert.Equal(0, unkeyed4SubCount);
+        }
     }
 }
