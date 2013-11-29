@@ -75,7 +75,7 @@ namespace Punchclock
         readonly Subject<KeyedOperation> queuedOps = new Subject<KeyedOperation>();
         readonly IConnectableObservable<KeyedOperation> resultObs;
         readonly PrioritySemaphoreSubject<KeyedOperation> scheduledGate;
-        readonly int maximumConcurrent;
+        int maximumConcurrent;
 
         static int sequenceNumber = 0;
         int pauseRefCount = 0;
@@ -184,6 +184,18 @@ namespace Punchclock
 
                 scheduledGate.MaximumCount = maximumConcurrent;
             });
+        }
+
+        public void ChangeMaximunConcurrent(int maximumConcurrent)
+        {
+            using (this.PauseQueue())
+            {
+                // I'm not sure this lock is needed here.
+                lock (queuedOps)
+                {
+                    this.maximumConcurrent = maximumConcurrent;
+                }
+            }
         }
 
         /// <summary>
