@@ -370,5 +370,42 @@ namespace Punchclock.Tests
             Assert.Equal(1, unkeyed3SubCount);
             Assert.Equal(0, unkeyed4SubCount);
         }
+
+        [Fact]
+        public void ShouldBeAbleToDecreaseTheMaximunConcurrentValueOfAnExistingQueue()
+        {
+            var subjects = Enumerable.Range(0, 6).Select(x => new AsyncSubject<int>()).ToArray();
+            var fixture = new OperationQueue(3);
+
+            // The three at the front are solely to stop up the queue, they get subscribed 
+            // to immediately.
+            var outputs = subjects
+                .Select(inp => fixture.EnqueueObservableOperation(5, () => inp).CreateCollection()) 
+                .ToArray();
+
+            Assert.True(
+                new[] { true, true, true, false, false, false, }.Zip(subjects,
+                (expected, subj) => new { expected, actual = subj.HasObservers, })
+                .All(x => x.expected == x.actual));
+
+            fixture.SetMaximumConcurrent(2);
+
+            // Complete the first one, the last three subjects should still have
+            // no observers because we reduced maximum concurrent
+            subjects[0].OnNext(42); subjects[0].OnCompleted();
+
+            Assert.True(
+                new[] { false, true, true, false, false, false, }.Zip(subjects,
+                (expected, subj) => new { expected, actual = subj.HasObservers, })
+                .All(x => x.expected == x.actual));
+
+            // Complete subj[1], now 2,3 are live
+            subjects[1].OnNext(42); subjects[1].OnCompleted();
+
+            Assert.True(
+                new[] { false, false, true, true, false, false, }.Zip(subjects,
+                (expected, subj) => new { expected, actual = subj.HasObservers, })
+                .All(x => x.expected == x.actual));
+        }
     }
 }
