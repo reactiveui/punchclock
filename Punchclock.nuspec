@@ -11,7 +11,7 @@
         <tags>portable, async, rx</tags>
 
         <dependencies>
-            <dependency id="Rx-Main" version="2.1.30214.0" />
+            <dependency id="Rx-Main" version="2.2.4" />
         </dependencies>
     </metadata>
 
