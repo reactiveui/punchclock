@@ -1,7 +1,7 @@
 ## Punchclock: A library for managing concurrent operations
 
 Punchclock is the low-level scheduling and prioritization library used by
-[Akavache](https://github.com/github/akavache) to orchestrate pending
+[Fusillade](https://github.com/paulcbetts/fusillade) to orchestrate pending
 concurrent operations.
 
 ### What even does that mean?
