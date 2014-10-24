@@ -1,5 +1,4 @@
-﻿// Copyright (c) Microsoft Open Technologies, Inc. All rights reserved. See 
-// License.txt in the project root for license information.
+﻿// Copyright (c) Microsoft Open Technologies, Inc. All rights reserved. See License.txt in the project root for license information.
 
 // This is https://github.com/mono/rx/blob/master/Rx/NET/Source/System.Reactive.Core/Reactive/Internal/PriorityQueue.cs
 
@@ -19,7 +18,12 @@ namespace Punchclock
         IndexedItem[] _items;
         int _size;
 
-        public PriorityQueue() : this(16) { }
+        const int DEFAULT_CAPACITY = 16;
+        
+        public PriorityQueue()
+            : this(DEFAULT_CAPACITY)
+        {
+        }
 
         public PriorityQueue(int capacity)
         {
@@ -40,7 +44,8 @@ namespace Punchclock
             if (parent < 0 || parent == index)
                 return;
 
-            if (IsHigherPriority(index, parent)) {
+            if (IsHigherPriority(index, parent))
+            {
                 var temp = _items[index];
                 _items[index] = _items[parent];
                 _items[parent] = temp;
@@ -66,8 +71,8 @@ namespace Punchclock
                 first = left;
             if (right < _size && IsHigherPriority(right, first))
                 first = right;
-
-            if (first != index) {
+            if (first != index)
+            {
                 var temp = _items[index];
                 _items[index] = _items[first];
                 _items[first] = temp;
@@ -85,12 +90,13 @@ namespace Punchclock
             return _items[0].Value;
         }
 
-        void RemoveAt(int index)
+        void RemoveAt(int index, bool single)
         {
             _items[index] = _items[--_size];
             _items[_size] = default(IndexedItem);
             Heapify();
-            if (_size < _items.Length / 4) {
+            if (_size < _items.Length / 4 && (single || _size < DEFAULT_CAPACITY))
+            {
                 var temp = _items;
                 _items = new IndexedItem[_items.Length / 2];
                 Array.Copy(temp, 0, _items, 0, _size);
@@ -100,28 +106,35 @@ namespace Punchclock
         public T Dequeue()
         {
             var result = Peek();
-            RemoveAt(0);
+            RemoveAt(0, true);
             return result;
         }
-
-        public T[] DequeueAll()
+        
+        public T[] DequeueSome(int count)
         {
-            if (_size == 0) {
+            if (count == 0) {
                 return new T[0];
             }
 
-            var ret = new T[_size];
-            var origSize = _size;
-            for (int i = 0; i < origSize; i++) {
-                ret[i] = Dequeue();
+            var ret = new T[count];
+            count = Math.Min(count, _size);
+            for (int i = 0; i < count; i++) {
+                ret[i] = Peek();
+                RemoveAt(0, false);
             }
 
             return ret;
         }
-
+        
+        public T[] DequeueAll()
+        {
+            return DequeueSome(_size);
+        }
+        
         public void Enqueue(T item)
         {
-            if (_size >= _items.Length) {
+            if (_size >= _items.Length)
+            {
                 var temp = _items;
                 _items = new IndexedItem[_items.Length * 2];
                 Array.Copy(temp, _items, temp.Length);
@@ -134,8 +147,10 @@ namespace Punchclock
 
         public bool Remove(T item)
         {
-            for (var i = 0; i < _size; ++i) {
-                if (EqualityComparer<T>.Default.Equals(_items[i].Value, item)) {
+            for (var i = 0; i < _size; ++i)
+            {
+                if (EqualityComparer<T>.Default.Equals(_items[i].Value, item))
+                {
                     RemoveAt(i);
                     return true;
                 }
