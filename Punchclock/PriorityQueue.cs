@@ -151,7 +151,7 @@ namespace Punchclock
             {
                 if (EqualityComparer<T>.Default.Equals(_items[i].Value, item))
                 {
-                    RemoveAt(i);
+                    RemoveAt(i, false);
                     return true;
                 }
             }
