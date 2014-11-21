@@ -19,7 +19,7 @@ namespace Punchclock
         int _size;
 
         const int DEFAULT_CAPACITY = 16;
-        
+
         public PriorityQueue()
             : this(DEFAULT_CAPACITY)
         {
@@ -90,6 +90,11 @@ namespace Punchclock
             return _items[0].Value;
         }
 
+        void RemoveAt(int index)
+        {
+            RemoveAt(index, true);
+        }
+
         void RemoveAt(int index, bool single)
         {
             _items[index] = _items[--_size];
@@ -109,28 +114,30 @@ namespace Punchclock
             RemoveAt(0, true);
             return result;
         }
-        
+
         public T[] DequeueSome(int count)
         {
-            if (count == 0) {
+            if (count == 0)
+            {
                 return new T[0];
             }
 
             var ret = new T[count];
             count = Math.Min(count, _size);
-            for (int i = 0; i < count; i++) {
+            for (int i = 0; i < count; i++)
+            {
                 ret[i] = Peek();
                 RemoveAt(0, false);
             }
 
             return ret;
         }
-        
+
         public T[] DequeueAll()
         {
             return DequeueSome(_size);
         }
-        
+
         public void Enqueue(T item)
         {
             if (_size >= _items.Length)
