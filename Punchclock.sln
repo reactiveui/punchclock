@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25420.1
@@ -15,7 +15,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Punchclock.nuspec = Punchclock.nuspec
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Punchclock.Tests", "Punchclock.Tests\Punchclock.Tests.csproj", "{46AEC187-D1A4-4A55-A2FA-89FCB1B76371}"
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Punchclock.Tests", "Punchclock.Tests\Punchclock.Tests.xproj", "{46AEC187-D1A4-4A55-A2FA-89FCB1B76371}"
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Punchclock", "Punchclock\Punchclock.xproj", "{F8781D0B-9E39-41FD-9D27-6B444DB958BD}"
 EndProject
