@@ -1,4 +1,4 @@
-## Punchclock: A library for managing concurrent operations
+## Punchclock: A library for managing concurrent operations [![Build status](https://ci.appveyor.com/api/projects/status/dxkektmn8p2iwwf1?svg=true)](https://ci.appveyor.com/project/ghuntley/punchclock)
 
 Punchclock is the low-level scheduling and prioritization library used by
 [Fusillade](https://github.com/paulcbetts/fusillade) to orchestrate pending
