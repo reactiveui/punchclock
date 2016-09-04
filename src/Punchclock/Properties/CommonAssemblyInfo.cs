@@ -8,6 +8,6 @@ using System.Reflection;
 [assembly: AssemblyProduct("Punchclock")]
 [assembly: AssemblyVersion("2.0.0")]
 [assembly: AssemblyFileVersion("2.0.0")]
-[assembly: AssemblyInformationalVersion("2.0.0.1472971788")]
+[assembly: AssemblyInformationalVersion("2.0.0.1472971301")]
 [assembly: AssemblyCopyright("Copyright (c) Paul Betts")]
 

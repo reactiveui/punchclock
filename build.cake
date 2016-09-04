@@ -64,17 +64,18 @@ Action<string, string> Package = (nuspec, basePath) =>
     Information("Packaging {0} using {1} as the BasePath.", nuspec, basePath);
 
     NuGetPack(nuspec, new NuGetPackSettings {
-        Authors                  = new [] { "Geoffrey Huntley" },
-        Owners                   = new [] { "ghuntley" },
+        Authors                  = new [] { "Paul Betts" },
+        Owners                   = new [] { "xpaulbettsx", "flagbug", "ghuntley" },
 
-        ProjectUrl               = new Uri("https://ghuntley.com/"),
-        IconUrl                  = new Uri("https://raw.githubusercontent.com/cake-build/graphics/master/png/cake-medium.png"),
-        LicenseUrl               = new Uri("https://opensource.org/licenses/MIT"),
-        Copyright                = "Copyright (c) Geoffrey Huntley",
+        ProjectUrl               = new Uri("https://github.com/paulcbetts/punchclock/"),
+        IconUrl                  = new Uri("https://i.imgur.com/dGub9iE.gif"),
+        LicenseUrl               = new Uri("https://github.com/paulcbetts/punchclock/blob/master/LICENSE"),
+
+        Copyright                = "Copyright (c) Paul Betts",
         RequireLicenseAcceptance = false,
 
         Version                  = semVersion,
-        Tags                     = new [] {  "Cake", "Script", "Build", "Xamarin", "iOS", "Raygun" },
+        Tags                     = new [] {  "rx", "reactive", "extensions", "observable", "async" },
         ReleaseNotes             = new List<string>(releaseNotes.Notes),
 
         Symbols                  = true,
@@ -135,7 +136,7 @@ Task("Build")
         SourceLink(solution);
     };
 
-    build("Punchclock.sln");
+    build("src/Punchclock.sln");
 });
 
 Task("UpdateAppVeyorBuildNumber")
@@ -149,27 +150,27 @@ Task("UpdateAssemblyInfo")
     .IsDependentOn("UpdateAppVeyorBuildNumber")
     .Does (() =>
 {
-    var file = "./CommonAssemblyInfo.cs";
+    var file = "./src/CommonAssemblyInfo.cs";
 
     CreateAssemblyInfo(file, new AssemblyInfoSettings {
         Product = "Punchclock",
         Version = version,
         FileVersion = version,
         InformationalVersion = semVersion,
-        Copyright = "Copyright (c) Geoffrey Huntley"
+        Copyright = "Copyright (c) Paul Betts"
     });
 });
 
 Task("RestorePackages").Does (() =>
 {
-    RestorePackages("./Punchclock.sln");
+    RestorePackages("./src/Punchclock.sln");
 });
 
 Task("RunUnitTests")
     .IsDependentOn("Build")
     .Does(() =>
 {
-    XUnit2("./Punchclock.Tests/bin/Release/Punchclock.Tests.dll", new XUnit2Settings {
+    XUnit2("./src/Punchclock.Tests/bin/Release/Punchclock.Tests.dll", new XUnit2Settings {
         OutputDirectory = artifactDirectory,
         XmlReportV1 = false,
         NoAppDomain = true
@@ -181,7 +182,7 @@ Task("Package")
 //    .IsDependentOn("RunUnitTests")
     .Does (() =>
 {
-    Package("./src/Cake.Raygun.nuspec", "./src/Punchclock");
+    Package("./src/Punchclock.nuspec", "./src/Punchclock");
 });
 
 Task("Publish")
@@ -219,7 +220,7 @@ Task("Publish")
 
         // Push the symbols
         NuGetPush(symbolsPath, new NuGetPushSettings {
-            Source = "https://www.myget.org/F/ghuntley/api/v2/package",
+            Source = source,
             ApiKey = apiKey
         });
     }
