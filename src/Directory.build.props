@@ -1,0 +1,27 @@
+<Project>
+  <PropertyGroup>
+    <Copyright>Copyright (c) Punchclock Contributors</Copyright>
+    <PackageLicenseUrl>http://opensource.org/licenses/mit</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/paulcbetts/punchclock</PackageProjectUrl>
+    <PackageIconUrl>https://i.imgur.com/dGub9iE.gif</PackageIconUrl>
+    <Authors>Punchclock Contributors</Authors>
+    <Owners>xpaulbettsx;ghuntley</Owners>
+    <PackageTags>reactive extensions;async;observable;LINQ;netstandard</PackageTags>
+    <PackageReleaseNotes>https://github.com/paulcbetts/punchclock/releases</PackageReleaseNotes>
+
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <GenerateDocumentationFile Condition=" '$(Configuration)' == 'Release' ">true</GenerateDocumentationFile>
+
+    <Platform>AnyCPU</Platform>
+    <DebugType>full</DebugType>
+    <IsTestProject>$(MSBuildProjectName.Contains('Tests'))</IsTestProject>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="MSBuild.Sdk.Extras" Version="1.1.0-beta.69" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IsTestProject)' != 'true' and '$(SourceLinkEnabled)' != 'false'">
+    <PackageReference Include="SourceLink.Create.CommandLine" Version="2.1.1" PrivateAssets="All" /> 
+  </ItemGroup>
+</Project>
