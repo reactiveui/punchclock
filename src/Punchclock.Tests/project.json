@@ -2,7 +2,7 @@
   "version": "0.0.0-*",
   "dependencies": {
     "Punchclock": "*",
-    "Splat": "1.5.1",
+    "Splat": "2.0.0",
 
     "xunit": "2.2.0-beta2-build3300"
   },

@@ -13,7 +13,7 @@
     "requireLicenseAcceptance": false
   },
   "dependencies": {
-    "System.Reactive": "3.0.0"
+    "System.Reactive": "[3.1.1,4)"
   },
 
   "frameworks": {
