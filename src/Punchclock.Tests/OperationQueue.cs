@@ -5,9 +5,11 @@ using System.Reactive.Subjects;
 using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ReactiveUI;
+using DynamicData;
 using Xunit;
 using System.Reactive;
+using DynamicData.Binding;
+using System.Reactive.Concurrency;
 
 namespace Punchclock.Tests
 {
@@ -17,19 +19,24 @@ namespace Punchclock.Tests
         public void ItemsShouldBeDispatchedByPriority()
         {
             var subjects = Enumerable.Range(0, 5).Select(x => new AsyncSubject<int>()).ToArray();
-            var priorities = new[] {5,5,5,10,1,};
+            var priorities = new[] { 5, 5, 5, 10, 1, };
             var fixture = new OperationQueue(2);
 
             // The two at the front are solely to stop up the queue, they get subscribed 
             // to immediately.
             var outputs = subjects.Zip(priorities,
-                (inp, pri) => fixture.EnqueueObservableOperation(pri, () => inp).CreateCollection()) 
-                .ToArray();
+                (inp, pri) => {
+                    fixture
+                        .EnqueueObservableOperation(pri, () => inp)
+                        .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
+                        .Bind(out var y).Subscribe();
+                    return y;
+                }).ToArray();
 
             // Alright, we've got the first two subjects taking up our two live 
             // slots, and 3,4,5 queued up. However, the order of completion should 
             // be "4,3,5" because of the priority.
-            Assert.True(outputs.All(x => x.Count == 0));
+            Assert.True(outputs.All(x => x.Count() == 0));
 
             subjects[0].OnNext(42); subjects[0].OnCompleted();
             Assert.Equal(new[] { 1, 0, 0, 0, 0, }, outputs.Select(x => x.Count));
@@ -79,8 +86,15 @@ namespace Punchclock.Tests
             }
 
             // subj1,2 are live, input1,2 are in queue
-            var out1 = fixture.EnqueueObservableOperation(5, "key", Observable.Never<Unit>(), () => input1).CreateCollection();
-            var out2 = fixture.EnqueueObservableOperation(5, "key", Observable.Never<Unit>(), () => input2).CreateCollection();
+            fixture
+                .EnqueueObservableOperation(5, "key", Observable.Never<Unit>(), () => input1)
+                .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
+                .Bind(out var out1).Subscribe();
+            fixture
+                .EnqueueObservableOperation(5, "key", Observable.Never<Unit>(), () => input2)
+                .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
+                .Bind(out var out2).Subscribe();
+
             Assert.Equal(0, subscribeCount1);
             Assert.Equal(0, subscribeCount2);
 
@@ -145,10 +159,19 @@ namespace Punchclock.Tests
             // The two at the front are solely to stop up the queue, they get subscribed 
             // to immediately.
             var outputs = subjects.Zip(priorities,
-                (inp, pri) => fixture.EnqueueObservableOperation(pri, () => inp).CreateCollection()) 
-                .ToArray();
+                (inp, pri) => {
+                    fixture
+                        .EnqueueObservableOperation(pri, () => inp)
+                        .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
+                        .Bind(out var output).Subscribe();
+                    return output;
+                }).ToArray();
 
-            var shutdown = fixture.ShutdownQueue().CreateCollection();
+            fixture
+                .ShutdownQueue()
+                .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
+                .Bind(out var shutdown).Subscribe();
+
             Assert.True(outputs.All(x => x.Count == 0));
             Assert.Equal(0, shutdown.Count);
 
@@ -167,10 +190,12 @@ namespace Punchclock.Tests
             var item = Observable.Return(42);
 
             var fixture = new OperationQueue(2);
-            var prePauseOutput = new[] {
+            new[] {
                 fixture.EnqueueObservableOperation(4, () => item),
                 fixture.EnqueueObservableOperation(4, () => item),
-            }.Merge().CreateCollection();
+            }.Merge()
+             .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
+             .Bind(out var prePauseOutput).Subscribe();
 
             Assert.Equal(2, prePauseOutput.Count);
 
@@ -178,10 +203,12 @@ namespace Punchclock.Tests
 
             // The queue is halted, but we should still eventually process these
             // once it's no longer halted
-            var pauseOutput = new[] {
+            new[] {
                 fixture.EnqueueObservableOperation(4, () => item),
                 fixture.EnqueueObservableOperation(4, () => item),
-            }.Merge().CreateCollection();
+            }.Merge()
+             .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
+             .Bind(out var pauseOutput).Subscribe();
 
             Assert.Equal(0, pauseOutput.Count);
 
@@ -210,10 +237,13 @@ namespace Punchclock.Tests
 
             var cancel1 = new Subject<Unit>();
             var item1 = new AsyncSubject<int>();
-            var output = new[] {
+            new[] {
                 fixture.EnqueueObservableOperation(5, "foo", cancel1, () => item1),
                 fixture.EnqueueObservableOperation(5, "baz", () => Observable.Return(42)),
-            }.Merge().CreateCollection();
+            }.Merge()
+             .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
+             .Bind(out var output).Subscribe();
+
 
             // Still blocked by subj1,2
             Assert.Equal(0, output.Count);
@@ -252,10 +282,11 @@ namespace Punchclock.Tests
             bool wasCalled = false;
             var item1 = new AsyncSubject<int>();
 
-            var output = fixture.EnqueueObservableOperation(5, "foo", cancel1, () => {
+            fixture.EnqueueObservableOperation(5, "foo", cancel1, () => {
                 wasCalled = true;
                 return item1;
-            }).CreateCollection();
+            }).ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
+              .Bind(out var output).Subscribe();
 
             // Still blocked by subj1,2
             Assert.Equal(0, output.Count);
@@ -380,8 +411,13 @@ namespace Punchclock.Tests
             // The three at the front are solely to stop up the queue, they get subscribed 
             // to immediately.
             var outputs = subjects
-                .Select(inp => fixture.EnqueueObservableOperation(5, () => inp).CreateCollection()) 
-                .ToArray();
+                .Select(inp => {
+                    fixture
+                        .EnqueueObservableOperation(5, () => inp)
+                        .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
+                        .Bind(out var output).Subscribe();
+                    return output;
+                }).ToArray();
 
             Assert.True(
                 new[] { true, true, true, false, false, false, }.Zip(subjects,
