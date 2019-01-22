@@ -71,11 +71,12 @@ Teardown((context) =>
 Task("Build")
     .Does (() =>
 {
-    Action<string> build = (solution) =>
-    {
-        Information("Building {0}", solution);
+    Action<string, string, bool> build = (projectFile, packageOutputPath, forceUseFullDebugType) =>
+{
+    Information("Building {0} using {1}, forceUseFullDebugType = {2}", projectFile, "", forceUseFullDebugType);
 
-        MSBuild(solution, new MSBuildSettings() {
+
+        var msBuildSettings = new MSBuildSettings() {
                 //ToolPath = msBuildPath,
                 ArgumentCustomization = args => args.Append("/bl:punchclock.binlog"),
                 MaxCpuCount = 0
@@ -88,10 +89,20 @@ Task("Build")
             // have to pass a version explicitly
             .WithProperty("Version", nugetVersion.ToString())
             .SetVerbosity(Verbosity.Minimal)
-            .SetNodeReuse(false));
-    };
+            .SetNodeReuse(false);
 
-    build("./src/Punchclock/punchclock.csproj");
+        if (forceUseFullDebugType)
+        {
+            msBuildSettings = msBuildSettings.WithProperty("DebugType",  "full");
+        }
+
+        if (!string.IsNullOrWhiteSpace(packageOutputPath))
+        {
+            msBuildSettings = msBuildSettings.WithProperty("PackageOutputPath",  MakeAbsolute(Directory(packageOutputPath)).ToString().Quote());
+        }
+
+        MSBuild("./src/Punchclock/punchclock.csproj", msBuildSettings);
+    };
 });
 
 Task("PublishPackages")
