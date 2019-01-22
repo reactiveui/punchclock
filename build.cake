@@ -39,7 +39,7 @@ var githubOwner = "reactiveui";
 var githubRepository = "punchclock";
 var githubUrl = string.Format("https://github.com/{0}/{1}", githubOwner, githubRepository);
 
-var msBuildPath = VSWhereLatest().CombineWithFilePath("./MSBuild/15.0/Bin/MSBuild.exe");
+//var msBuildPath = VSWhereLatest().CombineWithFilePath("./MSBuild/15.0/Bin/MSBuild.exe");
 
 // Version
 var gitVersion = GitVersion();
@@ -73,10 +73,10 @@ Task("Build")
 {
     Action<string> build = (solution) =>
     {
-        Information("Building {0} using {1}", solution, msBuildPath);
+        Information("Building {0}", solution);
 
         MSBuild(solution, new MSBuildSettings() {
-                ToolPath = msBuildPath,
+                //ToolPath = msBuildPath,
                 ArgumentCustomization = args => args.Append("/bl:punchclock.binlog"),
                 MaxCpuCount = 0
             }
@@ -91,7 +91,7 @@ Task("Build")
             .SetNodeReuse(false));
     };
 
-    build("./src/punchclock.sln");
+    build("./src/Punchclock/punchclock.csproj");
 });
 
 Task("PublishPackages")
