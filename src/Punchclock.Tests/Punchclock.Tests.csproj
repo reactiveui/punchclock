@@ -45,7 +45,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="DynamicData">
-      <Version>6.4.0.2419</Version>
+      <Version>6.7.1.2534</Version>
     </PackageReference>
     <PackageReference Include="System.Reactive" Version="4.0.0" />
     <PackageReference Include="System.Reactive.Compatibility">
