@@ -65,13 +65,9 @@ Teardown((context) =>
 });
 
 //////////////////////////////////////////////////////////////////////
-// TASKS
+// HELPER METHODS
 //////////////////////////////////////////////////////////////////////
-
-Task("Build")
-    .Does (() =>
-{
-    Action<string, string, bool> build = (projectFile, packageOutputPath, forceUseFullDebugType) =>
+Action<string, string, bool> Build = (projectFile, packageOutputPath, forceUseFullDebugType) =>
 {
     Information("Building {0} using {1}, forceUseFullDebugType = {2}", projectFile, "", forceUseFullDebugType);
 
@@ -101,8 +97,19 @@ Task("Build")
             msBuildSettings = msBuildSettings.WithProperty("PackageOutputPath",  MakeAbsolute(Directory(packageOutputPath)).ToString().Quote());
         }
 
-        MSBuild("./src/Punchclock/punchclock.csproj", msBuildSettings);
+        MSBuild(projectFile, msBuildSettings);
     };
+
+//////////////////////////////////////////////////////////////////////
+// TASKS
+//////////////////////////////////////////////////////////////////////
+
+
+//"./src/Punchclock/punchclock.csproj"
+Task("Build")
+    .Does (() =>
+{
+    Build("./src/Punchclock/punchclock.csproj", null, false);
 });
 
 Task("PublishPackages")
