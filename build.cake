@@ -35,6 +35,8 @@ var isRepository = StringComparer.OrdinalIgnoreCase.Equals("reactiveui/punchcloc
 var isReleaseBranch = StringComparer.OrdinalIgnoreCase.Equals("master", AppVeyor.Environment.Repository.Branch);
 var isTagged = AppVeyor.Environment.Repository.Tag.IsTag;
 
+var configuration = "Release";
+
 var githubOwner = "reactiveui";
 var githubRepository = "punchclock";
 var githubUrl = string.Format("https://github.com/{0}/{1}", githubOwner, githubRepository);
@@ -75,16 +77,18 @@ Action<string, string, bool> Build = (projectFile, packageOutputPath, forceUseFu
         var msBuildSettings = new MSBuildSettings() {
                 //ToolPath = msBuildPath,
                 ArgumentCustomization = args => args.Append("/bl:punchclock.binlog"),
-                MaxCpuCount = 0
+                MaxCpuCount = 0,
+                Restore = true
             }
             .WithTarget("restore;build;pack")
             .WithProperty("PackageOutputPath",  MakeAbsolute(Directory(artifactDirectory)).ToString())
             .WithProperty("TreatWarningsAsErrors", treatWarningsAsErrors.ToString())
-            .SetConfiguration("Release")
+            .SetConfiguration(configuration)
             // Due to https://github.com/NuGet/Home/issues/4790 and https://github.com/NuGet/Home/issues/4337 we
             // have to pass a version explicitly
             .WithProperty("Version", nugetVersion.ToString())
             .SetVerbosity(Verbosity.Minimal)
+            .UseToolVersion(MSBuildToolVersion.VS2017)
             .SetNodeReuse(false);
 
         if (forceUseFullDebugType)
@@ -104,9 +108,15 @@ Action<string, string, bool> Build = (projectFile, packageOutputPath, forceUseFu
 // TASKS
 //////////////////////////////////////////////////////////////////////
 
+Task("Clean")
+  .Does(() =>
+  {
+    CleanDirectories(string.Format("./src/**/obj/{0}", configuration));
+    CleanDirectories(string.Format("./src/**/bin/{0}", configuration));
+  });
 
-//"./src/Punchclock/punchclock.csproj"
 Task("Build")
+    .IsDependentOn("Clean")
     .Does (() =>
 {
     Build("./src/Punchclock/punchclock.csproj", null, false);
