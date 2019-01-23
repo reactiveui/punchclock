@@ -5,6 +5,11 @@
 #tool "GitReleaseManager"
 #tool "GitVersion.CommandLine"
 #tool "nuget:?package=vswhere"
+#tool "nuget:?package=OpenCover"
+#tool "nuget:?package=ReportGenerator"
+#tool "nuget:?package=xunit.runner.console"
+
+#addin nuget:?package=Cake.Coverlet
 
 //////////////////////////////////////////////////////////////////////
 // ARGUMENTS
@@ -50,8 +55,15 @@ var informationalVersion = gitVersion.InformationalVersion;
 var nugetVersion = gitVersion.NuGetVersion;
 
 // Artifacts
+// Artifacts
 var artifactDirectory = "./artifacts/";
+var testsArtifactDirectory = artifactDirectory + "tests/";
+var binariesArtifactDirectory = artifactDirectory + "binaries/";
+var packagesArtifactDirectory = artifactDirectory + "packages/";
 var packageWhitelist = new[] { "Punchclock" };
+
+// Test coverage files.
+var testCoverageOutputFile = testsArtifactDirectory + "OpenCover.xml";
 
 ///////////////////////////////////////////////////////////////////////////////
 // SETUP / TEARDOWN
@@ -59,6 +71,12 @@ var packageWhitelist = new[] { "Punchclock" };
 Setup((context) =>
 {
     Information("Building version {0} of punchclock. (isTagged: {1})", informationalVersion, isTagged);
+    
+    CreateDirectory(artifactDirectory);
+    CleanDirectories(artifactDirectory);
+    CreateDirectory(testsArtifactDirectory);
+    CreateDirectory(binariesArtifactDirectory);
+    CreateDirectory(packagesArtifactDirectory);
 });
 
 Teardown((context) =>
@@ -87,13 +105,14 @@ Action<string, string, bool> Build = (projectFile, packageOutputPath, forceUseFu
             // Due to https://github.com/NuGet/Home/issues/4790 and https://github.com/NuGet/Home/issues/4337 we
             // have to pass a version explicitly
             .WithProperty("Version", nugetVersion.ToString())
-            .SetVerbosity(Verbosity.Minimal)
+            .SetVerbosity(Verbosity.Normal)
             .UseToolVersion(MSBuildToolVersion.VS2017)
             .SetNodeReuse(false);
 
         if (forceUseFullDebugType)
         {
             msBuildSettings = msBuildSettings.WithProperty("DebugType",  "full");
+            msBuildSettings.SetConfiguration("Debug");
         }
 
         if (!string.IsNullOrWhiteSpace(packageOutputPath))
@@ -104,6 +123,14 @@ Action<string, string, bool> Build = (projectFile, packageOutputPath, forceUseFu
         MSBuild(projectFile, msBuildSettings);
     };
 
+Action Clean = () =>
+{
+    CleanDirectories(string.Format("./src/**/obj/{0}", "Release"));
+    CleanDirectories(string.Format("./src/**/bin/{0}", "Release"));
+    CleanDirectories(string.Format("./src/**/obj/{0}", "Debug"));
+    CleanDirectories(string.Format("./src/**/bin/{0}", "Debug"));
+};
+
 //////////////////////////////////////////////////////////////////////
 // TASKS
 //////////////////////////////////////////////////////////////////////
@@ -111,8 +138,7 @@ Action<string, string, bool> Build = (projectFile, packageOutputPath, forceUseFu
 Task("Clean")
   .Does(() =>
   {
-    CleanDirectories(string.Format("./src/**/obj/{0}", configuration));
-    CleanDirectories(string.Format("./src/**/bin/{0}", configuration));
+      Clean();
   });
 
 Task("Build")
@@ -122,8 +148,39 @@ Task("Build")
     Build("./src/Punchclock/punchclock.csproj", null, false);
 });
 
+Task("RunUnitTests")
+    .IsDependentOn("Build")
+    .Does(() =>
+{
+
+    var testSettings = new DotNetCoreTestSettings {
+        NoBuild = true,
+        Configuration = "Debug",
+        ResultsDirectory = testsArtifactDirectory,
+        Logger = $"trx;LogFileName=testresults.trx",
+    };
+
+    var coverletSettings = new CoverletSettings {
+        CollectCoverage = true,
+        CoverletOutputFormat = CoverletOutputFormat.opencover,
+        CoverletOutputDirectory = testsArtifactDirectory + "Report/",
+        CoverletOutputName = testCoverageOutputFile
+    };
+
+    var projectName = "./src/Punchclock.Tests/Punchclock.Tests.csproj";
+    Build(projectName, null, true);
+    DotNetCoreTest(projectName, testSettings, coverletSettings);
+
+}).ReportError(exception =>
+{
+    //var apiApprovals = GetFiles("./**/ApiApprovalTests.*");
+   // CopyFiles(apiApprovals, artifactDirectory);
+});
+
+
 Task("PublishPackages")
     .IsDependentOn("Build")
+    .IsDependentOn("RunUnitTests")
     .WithCriteria(() => !local)
     .WithCriteria(() => !isPullRequest)
     .WithCriteria(() => isRepository)
@@ -164,6 +221,7 @@ Task("PublishPackages")
 
 Task("CreateRelease")
     .IsDependentOn("Build")
+    .IsDependentOn("RunUnitTests")
     .WithCriteria(() => !local)
     .WithCriteria(() => !isPullRequest)
     .WithCriteria(() => isRepository)
@@ -193,6 +251,7 @@ Task("CreateRelease")
 
 Task("PublishRelease")
     .IsDependentOn("Build")
+    .IsDependentOn("RunUnitTests")
     .WithCriteria(() => !local)
     .WithCriteria(() => !isPullRequest)
     .WithCriteria(() => isRepository)
