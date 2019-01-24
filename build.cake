@@ -32,15 +32,11 @@ var treatWarningsAsErrors = false;
 var local = BuildSystem.IsLocalBuild;
 var isRunningOnUnix = IsRunningOnUnix();
 var isRunningOnWindows = IsRunningOnWindows();
-
 var isRunningOnAppVeyor = AppVeyor.IsRunningOnAppVeyor;
 var isPullRequest = AppVeyor.Environment.PullRequest.IsPullRequest;
 var isRepository = StringComparer.OrdinalIgnoreCase.Equals("reactiveui/punchclock", AppVeyor.Environment.Repository.Name);
-
 var isReleaseBranch = StringComparer.OrdinalIgnoreCase.Equals("master", AppVeyor.Environment.Repository.Branch);
 var isTagged = AppVeyor.Environment.Repository.Tag.IsTag;
-
-var configuration = "Release";
 
 var githubOwner = "reactiveui";
 var githubRepository = "punchclock";
@@ -55,10 +51,8 @@ var informationalVersion = gitVersion.InformationalVersion;
 var nugetVersion = gitVersion.NuGetVersion;
 
 // Artifacts
-// Artifacts
 var artifactDirectory = "./artifacts/";
 var testsArtifactDirectory = artifactDirectory + "tests/";
-var binariesArtifactDirectory = artifactDirectory + "binaries/";
 var packagesArtifactDirectory = artifactDirectory + "packages/";
 var packageWhitelist = new[] { "Punchclock" };
 
@@ -71,11 +65,10 @@ var testCoverageOutputFile = testsArtifactDirectory + "OpenCover.xml";
 Setup((context) =>
 {
     Information("Building version {0} of punchclock. (isTagged: {1})", informationalVersion, isTagged);
-    
-    CreateDirectory(artifactDirectory);
+
     CleanDirectories(artifactDirectory);
+    CreateDirectory(artifactDirectory);
     CreateDirectory(testsArtifactDirectory);
-    CreateDirectory(binariesArtifactDirectory);
     CreateDirectory(packagesArtifactDirectory);
 });
 
@@ -87,7 +80,7 @@ Teardown((context) =>
 //////////////////////////////////////////////////////////////////////
 // HELPER METHODS
 //////////////////////////////////////////////////////////////////////
-Action<string, string, bool> Build = (projectFile, packageOutputPath, forceUseFullDebugType) =>
+Action<string, string, string, bool> Build = (projectFile, packageOutputPath, configuration, forceUseFullDebugType) =>
 {
     Information("Building {0} using {1}, forceUseFullDebugType = {2}", projectFile, "", forceUseFullDebugType);
 
@@ -99,20 +92,19 @@ Action<string, string, bool> Build = (projectFile, packageOutputPath, forceUseFu
                 Restore = true
             }
             .WithTarget("restore;build;pack")
-            .WithProperty("PackageOutputPath",  MakeAbsolute(Directory(artifactDirectory)).ToString())
+            .WithProperty("PackageOutputPath",  MakeAbsolute(Directory(packagesArtifactDirectory)).ToString())
             .WithProperty("TreatWarningsAsErrors", treatWarningsAsErrors.ToString())
             .SetConfiguration(configuration)
             // Due to https://github.com/NuGet/Home/issues/4790 and https://github.com/NuGet/Home/issues/4337 we
             // have to pass a version explicitly
             .WithProperty("Version", nugetVersion.ToString())
-            .SetVerbosity(Verbosity.Normal)
+            .SetVerbosity(Verbosity.Minimal)
             .UseToolVersion(MSBuildToolVersion.VS2017)
             .SetNodeReuse(false);
 
         if (forceUseFullDebugType)
         {
             msBuildSettings = msBuildSettings.WithProperty("DebugType",  "full");
-            msBuildSettings.SetConfiguration("Debug");
         }
 
         if (!string.IsNullOrWhiteSpace(packageOutputPath))
@@ -145,14 +137,13 @@ Task("Build")
     .IsDependentOn("Clean")
     .Does (() =>
 {
-    Build("./src/Punchclock/punchclock.csproj", null, false);
+    Build("./src/punchclock.sln", null, "Release", true);
 });
 
 Task("RunUnitTests")
     .IsDependentOn("Build")
     .Does(() =>
 {
-
     var testSettings = new DotNetCoreTestSettings {
         NoBuild = true,
         Configuration = "Debug",
@@ -163,12 +154,12 @@ Task("RunUnitTests")
     var coverletSettings = new CoverletSettings {
         CollectCoverage = true,
         CoverletOutputFormat = CoverletOutputFormat.opencover,
-        CoverletOutputDirectory = testsArtifactDirectory + "Report/",
+        CoverletOutputDirectory = testsArtifactDirectory,
         CoverletOutputName = testCoverageOutputFile
     };
 
     var projectName = "./src/Punchclock.Tests/Punchclock.Tests.csproj";
-    Build(projectName, null, true);
+    Build(projectName, null, "Debug", true);
     DotNetCoreTest(projectName, testSettings, coverletSettings);
 
 }).ReportError(exception =>
@@ -176,7 +167,6 @@ Task("RunUnitTests")
     //var apiApprovals = GetFiles("./**/ApiApprovalTests.*");
    // CopyFiles(apiApprovals, artifactDirectory);
 });
-
 
 Task("PublishPackages")
     .IsDependentOn("Build")
@@ -209,7 +199,7 @@ Task("PublishPackages")
     foreach(var package in packageWhitelist)
     {
         // only push the package which was created during this build run.
-        var packagePath = artifactDirectory + File(string.Concat(package, ".", nugetVersion, ".nupkg"));
+        var packagePath = packagesArtifactDirectory + File(string.Concat(package, ".", nugetVersion, ".nupkg"));
 
         // Push the package.
         NuGetPush(packagePath, new NuGetPushSettings {
@@ -275,7 +265,7 @@ Task("PublishRelease")
     foreach(var package in packageWhitelist)
     {
         // only push the package which was created during this build run.
-        var packagePath = artifactDirectory + File(string.Concat(package, ".", nugetVersion, ".nupkg"));
+        var packagePath = packagesArtifactDirectory + File(string.Concat(package, ".", nugetVersion, ".nupkg"));
 
         GitReleaseManagerAddAssets(username, token, githubOwner, githubRepository, majorMinorPatch, packagePath);
     }
