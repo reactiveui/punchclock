@@ -1,21 +1,15 @@
 //////////////////////////////////////////////////////////////////////
-// ADDINS
-//////////////////////////////////////////////////////////////////////
-
-#addin "Cake.FileHelpers"
-#addin "Cake.Coveralls"
-#addin "Cake.PinNuGetDependency"
-
-//////////////////////////////////////////////////////////////////////
 // TOOLS
 //////////////////////////////////////////////////////////////////////
 
 #tool "GitReleaseManager"
 #tool "GitVersion.CommandLine"
-#tool "coveralls.io"
-#tool "OpenCover"
-#tool "ReportGenerator"
-#tool nuget:?package=vswhere
+#tool "nuget:?package=vswhere"
+#tool "nuget:?package=OpenCover"
+#tool "nuget:?package=ReportGenerator"
+#tool "nuget:?package=xunit.runner.console"
+
+#addin nuget:?package=Cake.Coverlet
 
 //////////////////////////////////////////////////////////////////////
 // ARGUMENTS
@@ -36,40 +30,46 @@ var treatWarningsAsErrors = false;
 
 // Build configuration
 var local = BuildSystem.IsLocalBuild;
+var isRunningOnUnix = IsRunningOnUnix();
+var isRunningOnWindows = IsRunningOnWindows();
+var isRunningOnAppVeyor = AppVeyor.IsRunningOnAppVeyor;
 var isPullRequest = AppVeyor.Environment.PullRequest.IsPullRequest;
-var isRepository = StringComparer.OrdinalIgnoreCase.Equals("paulcbetts/punchclock", AppVeyor.Environment.Repository.Name);
-
-var isDevelopBranch = StringComparer.OrdinalIgnoreCase.Equals("develop", AppVeyor.Environment.Repository.Branch);
+var isRepository = StringComparer.OrdinalIgnoreCase.Equals("reactiveui/punchclock", AppVeyor.Environment.Repository.Name);
 var isReleaseBranch = StringComparer.OrdinalIgnoreCase.Equals("master", AppVeyor.Environment.Repository.Branch);
 var isTagged = AppVeyor.Environment.Repository.Tag.IsTag;
 
-var githubOwner = "paulcbetts";
+var githubOwner = "reactiveui";
 var githubRepository = "punchclock";
 var githubUrl = string.Format("https://github.com/{0}/{1}", githubOwner, githubRepository);
-var msBuildPath = VSWhereLatest().CombineWithFilePath("./MSBuild/15.0/Bin/MSBuild.exe");
+
+//var msBuildPath = VSWhereLatest().CombineWithFilePath("./MSBuild/15.0/Bin/MSBuild.exe");
 
 // Version
 var gitVersion = GitVersion();
 var majorMinorPatch = gitVersion.MajorMinorPatch;
 var informationalVersion = gitVersion.InformationalVersion;
 var nugetVersion = gitVersion.NuGetVersion;
-var buildVersion = gitVersion.FullBuildMetaData;
 
 // Artifacts
 var artifactDirectory = "./artifacts/";
+var testsArtifactDirectory = artifactDirectory + "tests/";
+var packagesArtifactDirectory = artifactDirectory + "packages/";
 var packageWhitelist = new[] { "Punchclock" };
-var testCoverageOutputFile = artifactDirectory + "OpenCover.xml";
 
-// Macros
-Action Abort = () => { throw new Exception("a non-recoverable fatal error occurred."); };
+// Test coverage files.
+var testCoverageOutputFile = testsArtifactDirectory + "OpenCover.xml";
 
 ///////////////////////////////////////////////////////////////////////////////
 // SETUP / TEARDOWN
 ///////////////////////////////////////////////////////////////////////////////
 Setup((context) =>
 {
-    Information("Building version {0} of Punchclock. (isTagged: {1}) Nuget Version {2}", informationalVersion, isTagged, nugetVersion);
+    Information("Building version {0} of punchclock. (isTagged: {1})", informationalVersion, isTagged);
+
+    CleanDirectories(artifactDirectory);
     CreateDirectory(artifactDirectory);
+    CreateDirectory(testsArtifactDirectory);
+    CreateDirectory(packagesArtifactDirectory);
 });
 
 Teardown((context) =>
@@ -78,112 +78,102 @@ Teardown((context) =>
 });
 
 //////////////////////////////////////////////////////////////////////
-// TASKS
+// HELPER METHODS
 //////////////////////////////////////////////////////////////////////
-Task("UpdateAppVeyorBuildNumber")
-    .WithCriteria(() => AppVeyor.IsRunningOnAppVeyor)
-    .Does(() =>
+Action<string, string, string, bool> Build = (projectFile, packageOutputPath, configuration, forceUseFullDebugType) =>
 {
-    AppVeyor.UpdateBuildVersion(buildVersion);
-
-}).ReportError(exception =>
-{  
-    // When a build starts, the initial identifier is an auto-incremented value supplied by AppVeyor. 
-    // As part of the build script, this version in AppVeyor is changed to be the version obtained from
-    // GitVersion. This identifier is purely cosmetic and is used by the core team to correlate a build
-    // with the pull-request. In some circumstances, such as restarting a failed/cancelled build the
-    // identifier in AppVeyor will be already updated and default behaviour is to throw an
-    // exception/cancel the build when in fact it is safe to swallow.
-    // See https://github.com/reactiveui/ReactiveUI/issues/1262
-
-    Warning("Build with version {0} already exists.", buildVersion);
-});
+    Information("Building {0} using {1}, forceUseFullDebugType = {2}", projectFile, "", forceUseFullDebugType);
 
 
-Task("Build")
-    .Does (() =>
-{
-    Action<string> build = (solution) =>
-    {
-        Information("Building {0}", solution);
-
-
-        MSBuild(solution, new MSBuildSettings() {
-                ToolPath= msBuildPath
+        var msBuildSettings = new MSBuildSettings() {
+                //ToolPath = msBuildPath,
+                ArgumentCustomization = args => args.Append("/bl:punchclock.binlog"),
+                MaxCpuCount = 0,
+                Restore = true
             }
             .WithTarget("restore;build;pack")
-            .WithProperty("PackageOutputPath",  MakeAbsolute(Directory(artifactDirectory)).ToString())
+            .WithProperty("PackageOutputPath",  MakeAbsolute(Directory(packagesArtifactDirectory)).ToString())
             .WithProperty("TreatWarningsAsErrors", treatWarningsAsErrors.ToString())
-            .SetConfiguration("Release")          
+            .SetConfiguration(configuration)
             // Due to https://github.com/NuGet/Home/issues/4790 and https://github.com/NuGet/Home/issues/4337 we
             // have to pass a version explicitly
             .WithProperty("Version", nugetVersion.ToString())
             .SetVerbosity(Verbosity.Minimal)
-            .SetNodeReuse(false));
-			 
+            .UseToolVersion(MSBuildToolVersion.VS2017)
+            .SetNodeReuse(false);
+
+        if (forceUseFullDebugType)
+        {
+            msBuildSettings = msBuildSettings.WithProperty("DebugType",  "full");
+        }
+
+        if (!string.IsNullOrWhiteSpace(packageOutputPath))
+        {
+            msBuildSettings = msBuildSettings.WithProperty("PackageOutputPath",  MakeAbsolute(Directory(packageOutputPath)).ToString().Quote());
+        }
+
+        MSBuild(projectFile, msBuildSettings);
     };
 
-    build("./src/Punchclock.sln");
+Action Clean = () =>
+{
+    CleanDirectories(string.Format("./src/**/obj/{0}", "Release"));
+    CleanDirectories(string.Format("./src/**/bin/{0}", "Release"));
+    CleanDirectories(string.Format("./src/**/obj/{0}", "Debug"));
+    CleanDirectories(string.Format("./src/**/bin/{0}", "Debug"));
+};
+
+//////////////////////////////////////////////////////////////////////
+// TASKS
+//////////////////////////////////////////////////////////////////////
+
+Task("Clean")
+  .Does(() =>
+  {
+      Clean();
+  });
+
+Task("Build")
+    .IsDependentOn("Clean")
+    .Does (() =>
+{
+    Build("./src/punchclock.sln", null, "Release", true);
 });
 
 Task("RunUnitTests")
     .IsDependentOn("Build")
     .Does(() =>
 {
-	
-
-	 Action<ICakeContext> testAction = tool => {
-
-        tool.XUnit2("./src/Punchclock.Tests/bin/Release/**/*.Tests.dll", new XUnit2Settings {
-			OutputDirectory = artifactDirectory,
-			XmlReportV1 = true,
-			NoAppDomain = false
-		});
+    var testSettings = new DotNetCoreTestSettings {
+        NoBuild = true,
+        Configuration = "Debug",
+        ResultsDirectory = testsArtifactDirectory,
+        Logger = $"trx;LogFileName=testresults.trx",
     };
 
-    OpenCover(testAction,
-        testCoverageOutputFile,
-        new OpenCoverSettings {
-            ReturnTargetCodeOffset = 0,
-            ArgumentCustomization = args => args.Append("-mergeoutput")
-        }
-        .WithFilter("+[*]* -[*.Tests*]* -[Splat*]*")
-        .ExcludeByAttribute("*.ExcludeFromCodeCoverage*")
-        .ExcludeByFile("*/*Designer.cs;*/*.g.cs;*/*.g.i.cs;*splat/splat*"));
+    var coverletSettings = new CoverletSettings {
+        CollectCoverage = true,
+        CoverletOutputFormat = CoverletOutputFormat.opencover,
+        CoverletOutputDirectory = testsArtifactDirectory,
+        CoverletOutputName = testCoverageOutputFile
+    };
 
-    ReportGenerator(testCoverageOutputFile, artifactDirectory);
-});
+    var projectName = "./src/Punchclock.Tests/Punchclock.Tests.csproj";
+    Build(projectName, null, "Debug", true);
+    DotNetCoreTest(projectName, testSettings, coverletSettings);
 
-Task("Package")
-   .IsDependentOn("Build")
-   .IsDependentOn("RunUnitTests")
-   .IsDependentOn("PinNuGetDependencies")
-    .Does (() =>
+}).ReportError(exception =>
 {
-
-});
-
-Task("PinNuGetDependencies")
-    .Does (() =>
-{
-    // only pin whitelisted packages.
-    foreach(var package in packageWhitelist)
-    {
-        // only pin the package which was created during this build run.
-        var packagePath = artifactDirectory + File(string.Concat(package, ".", nugetVersion, ".nupkg"));
-
-        // see https://github.com/cake-contrib/Cake.PinNuGetDependency
-        PinNuGetDependency(packagePath, "punchclock");
-    }
+    //var apiApprovals = GetFiles("./**/ApiApprovalTests.*");
+   // CopyFiles(apiApprovals, artifactDirectory);
 });
 
 Task("PublishPackages")
+    .IsDependentOn("Build")
     .IsDependentOn("RunUnitTests")
-    .IsDependentOn("Package")
     .WithCriteria(() => !local)
     .WithCriteria(() => !isPullRequest)
     .WithCriteria(() => isRepository)
-    .WithCriteria(() => isDevelopBranch || isReleaseBranch)
     .Does (() =>
 {
     if (isReleaseBranch && !isTagged)
@@ -209,7 +199,7 @@ Task("PublishPackages")
     foreach(var package in packageWhitelist)
     {
         // only push the package which was created during this build run.
-        var packagePath = artifactDirectory + File(string.Concat(package, ".", nugetVersion, ".nupkg"));
+        var packagePath = packagesArtifactDirectory + File(string.Concat(package, ".", nugetVersion, ".nupkg"));
 
         // Push the package.
         NuGetPush(packagePath, new NuGetPushSettings {
@@ -220,8 +210,8 @@ Task("PublishPackages")
 });
 
 Task("CreateRelease")
+    .IsDependentOn("Build")
     .IsDependentOn("RunUnitTests")
-    .IsDependentOn("Package")
     .WithCriteria(() => !local)
     .WithCriteria(() => !isPullRequest)
     .WithCriteria(() => isRepository)
@@ -250,8 +240,8 @@ Task("CreateRelease")
 });
 
 Task("PublishRelease")
+    .IsDependentOn("Build")
     .IsDependentOn("RunUnitTests")
-    .IsDependentOn("Package")
     .WithCriteria(() => !local)
     .WithCriteria(() => !isPullRequest)
     .WithCriteria(() => isRepository)
@@ -275,7 +265,7 @@ Task("PublishRelease")
     foreach(var package in packageWhitelist)
     {
         // only push the package which was created during this build run.
-        var packagePath = artifactDirectory + File(string.Concat(package, ".", nugetVersion, ".nupkg"));
+        var packagePath = packagesArtifactDirectory + File(string.Concat(package, ".", nugetVersion, ".nupkg"));
 
         GitReleaseManagerAddAssets(username, token, githubOwner, githubRepository, majorMinorPatch, packagePath);
     }
@@ -288,13 +278,11 @@ Task("PublishRelease")
 //////////////////////////////////////////////////////////////////////
 
 Task("Default")
-    .IsDependentOn("UpdateAppVeyorBuildNumber")
     .IsDependentOn("CreateRelease")
     .IsDependentOn("PublishPackages")
     .IsDependentOn("PublishRelease")
     .Does (() =>
 {
-
 });
 
 
