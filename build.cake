@@ -9,6 +9,7 @@
 #addin "nuget:?package=Cake.FileHelpers&version=3.1.0"
 #addin "nuget:?package=Cake.Codecov&version=0.5.0"
 #addin "nuget:?package=Cake.Coverlet&version=2.2.1"
+#addin "nuget:?package=Cake.GitVersioning&version=2.3.38"
 
 //////////////////////////////////////////////////////////////////////
 // MODULES
@@ -104,17 +105,16 @@ Setup(context =>
 {
     if (!IsRunningOnWindows())
     {
-        throw new NotImplementedException("Punchclock will only build on Windows (w/Xamarin installed) because it's not possible to target UWP, WPF and Windows Forms from UNIX.");
+        throw new NotImplementedException($"{project} will only build on Windows (w/Xamarin installed) because it's not possible to target UWP, WPF and Windows Forms from UNIX.");
     }
 
-    Information("Building version {0} of Punchclock.", informationalVersion);
+    StartProcess(Context.Tools.Resolve("nbgv*").ToString(), "cloud");
+    Information($"Building version {GitVersioningGetVersion().SemVer2} of {project}.");
 
     CleanDirectories(artifactDirectory);
     CreateDirectory(testsArtifactDirectory);
     CreateDirectory(binariesArtifactDirectory);
     CreateDirectory(packagesArtifactDirectory);
-
-    StartProcess(Context.Tools.Resolve("nbgv*").ToString(), "cloud");
 });
 
 Teardown(context =>
