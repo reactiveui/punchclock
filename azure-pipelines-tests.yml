@@ -46,12 +46,12 @@ steps:
   displayName: Publish Coverage Results
   inputs:
     codeCoverageTool: 'cobertura'
-    summaryFileLocation: $(System.DefaultWorkingDirectory)\artifacts\tests\TestCoverage.xml'
-    reportDirectory: $(System.DefaultWorkingDirectory)\artifacts\tests\Report'
+    summaryFileLocation: 'artifacts\tests\TestCoverage.xml'
+    reportDirectory: 'artifacts\tests\Report'
 
 - task: PublishTestResults@2
   displayName: Publish Test Results
   inputs:
     testResultsFormat: 'VSTest'
     testResultsFiles: '**/testresults-*.trx' 
-    searchFolder: '$(System.DefaultWorkingDirectory)\artifacts\tests'
+    searchFolder: 'artifacts\tests'
