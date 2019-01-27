@@ -52,7 +52,6 @@ steps:
 - task: PublishTestResults@2
   displayName: Publish Test Results
   inputs:
-  inputs:
     testResultsFormat: 'VSTest'
     testResultsFiles: '**/testresults-*.trx' 
     searchFolder: '$(System.DefaultWorkingDirectory)\artifacts\tests'
