@@ -232,6 +232,12 @@ Task("UploadTestCoverage")
 {
     // Resolve the API key.
     var token = EnvironmentVariable("CODECOV_TOKEN");
+
+    if(EnvironmentVariable("CODECOV_TOKEN") == null)
+    {
+        throw new Exception("Codecov token not found, not sending code coverage data.");
+    }
+
     if (!string.IsNullOrEmpty(token))
     {
         Information("Upload {0} to Codecov server", testCoverageOutputFile);
