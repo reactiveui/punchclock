@@ -53,5 +53,5 @@ steps:
   displayName: Publish Test Results
   inputs:
     testResultsFormat: 'VSTest'
-    testResultsFiles: '**/testresults-*.trx' 
+    testResultsFiles: 'testresults-*.trx' 
     searchFolder: 'artifacts\tests'
