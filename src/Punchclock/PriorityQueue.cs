@@ -1,153 +1,141 @@
-﻿// Copyright (c) Microsoft Open Technologies, Inc. All rights reserved. See License.txt in the project root for license information.
-
-// This is https://github.com/mono/rx/blob/master/Rx/NET/Source/System.Reactive.Core/Reactive/Internal/PriorityQueue.cs
+﻿// Copyright (c) 2019 .NET Foundation and Contributors. All rights reserved.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for full license information.
 
 using System;
-using System.Threading;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Punchclock
 {
-    class PriorityQueue<T> where T : IComparable<T>
+    /// <summary>
+    /// A priority queue which will store items contained in order of the various priorities.
+    /// </summary>
+    /// <typeparam name="T">The type of item to store in the queue.</typeparam>
+    /// <remarks>
+    /// Based off Microsoft internal code.
+    /// Copyright (c) Microsoft Open Technologies, Inc. All rights reserved. See License.txt in the project root for license information.
+    /// This is https://github.com/mono/rx/blob/master/Rx/NET/Source/System.Reactive.Core/Reactive/Internal/PriorityQueue.cs originally.
+    /// </remarks>
+    internal class PriorityQueue<T>
+        where T : IComparable<T>
     {
-#if !NO_INTERLOCKED_64
-        static long _count = long.MinValue;
-#else
-        static int _count = int.MinValue;
-#endif
-        IndexedItem[] _items;
-        int _size;
+        private const int DefaultCapacity = 16;
 
-        const int DEFAULT_CAPACITY = 16;
-        
+#if !NO_INTERLOCKED_64
+        private static long _count = long.MinValue;
+#else
+        private static int _count = int.MinValue;
+#endif
+        private IndexedItem[] _items;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PriorityQueue{T}"/> class.
+        /// </summary>
         public PriorityQueue()
-            : this(DEFAULT_CAPACITY)
+            : this(DefaultCapacity)
         {
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PriorityQueue{T}"/> class.
+        /// </summary>
+        /// <param name="capacity">The starting capacity of the queue.</param>
         public PriorityQueue(int capacity)
         {
             _items = new IndexedItem[capacity];
-            _size = 0;
+            Count = 0;
         }
 
-        bool IsHigherPriority(int left, int right)
-        {
-            return _items[left].CompareTo(_items[right]) < 0;
-        }
+        /// <summary>
+        /// Gets the number of items inside the queue.
+        /// </summary>
+        public int Count { get; private set; }
 
-        void Percolate(int index)
-        {
-            if (index >= _size || index < 0)
-                return;
-            var parent = (index - 1) / 2;
-            if (parent < 0 || parent == index)
-                return;
-
-            if (IsHigherPriority(index, parent))
-            {
-                var temp = _items[index];
-                _items[index] = _items[parent];
-                _items[parent] = temp;
-                Percolate(parent);
-            }
-        }
-
-        void Heapify()
-        {
-            Heapify(0);
-        }
-
-        void Heapify(int index)
-        {
-            if (index >= _size || index < 0)
-                return;
-
-            var left = 2 * index + 1;
-            var right = 2 * index + 2;
-            var first = index;
-
-            if (left < _size && IsHigherPriority(left, first))
-                first = left;
-            if (right < _size && IsHigherPriority(right, first))
-                first = right;
-            if (first != index)
-            {
-                var temp = _items[index];
-                _items[index] = _items[first];
-                _items[first] = temp;
-                Heapify(first);
-            }
-        }
-
-        public int Count { get { return _size; } }
-
+        /// <summary>
+        /// Peeks at the next time available in the queue.
+        /// </summary>
+        /// <returns>The next item.</returns>
         public T Peek()
         {
-            if (_size == 0)
+            if (Count == 0)
+            {
                 throw new InvalidOperationException("There are no items in the collection");
+            }
 
             return _items[0].Value;
         }
 
-        void RemoveAt(int index, bool single)
-        {
-            _items[index] = _items[--_size];
-            _items[_size] = default(IndexedItem);
-            Heapify();
-            if (_size < _items.Length / 4 && (single || _size < DEFAULT_CAPACITY))
-            {
-                var temp = _items;
-                _items = new IndexedItem[_items.Length / 2];
-                Array.Copy(temp, 0, _items, 0, _size);
-            }
-        }
-
+        /// <summary>
+        /// Removes and returns the next item in the queue.
+        /// </summary>
+        /// <returns>The next item.</returns>
         public T Dequeue()
         {
             var result = Peek();
             RemoveAt(0, true);
             return result;
         }
-        
+
+        /// <summary>
+        /// Removes up to the specified number of items and returns those items.
+        /// </summary>
+        /// <param name="count">The maximum number of items to remove from the queue.</param>
+        /// <returns>The next items.</returns>
         public T[] DequeueSome(int count)
         {
-            if (count == 0) {
-                return new T[0];
+            if (count == 0)
+            {
+                return Array.Empty<T>();
             }
 
             var ret = new T[count];
-            count = Math.Min(count, _size);
-            for (int i = 0; i < count; i++) {
+            count = Math.Min(count, Count);
+            for (int i = 0; i < count; i++)
+            {
                 ret[i] = Peek();
                 RemoveAt(0, false);
             }
 
             return ret;
         }
-        
+
+        /// <summary>
+        /// Removes all the items currently contained within the queue and returns them.
+        /// </summary>
+        /// <returns>All the items from the queue.</returns>
         public T[] DequeueAll()
         {
-            return DequeueSome(_size);
+            return DequeueSome(Count);
         }
-        
+
+        /// <summary>
+        /// Adds a item in the correct location based on priority to the queue.
+        /// </summary>
+        /// <param name="item">The item to add.</param>
         public void Enqueue(T item)
         {
-            if (_size >= _items.Length)
+            if (Count >= _items.Length)
             {
                 var temp = _items;
                 _items = new IndexedItem[_items.Length * 2];
                 Array.Copy(temp, _items, temp.Length);
             }
 
-            var index = _size++;
+            var index = Count++;
             _items[index] = new IndexedItem { Value = item, Id = Interlocked.Increment(ref _count) };
             Percolate(index);
         }
 
+        /// <summary>
+        /// Removes the specified item from the queue.
+        /// </summary>
+        /// <param name="item">The item to remove.</param>
+        /// <returns>If the remove was successful or not.</returns>
         public bool Remove(T item)
         {
-            for (var i = 0; i < _size; ++i)
+            for (var i = 0; i < Count; ++i)
             {
                 if (EqualityComparer<T>.Default.Equals(_items[i].Value, item))
                 {
@@ -159,7 +147,82 @@ namespace Punchclock
             return false;
         }
 
-        struct IndexedItem : IComparable<IndexedItem>
+        private bool IsHigherPriority(int left, int right)
+        {
+            return _items[left].CompareTo(_items[right]) < 0;
+        }
+
+        private void Percolate(int index)
+        {
+            if (index >= Count || index < 0)
+            {
+                return;
+            }
+
+            var parent = (index - 1) / 2;
+            if (parent < 0 || parent == index)
+            {
+                return;
+            }
+
+            if (IsHigherPriority(index, parent))
+            {
+                var temp = _items[index];
+                _items[index] = _items[parent];
+                _items[parent] = temp;
+                Percolate(parent);
+            }
+        }
+
+        private void Heapify()
+        {
+            Heapify(0);
+        }
+
+        private void Heapify(int index)
+        {
+            if (index >= Count || index < 0)
+            {
+                return;
+            }
+
+            var left = (2 * index) + 1;
+            var right = (2 * index) + 2;
+            var first = index;
+
+            if (left < Count && IsHigherPriority(left, first))
+            {
+                first = left;
+            }
+
+            if (right < Count && IsHigherPriority(right, first))
+            {
+                first = right;
+            }
+
+            if (first != index)
+            {
+                var temp = _items[index];
+                _items[index] = _items[first];
+                _items[first] = temp;
+                Heapify(first);
+            }
+        }
+
+        private void RemoveAt(int index, bool single)
+        {
+            _items[index] = _items[--Count];
+            _items[Count] = default(IndexedItem);
+            Heapify();
+            if (Count < _items.Length / 4 && (single || Count < DefaultCapacity))
+            {
+                var temp = _items;
+                _items = new IndexedItem[_items.Length / 2];
+                Array.Copy(temp, 0, _items, 0, Count);
+            }
+        }
+
+        private struct IndexedItem : IComparable<IndexedItem>
         {
             public T Value;
 #if !NO_INTERLOCKED_64
@@ -172,7 +235,10 @@ namespace Punchclock
             {
                 var c = Value.CompareTo(other.Value);
                 if (c == 0)
+                {
                     c = Id.CompareTo(other.Id);
+                }
+
                 return c;
             }
         }

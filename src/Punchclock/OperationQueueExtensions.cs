@@ -1,63 +1,127 @@
-﻿using System;
+﻿// Copyright (c) 2019 .NET Foundation and Contributors. All rights reserved.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for full license information.
+
+using System;
 using System.Collections.Generic;
-using System.Reactive.Threading.Tasks;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Reactive.Linq;
 using System.Reactive;
-using System.Threading;
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Reactive.Threading.Tasks;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Punchclock
 {
+    /// <summary>
+    /// Extension methods associated with the <see cref="OperationQueue"/>.
+    /// </summary>
     public static class OperationQueueExtensions
     {
-        public static Task<T> Enqueue<T>(this OperationQueue This, int priority, string key, CancellationToken token, Func<Task<T>> asyncOperation)
+        /// <summary>
+        /// Adds a operation to the operation queue.
+        /// </summary>
+        /// <typeparam name="T">The type of item contained within our observable.</typeparam>
+        /// <param name="operationQueue">The operation queue to add our operation to.</param>
+        /// <param name="priority">The priority of operation. Higher priorities run before lower ones.</param>
+        /// <param name="key">A key to apply to the operation. Items with the same key will be run in order.</param>
+        /// <param name="asyncOperation">The async method to execute when scheduled.</param>
+        /// <param name="token">A cancellation token which if signalled, the operation will be cancelled.</param>
+        /// <returns>A task to monitor the progress.</returns>
+        public static Task<T> Enqueue<T>(this OperationQueue operationQueue, int priority, string key, Func<Task<T>> asyncOperation, CancellationToken token)
         {
-            return This.EnqueueObservableOperation(priority, key, tokenToObservable(token), () => asyncOperation().ToObservable())
+            return operationQueue.EnqueueObservableOperation(priority, key, ConvertTokenToObservable(token), () => asyncOperation().ToObservable())
                 .ToTask(token);
-        }     
-        
-        public static Task Enqueue(this OperationQueue This, int priority, string key, CancellationToken token, Func<Task> asyncOperation)
+        }
+
+        /// <summary>
+        /// Adds a operation to the operation queue.
+        /// </summary>
+        /// <param name="operationQueue">The operation queue to add our operation to.</param>
+        /// <param name="priority">The priority of operation. Higher priorities run before lower ones.</param>
+        /// <param name="key">A key to apply to the operation. Items with the same key will be run in order.</param>
+        /// <param name="asyncOperation">The async method to execute when scheduled.</param>
+        /// <param name="token">A cancellation token which if signalled, the operation will be cancelled.</param>
+        /// <returns>A task to monitor the progress.</returns>
+        public static Task Enqueue(this OperationQueue operationQueue, int priority, string key, Func<Task> asyncOperation, CancellationToken token)
         {
-            return This.EnqueueObservableOperation(priority, key, tokenToObservable(token), () => asyncOperation().ToObservable())
+            return operationQueue.EnqueueObservableOperation(priority, key, ConvertTokenToObservable(token), () => asyncOperation().ToObservable())
                 .ToTask(token);
         }
-  
-        public static Task<T> Enqueue<T>(this OperationQueue This, int priority, string key, Func<Task<T>> asyncOperation)
+
+        /// <summary>
+        /// Adds a operation to the operation queue.
+        /// </summary>
+        /// <typeparam name="T">The type of item contained within our observable.</typeparam>
+        /// <param name="operationQueue">The operation queue to add our operation to.</param>
+        /// <param name="priority">The priority of operation. Higher priorities run before lower ones.</param>
+        /// <param name="key">A key to apply to the operation. Items with the same key will be run in order.</param>
+        /// <param name="asyncOperation">The async method to execute when scheduled.</param>
+        /// <returns>A task to monitor the progress.</returns>
+        public static Task<T> Enqueue<T>(this OperationQueue operationQueue, int priority, string key, Func<Task<T>> asyncOperation)
         {
-            return This.EnqueueObservableOperation(priority, key, Observable.Never<Unit>(), () => asyncOperation().ToObservable())
+            return operationQueue.EnqueueObservableOperation(priority, key, Observable.Never<Unit>(), () => asyncOperation().ToObservable())
                 .ToTask();
         }
 
-        public static Task Enqueue(this OperationQueue This, int priority, string key, Func<Task> asyncOperation)
+        /// <summary>
+        /// Adds a operation to the operation queue.
+        /// </summary>
+        /// <param name="operationQueue">The operation queue to add our operation to.</param>
+        /// <param name="priority">The priority of operation. Higher priorities run before lower ones.</param>
+        /// <param name="key">A key to apply to the operation. Items with the same key will be run in order.</param>
+        /// <param name="asyncOperation">The async method to execute when scheduled.</param>
+        /// <returns>A task to monitor the progress.</returns>
+        public static Task Enqueue(this OperationQueue operationQueue, int priority, string key, Func<Task> asyncOperation)
         {
-            return This.EnqueueObservableOperation(priority, key, Observable.Never<Unit>(), () => asyncOperation().ToObservable())
+            return operationQueue.EnqueueObservableOperation(priority, key, Observable.Never<Unit>(), () => asyncOperation().ToObservable())
                 .ToTask();
         }
 
-        public static Task<T> Enqueue<T>(this OperationQueue This, int priority, Func<Task<T>> asyncOperation)
+        /// <summary>
+        /// Adds a operation to the operation queue.
+        /// </summary>
+        /// <typeparam name="T">The type of item contained within our observable.</typeparam>
+        /// <param name="operationQueue">The operation queue to add our operation to.</param>
+        /// <param name="priority">The priority of operation. Higher priorities run before lower ones.</param>
+        /// <param name="asyncOperation">The async method to execute when scheduled.</param>
+        /// <returns>A task to monitor the progress.</returns>
+        public static Task<T> Enqueue<T>(this OperationQueue operationQueue, int priority, Func<Task<T>> asyncOperation)
         {
-            return This.EnqueueObservableOperation(priority, () => asyncOperation().ToObservable())
+            return operationQueue.EnqueueObservableOperation(priority, () => asyncOperation().ToObservable())
                 .ToTask();
         }
 
-        public static Task Enqueue(this OperationQueue This, int priority, Func<Task> asyncOperation)
+        /// <summary>
+        /// Adds a operation to the operation queue.
+        /// </summary>
+        /// <param name="operationQueue">The operation queue to add our operation to.</param>
+        /// <param name="priority">The priority of operation. Higher priorities run before lower ones.</param>
+        /// <param name="asyncOperation">The async method to execute when scheduled.</param>
+        /// <returns>A task to monitor the progress.</returns>
+        public static Task Enqueue(this OperationQueue operationQueue, int priority, Func<Task> asyncOperation)
         {
-            return This.EnqueueObservableOperation(priority, () => asyncOperation().ToObservable())
+            return operationQueue.EnqueueObservableOperation(priority, () => asyncOperation().ToObservable())
                 .ToTask();
         }
 
-        static IObservable<Unit> tokenToObservable(CancellationToken token)
+        private static IObservable<Unit> ConvertTokenToObservable(CancellationToken token)
         {
             var cancel = new AsyncSubject<Unit>();
 
-            if (token.IsCancellationRequested) {
+            if (token.IsCancellationRequested)
+            {
                 return Observable.Throw<Unit>(new ArgumentException("Token is already cancelled"));
             }
 
-            token.Register(() => { cancel.OnNext(Unit.Default); cancel.OnCompleted(); });
+            token.Register(() =>
+            {
+                cancel.OnNext(Unit.Default);
+                cancel.OnCompleted();
+            });
             return cancel;
         }
     }

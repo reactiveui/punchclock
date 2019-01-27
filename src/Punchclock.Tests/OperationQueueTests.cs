@@ -1,4 +1,9 @@
-﻿using System;
+﻿// Copyright (c) 2019 .NET Foundation and Contributors. All rights reserved.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for full license information.
+
+using System;
 using System.Linq;
 using System.Reactive.Subjects;
 using System.Reactive.Linq;
@@ -19,10 +24,12 @@ namespace Punchclock.Tests
             var priorities = new[] { 5, 5, 5, 10, 1, };
             var fixture = new OperationQueue(2);
 
-            // The two at the front are solely to stop up the queue, they get subscribed 
+            // The two at the front are solely to stop up the queue, they get subscribed
             // to immediately.
-            var outputs = subjects.Zip(priorities,
-                (inp, pri) => {
+            var outputs = subjects.Zip(
+                priorities,
+                (inp, pri) =>
+                {
                     fixture
                         .EnqueueObservableOperation(pri, () => inp)
                         .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
@@ -30,29 +37,34 @@ namespace Punchclock.Tests
                     return y;
                 }).ToArray();
 
-            // Alright, we've got the first two subjects taking up our two live 
-            // slots, and 3,4,5 queued up. However, the order of completion should 
+            // Alright, we've got the first two subjects taking up our two live
+            // slots, and 3,4,5 queued up. However, the order of completion should
             // be "4,3,5" because of the priority.
             Assert.True(outputs.All(x => x.Count() == 0));
 
-            subjects[0].OnNext(42); subjects[0].OnCompleted();
+            subjects[0].OnNext(42);
+            subjects[0].OnCompleted();
             Assert.Equal(new[] { 1, 0, 0, 0, 0, }, outputs.Select(x => x.Count));
 
-            // 0 => completed, 1,3 => live, 2,4 => queued. Make sure 4 *doesn't* fire because 
+            // 0 => completed, 1,3 => live, 2,4 => queued. Make sure 4 *doesn't* fire because
             // the priority should invert it.
-            subjects[4].OnNext(42); subjects[4].OnCompleted();
+            subjects[4].OnNext(42);
+            subjects[4].OnCompleted();
             Assert.Equal(new[] { 1, 0, 0, 0, 0, }, outputs.Select(x => x.Count));
 
             // At the end, 0,1 => completed, 3,2 => live, 4 is queued
-            subjects[1].OnNext(42); subjects[1].OnCompleted();
+            subjects[1].OnNext(42);
+            subjects[1].OnCompleted();
             Assert.Equal(new[] { 1, 1, 0, 0, 0, }, outputs.Select(x => x.Count));
 
             // At the end, 0,1,2,4 => completed, 3 is live (remember, we completed
             // 4 early)
-            subjects[2].OnNext(42); subjects[2].OnCompleted();
+            subjects[2].OnNext(42);
+            subjects[2].OnCompleted();
             Assert.Equal(new[] { 1, 1, 1, 0, 1, }, outputs.Select(x => x.Count));
 
-            subjects[3].OnNext(42); subjects[3].OnCompleted();
+            subjects[3].OnNext(42);
+            subjects[3].OnCompleted();
             Assert.Equal(new[] { 1, 1, 1, 1, 1, }, outputs.Select(x => x.Count));
         }
 
@@ -64,13 +76,15 @@ namespace Punchclock.Tests
 
             var subscribeCount1 = 0;
             var input1Subj = new AsyncSubject<int>();
-            var input1 = Observable.Defer(() => {
+            var input1 = Observable.Defer(() =>
+            {
                 subscribeCount1++;
                 return input1Subj;
             });
             var subscribeCount2 = 0;
             var input2Subj = new AsyncSubject<int>();
-            var input2 = Observable.Defer(() => {
+            var input2 = Observable.Defer(() =>
+            {
                 subscribeCount2++;
                 return input2Subj;
             });
@@ -78,7 +92,8 @@ namespace Punchclock.Tests
             var fixture = new OperationQueue(2);
 
             // Block up the queue
-            foreach (var v in new[] { subj1, subj2, }) {
+            foreach (var v in new[] { subj1, subj2, })
+            {
                 fixture.EnqueueObservableOperation(5, () => v);
             }
 
@@ -95,24 +110,28 @@ namespace Punchclock.Tests
             Assert.Equal(0, subscribeCount1);
             Assert.Equal(0, subscribeCount2);
 
-            // Dispatch both subj1 and subj2, we should end up with input1 live, 
+            // Dispatch both subj1 and subj2, we should end up with input1 live,
             // but input2 in queue because of the key
-            subj1.OnNext(42); subj1.OnCompleted();
-            subj2.OnNext(42); subj2.OnCompleted();
+            subj1.OnNext(42);
+            subj1.OnCompleted();
+            subj2.OnNext(42);
+            subj2.OnCompleted();
             Assert.Equal(1, subscribeCount1);
             Assert.Equal(0, subscribeCount2);
             Assert.Equal(0, out1.Count);
             Assert.Equal(0, out2.Count);
 
             // Dispatch input1, input2 can now execute
-            input1Subj.OnNext(42); input1Subj.OnCompleted();
+            input1Subj.OnNext(42);
+            input1Subj.OnCompleted();
             Assert.Equal(1, subscribeCount1);
             Assert.Equal(1, subscribeCount2);
             Assert.Equal(1, out1.Count);
             Assert.Equal(0, out2.Count);
 
             // Dispatch input2, everything is finished
-            input2Subj.OnNext(42); input2Subj.OnCompleted();
+            input2Subj.OnNext(42);
+            input2Subj.OnCompleted();
             Assert.Equal(1, subscribeCount1);
             Assert.Equal(1, subscribeCount2);
             Assert.Equal(1, out1.Count);
@@ -124,14 +143,16 @@ namespace Punchclock.Tests
         {
             var unkeyed1Subj = new AsyncSubject<int>();
             var unkeyed1SubCount = 0;
-            var unkeyed1 = Observable.Defer(() => {
+            var unkeyed1 = Observable.Defer(() =>
+            {
                 unkeyed1SubCount++;
                 return unkeyed1Subj;
             });
 
             var unkeyed2Subj = new AsyncSubject<int>();
             var unkeyed2SubCount = 0;
-            var unkeyed2 = Observable.Defer(() => {
+            var unkeyed2 = Observable.Defer(() =>
+            {
                 unkeyed2SubCount++;
                 return unkeyed2Subj;
             });
@@ -150,13 +171,15 @@ namespace Punchclock.Tests
         public void ShutdownShouldSignalOnceEverythingCompletes()
         {
             var subjects = Enumerable.Range(0, 5).Select(x => new AsyncSubject<int>()).ToArray();
-            var priorities = new[] {5,5,5,10,1,};
+            var priorities = new[] { 5, 5, 5, 10, 1, };
             var fixture = new OperationQueue(2);
 
-            // The two at the front are solely to stop up the queue, they get subscribed 
+            // The two at the front are solely to stop up the queue, they get subscribed
             // to immediately.
-            var outputs = subjects.Zip(priorities,
-                (inp, pri) => {
+            var outputs = subjects.Zip(
+                priorities,
+                (inp, pri) =>
+                {
                     fixture
                         .EnqueueObservableOperation(pri, () => inp)
                         .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
@@ -172,11 +195,17 @@ namespace Punchclock.Tests
             Assert.True(outputs.All(x => x.Count == 0));
             Assert.Equal(0, shutdown.Count);
 
-            for (int i = 0; i < 4; i++) { subjects[i].OnNext(42); subjects[i].OnCompleted(); } 
+            for (int i = 0; i < 4; i++)
+            {
+                subjects[i].OnNext(42);
+                subjects[i].OnCompleted();
+            }
+
             Assert.Equal(0, shutdown.Count);
 
             // Complete the last one, that should signal that we're shut down
-            subjects[4].OnNext(42); subjects[4].OnCompleted();
+            subjects[4].OnNext(42);
+            subjects[4].OnCompleted();
             Assert.True(outputs.All(x => x.Count == 1));
             Assert.Equal(1, shutdown.Count);
         }
@@ -187,7 +216,8 @@ namespace Punchclock.Tests
             var item = Observable.Return(42);
 
             var fixture = new OperationQueue(2);
-            new[] {
+            new[]
+            {
                 fixture.EnqueueObservableOperation(4, () => item),
                 fixture.EnqueueObservableOperation(4, () => item),
             }.Merge()
@@ -200,7 +230,8 @@ namespace Punchclock.Tests
 
             // The queue is halted, but we should still eventually process these
             // once it's no longer halted
-            new[] {
+            new[]
+            {
                 fixture.EnqueueObservableOperation(4, () => item),
                 fixture.EnqueueObservableOperation(4, () => item),
             }.Merge()
@@ -228,37 +259,42 @@ namespace Punchclock.Tests
             var fixture = new OperationQueue(2);
 
             // Block up the queue
-            foreach (var v in new[] { subj1, subj2, }) {
+            foreach (var v in new[] { subj1, subj2, })
+            {
                 fixture.EnqueueObservableOperation(5, () => v);
             }
 
             var cancel1 = new Subject<Unit>();
             var item1 = new AsyncSubject<int>();
-            new[] {
+            new[]
+            {
                 fixture.EnqueueObservableOperation(5, "foo", cancel1, () => item1),
                 fixture.EnqueueObservableOperation(5, "baz", () => Observable.Return(42)),
             }.Merge()
              .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
              .Bind(out var output).Subscribe();
 
-
             // Still blocked by subj1,2
             Assert.Equal(0, output.Count);
 
             // Still blocked by subj1,2, only baz is in queue
-            cancel1.OnNext(Unit.Default); cancel1.OnCompleted();
+            cancel1.OnNext(Unit.Default);
+            cancel1.OnCompleted();
             Assert.Equal(0, output.Count);
 
             // foo was cancelled, baz is still good
-            subj1.OnNext(42); subj1.OnCompleted();
+            subj1.OnNext(42);
+            subj1.OnCompleted();
             Assert.Equal(1, output.Count);
 
             // don't care that cancelled item finished
-            item1.OnNext(42); item1.OnCompleted();
+            item1.OnNext(42);
+            item1.OnCompleted();
             Assert.Equal(1, output.Count);
 
             // still shouldn't see anything
-            subj2.OnNext(42); subj2.OnCompleted();
+            subj2.OnNext(42);
+            subj2.OnCompleted();
             Assert.Equal(1, output.Count);
         }
 
@@ -271,7 +307,8 @@ namespace Punchclock.Tests
             var fixture = new OperationQueue(2);
 
             // Block up the queue
-            foreach (var v in new[] { subj1, subj2, }) {
+            foreach (var v in new[] { subj1, subj2, })
+            {
                 fixture.EnqueueObservableOperation(5, () => v);
             }
 
@@ -279,7 +316,8 @@ namespace Punchclock.Tests
             bool wasCalled = false;
             var item1 = new AsyncSubject<int>();
 
-            fixture.EnqueueObservableOperation(5, "foo", cancel1, () => {
+            fixture.EnqueueObservableOperation(5, "foo", cancel1, () =>
+            {
                 wasCalled = true;
                 return item1;
             }).ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
@@ -290,18 +328,21 @@ namespace Punchclock.Tests
             Assert.False(wasCalled);
 
             // Still blocked by subj1,2 - however, we've cancelled foo before
-            // it even had a chance to run - if that's the case, we shouldn't 
+            // it even had a chance to run - if that's the case, we shouldn't
             // even call the evaluation func
-            cancel1.OnNext(Unit.Default); cancel1.OnCompleted();
+            cancel1.OnNext(Unit.Default);
+            cancel1.OnCompleted();
             Assert.Equal(0, output.Count);
             Assert.False(wasCalled);
 
             // Unblock subj1,2, we still shouldn't see wasCalled = true
-            subj1.OnNext(42); subj1.OnCompleted();
+            subj1.OnNext(42);
+            subj1.OnCompleted();
             Assert.Equal(0, output.Count);
             Assert.False(wasCalled);
 
-            subj2.OnNext(42); subj2.OnCompleted();
+            subj2.OnNext(42);
+            subj2.OnCompleted();
             Assert.Equal(0, output.Count);
             Assert.False(wasCalled);
         }
@@ -311,21 +352,24 @@ namespace Punchclock.Tests
         {
             var unkeyed1Subj = new AsyncSubject<int>();
             var unkeyed1SubCount = 0;
-            var unkeyed1 = Observable.Defer(() => {
+            var unkeyed1 = Observable.Defer(() =>
+            {
                 unkeyed1SubCount++;
                 return unkeyed1Subj;
             });
 
             var unkeyed2Subj = new AsyncSubject<int>();
             var unkeyed2SubCount = 0;
-            var unkeyed2 = Observable.Defer(() => {
+            var unkeyed2 = Observable.Defer(() =>
+            {
                 unkeyed2SubCount++;
                 return unkeyed2Subj;
             });
 
             var unkeyed3Subj = new AsyncSubject<int>();
             var unkeyed3SubCount = 0;
-            var unkeyed3 = Observable.Defer(() => {
+            var unkeyed3 = Observable.Defer(() =>
+            {
                 unkeyed3SubCount++;
                 return unkeyed3Subj;
             });
@@ -349,28 +393,32 @@ namespace Punchclock.Tests
         {
             var unkeyed1Subj = new AsyncSubject<int>();
             var unkeyed1SubCount = 0;
-            var unkeyed1 = Observable.Defer(() => {
+            var unkeyed1 = Observable.Defer(() =>
+            {
                 unkeyed1SubCount++;
                 return unkeyed1Subj;
             });
 
             var unkeyed2Subj = new AsyncSubject<int>();
             var unkeyed2SubCount = 0;
-            var unkeyed2 = Observable.Defer(() => {
+            var unkeyed2 = Observable.Defer(() =>
+            {
                 unkeyed2SubCount++;
                 return unkeyed2Subj;
             });
 
             var unkeyed3Subj = new AsyncSubject<int>();
             var unkeyed3SubCount = 0;
-            var unkeyed3 = Observable.Defer(() => {
+            var unkeyed3 = Observable.Defer(() =>
+            {
                 unkeyed3SubCount++;
                 return unkeyed3Subj;
             });
 
             var unkeyed4Subj = new AsyncSubject<int>();
             var unkeyed4SubCount = 0;
-            var unkeyed4 = Observable.Defer(() => {
+            var unkeyed4 = Observable.Defer(() =>
+            {
                 unkeyed4SubCount++;
                 return unkeyed4Subj;
             });
@@ -385,14 +433,14 @@ namespace Punchclock.Tests
             fixture.EnqueueObservableOperation(5, () => unkeyed2);
             fixture.EnqueueObservableOperation(5, () => unkeyed3);
             fixture.EnqueueObservableOperation(5, () => unkeyed4);
-            
+
             Assert.Equal(1, unkeyed1SubCount);
             Assert.Equal(1, unkeyed2SubCount);
             Assert.Equal(0, unkeyed3SubCount);
             Assert.Equal(0, unkeyed4SubCount);
-            
+
             fixture.SetMaximumConcurrent(3);
-            
+
             Assert.Equal(1, unkeyed1SubCount);
             Assert.Equal(1, unkeyed2SubCount);
             Assert.Equal(1, unkeyed3SubCount);
@@ -405,10 +453,11 @@ namespace Punchclock.Tests
             var subjects = Enumerable.Range(0, 6).Select(x => new AsyncSubject<int>()).ToArray();
             var fixture = new OperationQueue(3);
 
-            // The three at the front are solely to stop up the queue, they get subscribed 
+            // The three at the front are solely to stop up the queue, they get subscribed
             // to immediately.
             var outputs = subjects
-                .Select(inp => {
+                .Select(inp =>
+                {
                     fixture
                         .EnqueueObservableOperation(5, () => inp)
                         .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
@@ -417,27 +466,32 @@ namespace Punchclock.Tests
                 }).ToArray();
 
             Assert.True(
-                new[] { true, true, true, false, false, false, }.Zip(subjects,
-                (expected, subj) => new { expected, actual = subj.HasObservers, })
+                new[] { true, true, true, false, false, false, }.Zip(
+                    subjects,
+                    (expected, subj) => new { expected, actual = subj.HasObservers, })
                 .All(x => x.expected == x.actual));
 
             fixture.SetMaximumConcurrent(2);
 
             // Complete the first one, the last three subjects should still have
             // no observers because we reduced maximum concurrent
-            subjects[0].OnNext(42); subjects[0].OnCompleted();
+            subjects[0].OnNext(42);
+            subjects[0].OnCompleted();
 
             Assert.True(
-                new[] { false, true, true, false, false, false, }.Zip(subjects,
-                (expected, subj) => new { expected, actual = subj.HasObservers, })
+                new[] { false, true, true, false, false, false, }.Zip(
+                    subjects,
+                    (expected, subj) => new { expected, actual = subj.HasObservers, })
                 .All(x => x.expected == x.actual));
 
             // Complete subj[1], now 2,3 are live
-            subjects[1].OnNext(42); subjects[1].OnCompleted();
+            subjects[1].OnNext(42);
+            subjects[1].OnCompleted();
 
             Assert.True(
-                new[] { false, false, true, true, false, false, }.Zip(subjects,
-                (expected, subj) => new { expected, actual = subj.HasObservers, })
+                new[] { false, false, true, true, false, false, }.Zip(
+                    subjects,
+                    (expected, subj) => new { expected, actual = subj.HasObservers, })
                 .All(x => x.expected == x.actual));
         }
     }
