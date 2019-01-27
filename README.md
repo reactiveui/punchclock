@@ -1,4 +1,13 @@
-## Punchclock: A library for managing concurrent operations [![Build status](https://ci.appveyor.com/api/projects/status/dxkektmn8p2iwwf1?svg=true)](https://ci.appveyor.com/project/ghuntley/punchclock)
+[![NuGet Stats](https://img.shields.io/nuget/v/punchclock.svg)](https://www.nuget.org/packages/punchclock) <!-- [![Build Status](https://dev.azure.com/dotnet/ReactiveUI/_apis/build/status/ReactiveUI-CI)](https://dev.azure.com/dotnet/ReactiveUI/_build/latest?definitionId=11)-->
+ [![Code Coverage](https://codecov.io/gh/reactiveui/punchclock/branch/master/graph/badge.svg)](https://codecov.io/gh/reactiveui/punchclock) [![#yourfirstpr](https://img.shields.io/badge/first--timers--only-friendly-blue.svg)](https://reactiveui.net/contribute) 
+[![Dependabot Status](https://api.dependabot.com/badges/status?host=github&repo=reactiveui/punchclock)](https://dependabot.com)
+<br>
+<a href="https://www.nuget.org/packages/punchclock"><img src="https://img.shields.io/nuget/dt/punchclock.svg"></a>
+<a href="#backers"><img src="https://opencollective.com/reactiveui/backers/badge.svg"></a>
+<a href="#sponsors"><img src="https://opencollective.com/reactiveui/sponsors/badge.svg"></a>
+<a href="https://reactiveui.net/slack"><img src="https://img.shields.io/badge/chat-slack-blue.svg"></a>
+
+## Punchclock: A library for managing concurrent operations
 
 Punchclock is the low-level scheduling and prioritization library used by
 [Fusillade](https://github.com/paulcbetts/fusillade) to orchestrate pending
