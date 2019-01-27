@@ -30,20 +30,6 @@ steps:
     CODECOV_TOKEN: $(CODECOV_TOKEN)
     ArtifactDirectory: $(System.DefaultWorkingDirectory)\Artifacts
 
-- task: PublishTestResults@2
-  displayName: Publish Test Results
-  inputs:
-    testResultsFormat: 'VSTest'
-    testResultsFiles: '**/testresults-*.trx' 
-    searchFolder: '$(System.DefaultWorkingDirectory)\artifacts\tests'
-
-- task: PublishCodeCoverageResults@1
-  displayName: Publish Coverage Results
-  inputs:
-    codeCoverageTool: 'cobertura'
-    summaryFileLocation: $(System.DefaultWorkingDirectory)\artifacts\tests\TestCoverage*.xml'
-    reportDirectory: $(System.DefaultWorkingDirectory)\artifacts\tests\Report'
-
 - task: CopyFiles@2
   inputs:
     Contents: 'artifacts/packages/*.nupkg'
