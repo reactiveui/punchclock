@@ -78,7 +78,7 @@ var treatWarningsAsErrors = false;
 // Build configuration
 var local = BuildSystem.IsLocalBuild;
 var isPullRequest = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("SYSTEM_PULLREQUEST_PULLREQUESTNUMBER"));
-var isRepository = StringComparer.OrdinalIgnoreCase.Equals("reactiveui/spalt", TFBuild.Environment.Repository.RepoName);
+var isRepository = StringComparer.OrdinalIgnoreCase.Equals("reactiveui/punchcard", TFBuild.Environment.Repository.RepoName);
 
 var msBuildPath = VSWhereLatest().CombineWithFilePath("./MSBuild/15.0/Bin/MSBuild.exe");
 
