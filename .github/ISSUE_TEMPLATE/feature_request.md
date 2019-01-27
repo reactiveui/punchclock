@@ -7,9 +7,9 @@ assignees: ''
 
 ---
 
-Please note although we can't commit to any timeline, priority will be given to those who are [Contributors](https://github.com/reactiveui/ReactiveUI#contribute ) to the project.
+Please note although we can't commit to any timeline, priority will be given to those who are [Contributors](https://github.com/reactiveui/punchclock#contribute ) to the project.
 
-If this is a question please ask on [StackOverflow](https://stackoverflow.com/questions/tagged/reactiveui).
+If this is a question please ask on [StackOverflow](https://stackoverflow.com/questions/tagged/punchclock).
 
 **Is your feature request related to a problem? Please describe.**
 A clear and concise description of what the problem is.
