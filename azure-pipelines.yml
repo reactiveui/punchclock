@@ -27,7 +27,7 @@ steps:
   env:
     SIGNCLIENT_SECRET: $(SignClientSecret)
     SIGNCLIENT_USER: $(SignClientUser)
-    COVERALLS_TOKEN: $(COVERALLS_TOKEN)
+    CODECOV_TOKEN: $(CODECOV_TOKEN)
     ArtifactDirectory: $(System.DefaultWorkingDirectory)\Artifacts
 
 - task: PublishTestResults@2
