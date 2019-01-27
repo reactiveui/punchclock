@@ -110,6 +110,7 @@ Setup(context =>
 
     StartProcess(Context.Tools.Resolve("nbgv*").ToString(), "cloud");
     Information($"Building version {GitVersioningGetVersion().SemVer2} of {project}.");
+    Information($"Building on pull request {isPullRequest} of {TFBuild.Environment.Repository.RepoName}.");
 
     CleanDirectories(artifactDirectory);
     CreateDirectory(testsArtifactDirectory);
