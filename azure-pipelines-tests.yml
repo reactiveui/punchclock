@@ -9,7 +9,7 @@ pr:
 - preview/*
 
 pool:
-  vmImage: vs2017-win2016
+  name: Default
 
 steps:
 - task: DotNetCoreInstaller@0
