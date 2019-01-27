@@ -41,17 +41,18 @@ steps:
     pathToPublish: '$(build.artifactstagingdirectory)\Tests'
     artifactType: container
     artifactName: Tests
-    
+
 - task: PublishCodeCoverageResults@1
   displayName: Publish Coverage Results
   inputs:
     codeCoverageTool: 'cobertura'
-    summaryFileLocation: $(build.artifactstagingdirectory)\artifacts\tests\TestCoverage*.xml'
-    reportDirectory: $(build.artifactstagingdirectory)\artifacts\tests\Report'
-    
+    summaryFileLocation: $(System.DefaultWorkingDirectory)\artifacts\tests\TestCoverage.xml'
+    reportDirectory: $(System.DefaultWorkingDirectory)\artifacts\tests\Report'
+
 - task: PublishTestResults@2
   displayName: Publish Test Results
   inputs:
+  inputs:
     testResultsFormat: 'VSTest'
     testResultsFiles: '**/testresults-*.trx' 
-    searchFolder: '$(build.artifactstagingdirectory)\artifacts\tests'    
+    searchFolder: '$(System.DefaultWorkingDirectory)\artifacts\tests'
