@@ -297,7 +297,7 @@ Task("Package")
 
 Task("Default")
     .IsDependentOn("Package")
-    .IsDependentOn("UploadTestCoverage")
+    .IsDependentOn("RunUnitTests")
     .Does (() =>
 {
 });
