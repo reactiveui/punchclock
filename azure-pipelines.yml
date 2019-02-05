@@ -27,6 +27,7 @@ steps:
   env:
     SIGNCLIENT_SECRET: $(SignClientSecret)
     SIGNCLIENT_USER: $(SignClientUser)
+    CODECOV_TOKEN: $(CODECOV_TOKEN)
     ArtifactDirectory: $(System.DefaultWorkingDirectory)\Artifacts
 
 - task: CopyFiles@2
