@@ -5,7 +5,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/reactiveui/punchclock</PackageProjectUrl>
     <PackageIconUrl>https://github.com/reactiveui/styleguide/blob/master/logo/main.png?raw=true</PackageIconUrl>
-    <Owners>xpaulbettsx;ghuntley</Owners>
+    <Owners>xanaisbettsx;ghuntley</Owners>
     <PackageTags>reactive extensions;async;observable;LINQ;netstandard</PackageTags>
     <PackageReleaseNotes>https://github.com/reactiveui/punchclock/releases</PackageReleaseNotes>
     <RepositoryUrl>https://github.com/reactiveui/punchclock</RepositoryUrl>
