@@ -1,6 +1,5 @@
 <Project>
   <PropertyGroup>
-    <Product>Punchclock ($(TargetFramework))</Product>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);VSX1000</NoWarn>
     <Platform>AnyCPU</Platform>
