@@ -24,9 +24,9 @@ namespace Punchclock
 
         public int Id { get; set; }
 
-        public string Key { get; set; }
+        public string? Key { get; set; }
 
-        public IObservable<Unit> CancelSignal { get; set; }
+        public IObservable<Unit>? CancelSignal { get; set; }
 
         public bool KeyIsDefault => string.IsNullOrEmpty(Key) || Key == OperationQueue.DefaultKey;
 
@@ -49,12 +49,17 @@ namespace Punchclock
     [SuppressMessage("StyleCop.CSharp.MaintainabilityRules", "SA1402:File may only contain a single type", Justification = "Generic implementation of same class name.")]
     internal class KeyedOperation<T> : KeyedOperation
     {
-        public Func<IObservable<T>> Func { get; set; }
+        public Func<IObservable<T>>? Func { get; set; }
 
         public ReplaySubject<T> Result { get; } = new ReplaySubject<T>();
 
         public override IObservable<Unit> EvaluateFunc()
         {
+            if (Func == null)
+            {
+                return Observable.Empty<Unit>();
+            }
+
             if (CancelledEarly)
             {
                 return Observable.Empty<Unit>();

@@ -18,12 +18,12 @@ namespace Punchclock
     /// <typeparam name="T">The type of item to emit.</typeparam>
     internal class ScheduledSubject<T> : ISubject<T>, IDisposable
     {
-        private readonly IObserver<T> _defaultObserver;
+        private readonly IObserver<T>? _defaultObserver;
         private readonly IScheduler _scheduler;
         private readonly Subject<T> _subject = new Subject<T>();
 
         private int _observerRefCount;
-        private IDisposable _defaultObserverSub;
+        private IDisposable? _defaultObserverSub;
         private bool _isDisposed;
 
         /// <summary>
@@ -31,7 +31,7 @@ namespace Punchclock
         /// </summary>
         /// <param name="scheduler">The scheduler to emit items on.</param>
         /// <param name="defaultObserver">A default observable which will get values if no other subscribes.</param>
-        public ScheduledSubject(IScheduler scheduler, IObserver<T> defaultObserver = null)
+        public ScheduledSubject(IScheduler scheduler, IObserver<T>? defaultObserver = null)
         {
             _scheduler = scheduler;
             _defaultObserver = defaultObserver;
@@ -61,7 +61,7 @@ namespace Punchclock
         }
 
         /// <inheritdoc />
-        public IDisposable Subscribe(IObserver<T> observer)
+        public IDisposable Subscribe(IObserver<T>? observer)
         {
             if (_defaultObserverSub != null)
             {
@@ -103,6 +103,7 @@ namespace Punchclock
             if (isDisposing)
             {
                 _subject?.Dispose();
+                _defaultObserverSub?.Dispose();
             }
 
             _isDisposed = true;

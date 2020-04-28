@@ -24,7 +24,7 @@ namespace Punchclock
         /// </summary>
         /// <param name="maxCount">The maximum number of items to allow.</param>
         /// <param name="sched">The scheduler to use when emitting the items.</param>
-        public PrioritySemaphoreSubject(int maxCount, IScheduler sched = null)
+        public PrioritySemaphoreSubject(int maxCount, IScheduler? sched = null)
         {
             _inner = sched != null ? (ISubject<T>)new ScheduledSubject<T>(sched) : new Subject<T>();
             MaximumCount = maxCount;
@@ -46,7 +46,7 @@ namespace Punchclock
         /// <inheritdoc />
         public void OnNext(T value)
         {
-            var queue = Interlocked.CompareExchange(ref _nextItems, null, null);
+            var queue = Interlocked.CompareExchange(ref _nextItems, null!, null!);
             if (queue == null)
             {
                 return;
@@ -72,7 +72,7 @@ namespace Punchclock
         /// <inheritdoc />
         public void OnCompleted()
         {
-            var queue = Interlocked.Exchange(ref _nextItems, null);
+            var queue = Interlocked.Exchange(ref _nextItems, null!);
             if (queue == null)
             {
                 return;
@@ -95,7 +95,7 @@ namespace Punchclock
         /// <inheritdoc />
         public void OnError(Exception error)
         {
-            Interlocked.Exchange(ref _nextItems, null);
+            Interlocked.Exchange(ref _nextItems, null!);
             _inner.OnError(error);
         }
 
@@ -107,7 +107,7 @@ namespace Punchclock
 
         private void YieldUntilEmptyOrBlocked()
         {
-            var queue = Interlocked.CompareExchange(ref _nextItems, null, null);
+            var queue = Interlocked.CompareExchange(ref _nextItems, null!, null!);
 
             if (queue == null)
             {

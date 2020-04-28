@@ -40,7 +40,7 @@ namespace Punchclock.Tests
             // Alright, we've got the first two subjects taking up our two live
             // slots, and 3,4,5 queued up. However, the order of completion should
             // be "4,3,5" because of the priority.
-            Assert.True(outputs.All(x => x.Count() == 0));
+            Assert.True(outputs.All(x => x.Count == 0));
 
             subjects[0].OnNext(42);
             subjects[0].OnCompleted();

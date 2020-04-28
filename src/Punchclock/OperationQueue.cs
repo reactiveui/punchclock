@@ -41,7 +41,7 @@ namespace Punchclock
         private int _pauseRefCount;
         private bool _isDisposed;
 
-        private AsyncSubject<Unit> _shutdownObs;
+        private AsyncSubject<Unit>? _shutdownObs;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OperationQueue"/> class.
