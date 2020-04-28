@@ -1,8 +1,15 @@
 <Project>
   <PropertyGroup>
+    <Copyright>Copyright (c) .NET Foundation and Contributors</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/reactiveui/punchclock/</PackageProjectUrl>
+    <Authors>.NET Foundation and Contributors</Authors>
+    <Owners>xpaulbettsx;ghuntley</Owners>
     <NoWarn>$(NoWarn);VSX1000</NoWarn>
     <Platform>AnyCPU</Platform>
-    <IsTestProject>$(MSBuildProjectName.Contains('Tests'))</IsTestProject>
+    <Description>Make sure your asynchronous operations show up to work on time</Description>
+    <PackageReleaseNotes>https://github.com/reactiveui/punchclock/releases</PackageReleaseNotes>
+    <RepositoryUrl>https://github.com/reactiveui/punchclock</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)analyzers.ruleset</CodeAnalysisRuleSet>
@@ -31,7 +38,7 @@
     <PackageReference Include="Xunit.StaFact" Version="0.3.18" />
     <PackageReference Include="Shouldly" Version=" 3.0.2" />
     <PackageReference Include="Microsoft.Reactive.Testing" Version="4.4.1" />
-    <PackageReference Include="PublicApiGenerator" Version="8.1.0" />
+    <PackageReference Include="PublicApiGenerator" Version="10.0.2" />
   </ItemGroup>
   <ItemGroup Condition="$(IsTestProject)">
     <Compile Include="$(MSBuildThisFileDirectory)ApiGeneratorGlobalSuppressions.cs" />
@@ -50,7 +57,7 @@
 
   <ItemGroup>
     <PackageReference Include="stylecop.analyzers" Version="1.1.118" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.6.3" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.0.0" PrivateAssets="all" />
     <PackageReference Include="Roslynator.Analyzers" Version="2.3.0" PrivateAssets="All" />
   </ItemGroup>
   <ItemGroup>

@@ -33,6 +33,11 @@ namespace Punchclock
         /// <returns>A task to monitor the progress.</returns>
         public static Task<T> Enqueue<T>(this OperationQueue operationQueue, int priority, string key, Func<Task<T>> asyncOperation, CancellationToken token)
         {
+            if (operationQueue == null)
+            {
+                throw new ArgumentNullException(nameof(operationQueue));
+            }
+
             return operationQueue.EnqueueObservableOperation(priority, key, ConvertTokenToObservable(token), () => asyncOperation().ToObservable())
                 .ToTask(token);
         }
@@ -48,6 +53,11 @@ namespace Punchclock
         /// <returns>A task to monitor the progress.</returns>
         public static Task Enqueue(this OperationQueue operationQueue, int priority, string key, Func<Task> asyncOperation, CancellationToken token)
         {
+            if (operationQueue == null)
+            {
+                throw new ArgumentNullException(nameof(operationQueue));
+            }
+
             return operationQueue.EnqueueObservableOperation(priority, key, ConvertTokenToObservable(token), () => asyncOperation().ToObservable())
                 .ToTask(token);
         }
@@ -63,6 +73,11 @@ namespace Punchclock
         /// <returns>A task to monitor the progress.</returns>
         public static Task<T> Enqueue<T>(this OperationQueue operationQueue, int priority, string key, Func<Task<T>> asyncOperation)
         {
+            if (operationQueue == null)
+            {
+                throw new ArgumentNullException(nameof(operationQueue));
+            }
+
             return operationQueue.EnqueueObservableOperation(priority, key, Observable.Never<Unit>(), () => asyncOperation().ToObservable())
                 .ToTask();
         }
@@ -77,6 +92,11 @@ namespace Punchclock
         /// <returns>A task to monitor the progress.</returns>
         public static Task Enqueue(this OperationQueue operationQueue, int priority, string key, Func<Task> asyncOperation)
         {
+            if (operationQueue == null)
+            {
+                throw new ArgumentNullException(nameof(operationQueue));
+            }
+
             return operationQueue.EnqueueObservableOperation(priority, key, Observable.Never<Unit>(), () => asyncOperation().ToObservable())
                 .ToTask();
         }
@@ -91,6 +111,11 @@ namespace Punchclock
         /// <returns>A task to monitor the progress.</returns>
         public static Task<T> Enqueue<T>(this OperationQueue operationQueue, int priority, Func<Task<T>> asyncOperation)
         {
+            if (operationQueue == null)
+            {
+                throw new ArgumentNullException(nameof(operationQueue));
+            }
+
             return operationQueue.EnqueueObservableOperation(priority, () => asyncOperation().ToObservable())
                 .ToTask();
         }
@@ -104,6 +129,11 @@ namespace Punchclock
         /// <returns>A task to monitor the progress.</returns>
         public static Task Enqueue(this OperationQueue operationQueue, int priority, Func<Task> asyncOperation)
         {
+            if (operationQueue == null)
+            {
+                throw new ArgumentNullException(nameof(operationQueue));
+            }
+
             return operationQueue.EnqueueObservableOperation(priority, () => asyncOperation().ToObservable())
                 .ToTask();
         }

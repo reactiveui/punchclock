@@ -1,4 +1,4 @@
-[assembly: System.Runtime.Versioning.TargetFrameworkAttribute(".NETStandard,Version=v2.0", FrameworkDisplayName="")]
+[assembly: System.Runtime.Versioning.TargetFramework(".NETStandard,Version=v2.0", FrameworkDisplayName="")]
 namespace Punchclock
 {
     public class OperationQueue : System.IDisposable
@@ -6,20 +6,20 @@ namespace Punchclock
         public OperationQueue(int maximumConcurrent = 4) { }
         public void Dispose() { }
         protected virtual void Dispose(bool isDisposing) { }
-        public System.IObservable<T> EnqueueObservableOperation<T, TDontCare>(int priority, string key, System.IObservable<TDontCare> cancel, System.Func<System.IObservable<T>> asyncCalculationFunc) { }
-        public System.IObservable<T> EnqueueObservableOperation<T>(int priority, string key, System.Func<System.IObservable<T>> asyncCalculationFunc) { }
         public System.IObservable<T> EnqueueObservableOperation<T>(int priority, System.Func<System.IObservable<T>> asyncCalculationFunc) { }
+        public System.IObservable<T> EnqueueObservableOperation<T>(int priority, string key, System.Func<System.IObservable<T>> asyncCalculationFunc) { }
+        public System.IObservable<T> EnqueueObservableOperation<T, TDontCare>(int priority, string key, System.IObservable<TDontCare> cancel, System.Func<System.IObservable<T>> asyncCalculationFunc) { }
         public System.IDisposable PauseQueue() { }
         public void SetMaximumConcurrent(int maximumConcurrent) { }
         public System.IObservable<System.Reactive.Unit> ShutdownQueue() { }
     }
-    public class static OperationQueueExtensions
+    public static class OperationQueueExtensions
     {
-        public static System.Threading.Tasks.Task<T> Enqueue<T>(this Punchclock.OperationQueue operationQueue, int priority, string key, System.Func<System.Threading.Tasks.Task<T>> asyncOperation, System.Threading.CancellationToken token) { }
-        public static System.Threading.Tasks.Task Enqueue(this Punchclock.OperationQueue operationQueue, int priority, string key, System.Func<System.Threading.Tasks.Task> asyncOperation, System.Threading.CancellationToken token) { }
-        public static System.Threading.Tasks.Task<T> Enqueue<T>(this Punchclock.OperationQueue operationQueue, int priority, string key, System.Func<System.Threading.Tasks.Task<T>> asyncOperation) { }
-        public static System.Threading.Tasks.Task Enqueue(this Punchclock.OperationQueue operationQueue, int priority, string key, System.Func<System.Threading.Tasks.Task> asyncOperation) { }
-        public static System.Threading.Tasks.Task<T> Enqueue<T>(this Punchclock.OperationQueue operationQueue, int priority, System.Func<System.Threading.Tasks.Task<T>> asyncOperation) { }
         public static System.Threading.Tasks.Task Enqueue(this Punchclock.OperationQueue operationQueue, int priority, System.Func<System.Threading.Tasks.Task> asyncOperation) { }
+        public static System.Threading.Tasks.Task Enqueue(this Punchclock.OperationQueue operationQueue, int priority, string key, System.Func<System.Threading.Tasks.Task> asyncOperation) { }
+        public static System.Threading.Tasks.Task Enqueue(this Punchclock.OperationQueue operationQueue, int priority, string key, System.Func<System.Threading.Tasks.Task> asyncOperation, System.Threading.CancellationToken token) { }
+        public static System.Threading.Tasks.Task<T> Enqueue<T>(this Punchclock.OperationQueue operationQueue, int priority, System.Func<System.Threading.Tasks.Task<T>> asyncOperation) { }
+        public static System.Threading.Tasks.Task<T> Enqueue<T>(this Punchclock.OperationQueue operationQueue, int priority, string key, System.Func<System.Threading.Tasks.Task<T>> asyncOperation) { }
+        public static System.Threading.Tasks.Task<T> Enqueue<T>(this Punchclock.OperationQueue operationQueue, int priority, string key, System.Func<System.Threading.Tasks.Task<T>> asyncOperation, System.Threading.CancellationToken token) { }
     }
 }

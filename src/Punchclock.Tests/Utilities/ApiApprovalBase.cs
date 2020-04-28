@@ -41,7 +41,7 @@ namespace Punchclock.Tests
                 approvedPublicApi = File.ReadAllText(approvedFileName);
             }
 
-            var receivedPublicApi = Filter(ApiGenerator.GeneratePublicApi(assembly));
+            var receivedPublicApi = Filter(ApiGenerator.GeneratePublicApi(assembly, null));
 
             if (!string.Equals(receivedPublicApi, approvedPublicApi, StringComparison.InvariantCulture))
             {
