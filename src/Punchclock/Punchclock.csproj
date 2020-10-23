@@ -6,10 +6,6 @@
     <LangVersion>latest</LangVersion>
     <WarningsAsErrors>CS8625;CS8604;CS8600;CS8614;CS8603;CS8618;CS8619</WarningsAsErrors>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <Optimize>true</Optimize>
-    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
-  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="System.Reactive" Version="4.4.1" />

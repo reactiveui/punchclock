@@ -5,18 +5,24 @@
 
 using System;
 using System.Linq;
-using System.Reactive.Subjects;
-using System.Reactive.Linq;
-using DynamicData;
-using Xunit;
 using System.Reactive;
-using DynamicData.Binding;
 using System.Reactive.Concurrency;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
+using DynamicData;
+using DynamicData.Binding;
+using Xunit;
 
 namespace Punchclock.Tests
 {
+    /// <summary>
+    /// Tests for the operation queue.
+    /// </summary>
     public class OperationQueueTests
     {
+        /// <summary>
+        /// Checks to make sure that items are dispatched based on their priority.
+        /// </summary>
         [Fact]
         public void ItemsShouldBeDispatchedByPriority()
         {
@@ -68,6 +74,9 @@ namespace Punchclock.Tests
             Assert.Equal(new[] { 1, 1, 1, 1, 1, }, outputs.Select(x => x.Count));
         }
 
+        /// <summary>
+        /// Checks to make sure that keyed items are serialized.
+        /// </summary>
         [Fact]
         public void KeyedItemsShouldBeSerialized()
         {
@@ -118,26 +127,29 @@ namespace Punchclock.Tests
             subj2.OnCompleted();
             Assert.Equal(1, subscribeCount1);
             Assert.Equal(0, subscribeCount2);
-            Assert.Equal(0, out1.Count);
-            Assert.Equal(0, out2.Count);
+            Assert.Empty(out1);
+            Assert.Empty(out2);
 
             // Dispatch input1, input2 can now execute
             input1Subj.OnNext(42);
             input1Subj.OnCompleted();
             Assert.Equal(1, subscribeCount1);
             Assert.Equal(1, subscribeCount2);
-            Assert.Equal(1, out1.Count);
-            Assert.Equal(0, out2.Count);
+            Assert.Single(out1);
+            Assert.Empty(out2);
 
             // Dispatch input2, everything is finished
             input2Subj.OnNext(42);
             input2Subj.OnCompleted();
             Assert.Equal(1, subscribeCount1);
             Assert.Equal(1, subscribeCount2);
-            Assert.Equal(1, out1.Count);
-            Assert.Equal(1, out2.Count);
+            Assert.Single(out1);
+            Assert.Single(out2);
         }
 
+        /// <summary>
+        /// Checks to make sure that non key items are run in parallel.
+        /// </summary>
         [Fact]
         public void NonkeyedItemsShouldRunInParallel()
         {
@@ -167,6 +179,9 @@ namespace Punchclock.Tests
             Assert.Equal(1, unkeyed2SubCount);
         }
 
+        /// <summary>
+        /// Checks to make sure that shutdown signals once everything completes.
+        /// </summary>
         [Fact]
         public void ShutdownShouldSignalOnceEverythingCompletes()
         {
@@ -193,7 +208,7 @@ namespace Punchclock.Tests
                 .Bind(out var shutdown).Subscribe();
 
             Assert.True(outputs.All(x => x.Count == 0));
-            Assert.Equal(0, shutdown.Count);
+            Assert.Empty(shutdown);
 
             for (int i = 0; i < 4; i++)
             {
@@ -201,15 +216,18 @@ namespace Punchclock.Tests
                 subjects[i].OnCompleted();
             }
 
-            Assert.Equal(0, shutdown.Count);
+            Assert.Empty(shutdown);
 
             // Complete the last one, that should signal that we're shut down
             subjects[4].OnNext(42);
             subjects[4].OnCompleted();
             Assert.True(outputs.All(x => x.Count == 1));
-            Assert.Equal(1, shutdown.Count);
+            Assert.Single(shutdown);
         }
 
+        /// <summary>
+        /// Checks to make sure that the queue holds items until unpaused.
+        /// </summary>
         [Fact]
         public void PausingTheQueueShouldHoldItemsUntilUnpaused()
         {
@@ -238,18 +256,21 @@ namespace Punchclock.Tests
              .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
              .Bind(out var pauseOutput).Subscribe();
 
-            Assert.Equal(0, pauseOutput.Count);
+            Assert.Empty(pauseOutput);
 
             var unpause2 = fixture.PauseQueue();
-            Assert.Equal(0, pauseOutput.Count);
+            Assert.Empty(pauseOutput);
 
             unpause1.Dispose();
-            Assert.Equal(0, pauseOutput.Count);
+            Assert.Empty(pauseOutput);
 
             unpause2.Dispose();
             Assert.Equal(2, pauseOutput.Count);
         }
 
+        /// <summary>
+        /// Checks that cancelling items should not result in them being returned.
+        /// </summary>
         [Fact]
         public void CancellingItemsShouldNotResultInThemBeingReturned()
         {
@@ -275,29 +296,32 @@ namespace Punchclock.Tests
              .Bind(out var output).Subscribe();
 
             // Still blocked by subj1,2
-            Assert.Equal(0, output.Count);
+            Assert.Empty(output);
 
             // Still blocked by subj1,2, only baz is in queue
             cancel1.OnNext(Unit.Default);
             cancel1.OnCompleted();
-            Assert.Equal(0, output.Count);
+            Assert.Empty(output);
 
             // foo was cancelled, baz is still good
             subj1.OnNext(42);
             subj1.OnCompleted();
-            Assert.Equal(1, output.Count);
+            Assert.Single(output);
 
             // don't care that cancelled item finished
             item1.OnNext(42);
             item1.OnCompleted();
-            Assert.Equal(1, output.Count);
+            Assert.Single(output);
 
             // still shouldn't see anything
             subj2.OnNext(42);
             subj2.OnCompleted();
-            Assert.Equal(1, output.Count);
+            Assert.Single(output);
         }
 
+        /// <summary>
+        /// Checks that the cancelling of items, that the items won't be evaluated.
+        /// </summary>
         [Fact]
         public void CancellingItemsShouldntEvenBeEvaluated()
         {
@@ -324,7 +348,7 @@ namespace Punchclock.Tests
               .Bind(out var output).Subscribe();
 
             // Still blocked by subj1,2
-            Assert.Equal(0, output.Count);
+            Assert.Empty(output);
             Assert.False(wasCalled);
 
             // Still blocked by subj1,2 - however, we've cancelled foo before
@@ -332,21 +356,24 @@ namespace Punchclock.Tests
             // even call the evaluation func
             cancel1.OnNext(Unit.Default);
             cancel1.OnCompleted();
-            Assert.Equal(0, output.Count);
+            Assert.Empty(output);
             Assert.False(wasCalled);
 
             // Unblock subj1,2, we still shouldn't see wasCalled = true
             subj1.OnNext(42);
             subj1.OnCompleted();
-            Assert.Equal(0, output.Count);
+            Assert.Empty(output);
             Assert.False(wasCalled);
 
             subj2.OnNext(42);
             subj2.OnCompleted();
-            Assert.Equal(0, output.Count);
+            Assert.Empty(output);
             Assert.False(wasCalled);
         }
 
+        /// <summary>
+        /// Checks to make sure the queue respects maximum concurrency.
+        /// </summary>
         [Fact]
         public void QueueShouldRespectMaximumConcurrent()
         {
@@ -388,6 +415,9 @@ namespace Punchclock.Tests
             Assert.Equal(0, unkeyed3SubCount);
         }
 
+        /// <summary>
+        /// Checks to see if the maximum concurrency is increased that the existing queue adapts.
+        /// </summary>
         [Fact]
         public void ShouldBeAbleToIncreaseTheMaximunConcurrentValueOfAnExistingQueue()
         {
@@ -447,6 +477,9 @@ namespace Punchclock.Tests
             Assert.Equal(0, unkeyed4SubCount);
         }
 
+        /// <summary>
+        /// Checks to make sure that decreasing the maximum concurrency the queue adapts.
+        /// </summary>
         [Fact]
         public void ShouldBeAbleToDecreaseTheMaximunConcurrentValueOfAnExistingQueue()
         {
