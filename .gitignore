@@ -267,3 +267,5 @@ __pycache__/
 tools/
 
 punchclock.binlog
+
+src/*.Tests/**/ApiApprovalTests*.received.txt
