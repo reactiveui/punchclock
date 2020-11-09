@@ -2,6 +2,11 @@
  [![Code Coverage](https://codecov.io/gh/reactiveui/punchclock/branch/main/graph/badge.svg)](https://codecov.io/gh/reactiveui/punchclock) [![#yourfirstpr](https://img.shields.io/badge/first--timers--only-friendly-blue.svg)](https://reactiveui.net/contribute) 
 <br>
 
+<br />
+<a href="https://github.com/reactiveui/punchclock">
+  <img width="120" heigth="120" src="https://raw.githubusercontent.com/reactiveui/styleguide/master/logo_punchclock/main.png">
+</a>
+
 ## Punchclock: A library for managing concurrent operations
 
 Punchclock is the low-level scheduling and prioritization library used by
