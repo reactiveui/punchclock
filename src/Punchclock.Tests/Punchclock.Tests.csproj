@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DynamicData" Version="6.*" />
+    <PackageReference Include="DynamicData" Version="7.*" />
     <PackageReference Include="splat" Version="9.*" />
   </ItemGroup>
 
