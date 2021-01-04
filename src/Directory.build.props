@@ -21,6 +21,7 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <!-- Optional: Include PDB in the built .nupkg -->
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+    <PackageIconUrl>https://raw.githubusercontent.com/reactiveui/styleguide/master/logo_punchclock/main.png?raw=true</PackageIconUrl>
   </PropertyGroup>
 
   <PropertyGroup Condition="$(IsTestProject)">
