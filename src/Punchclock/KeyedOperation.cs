@@ -65,7 +65,8 @@ namespace Punchclock
                 return Observable.Empty<Unit>();
             }
 
-            var ret = Func().TakeUntil(CancelSignal).Multicast(Result);
+            var signal = CancelSignal ?? Observable.Empty<Unit>();
+            var ret = Func().TakeUntil(signal).Multicast(Result);
             ret.Connect();
 
             return ret.Select(_ => Unit.Default);
