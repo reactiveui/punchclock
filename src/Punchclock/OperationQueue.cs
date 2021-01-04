@@ -57,7 +57,10 @@ namespace Punchclock
                 .GroupBy(x => x.Key)
                 .Select(x =>
                 {
-                    var ret = x.Select(y => ProcessOperation(y).TakeUntil(y.CancelSignal).Finally(() => _scheduledGate.Release()));
+                    var ret = x.Select(
+                        y => ProcessOperation(y)
+                            .TakeUntil(y.CancelSignal ?? Observable.Empty<Unit>())
+                            .Finally(() => _scheduledGate.Release()));
                     return x.Key == DefaultKey ? ret.Merge() : ret.Concat();
                 })
                 .Merge()
@@ -206,8 +209,8 @@ namespace Punchclock
                 _resultObs.Materialize()
                     .Where(x => x.Kind != NotificationKind.OnNext)
                     .SelectMany(x =>
-                        (x.Kind == NotificationKind.OnError) ?
-                            Observable.Throw<Unit>(x.Exception) :
+                        x.Kind == NotificationKind.OnError ?
+                            Observable.Throw<Unit>(x.Exception!) :
                             Observable.Return(Unit.Default))
                     .Multicast(_shutdownObs)
                     .Connect();
