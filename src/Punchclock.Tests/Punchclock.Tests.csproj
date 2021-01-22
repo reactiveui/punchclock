@@ -7,7 +7,7 @@
 
   <ItemGroup>
     <PackageReference Include="DynamicData" Version="7.*" />
-    <PackageReference Include="splat" Version="9.*" />
+    <PackageReference Include="splat" Version="10.*" />
   </ItemGroup>
 
   <ItemGroup>
