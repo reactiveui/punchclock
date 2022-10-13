@@ -69,6 +69,6 @@ Punchclock is developed under an OSI-approved open source license, making it fre
 So here's to you, lovely person who wants to join us — this is how you can support us:
 
 * [Responding to questions on StackOverflow](https://stackoverflow.com/questions/tagged/punchclock)
-* [Passing on knowledge and teaching the next generation of developers](http://ericsink.com/entries/dont_use_rxui.html)
+* [Passing on knowledge and teaching the next generation of developers](https://ericsink.com/entries/dont_use_rxui.html)
 * Submitting documentation updates where you see fit or lacking.
 * Making contributions to the code base.
