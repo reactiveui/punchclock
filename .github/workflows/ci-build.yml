@@ -1,27 +1,25 @@
-name: Build
+name: Merge-Build
 
 on:
   push:
     branches: [ main ]
   pull_request:
-    types: [opened, synchronize, reopened, closed]
     branches: [ main ]
 
 env:
-  configuration: Release
   productNamespacePrefix: "Punchclock"
 
+permissions:
+  contents: read
+
 jobs:
-  release:
-    uses: reactiveui/actions-common/.github/workflows/workflow-common-release.yml@main
+  build:
+    permissions:
+      contents: none
+    uses: reactiveui/actions-common/.github/workflows/workflow-common-setup-and-build.yml@main
     with:
       configuration: Release
       productNamespacePrefix: "Punchclock"
       useVisualStudioPreview: false
       useMauiCheckDotNetTool: false
       solutionFile: "Punchclock.sln"
-    secrets:
-      SIGN_CLIENT_USER_ID: ${{ secrets.SIGN_CLIENT_USER_ID }}
-      SIGN_CLIENT_SECRET: ${{ secrets.SIGN_CLIENT_SECRET }}
-      SIGN_CLIENT_CONFIG: ${{ secrets.SIGN_CLIENT_CONFIG }}
-      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
