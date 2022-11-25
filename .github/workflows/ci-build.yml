@@ -1,4 +1,4 @@
-name: Merge-Build
+name: build
 
 on:
   push:
