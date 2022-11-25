@@ -25,4 +25,3 @@ jobs:
       installWorkflows: false
       installWindowsSdk: false
       dotNetBuild: true
-      solutionFile: "Punchclock.sln"
