@@ -7,6 +7,7 @@
 		<Owners>xpaulbettsx;ghuntley</Owners>
 		<NoWarn>$(NoWarn);VSX1000</NoWarn>
 		<Platform>AnyCPU</Platform>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Description>Make sure your asynchronous operations show up to work on time</Description>
 		<PackageReleaseNotes>https://github.com/reactiveui/punchclock/releases</PackageReleaseNotes>
 		<RepositoryUrl>https://github.com/reactiveui/punchclock</RepositoryUrl>
@@ -25,6 +26,7 @@
 
 		<EnableNETAnalyzers>True</EnableNETAnalyzers>
 		<AnalysisLevel>latest</AnalysisLevel>
+		<LangVersion>preview</LangVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="$(IsTestProject)">
@@ -33,13 +35,13 @@
 
 	<ItemGroup Condition="$(IsTestProject)">
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.2" />
-		<PackageReference Include="xunit" Version="2.5.1" />
-		<PackageReference Include="xunit.runner.console" Version="2.5.2" />
+		<PackageReference Include="xunit" Version="2.6.0" />
+		<PackageReference Include="xunit.runner.console" Version="2.6.0" />
 		<PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
 		<PackageReference Include="Xunit.SkippableFact" Version="1.4.13" />
 		<PackageReference Include="Xunit.StaFact" Version="1.1.11" />
 		<PackageReference Include="FluentAssertions" Version="6.12.0" />
-		<PackageReference Include="DiffEngine" Version="12.3.0" />
+		<PackageReference Include="DiffEngine" Version="12.4.1" />
 		<PackageReference Include="PublicApiGenerator" Version="11.0.0" />
 		<PackageReference Include="coverlet.msbuild" Version="6.0.0">
 			<PrivateAssets>all</PrivateAssets>
@@ -53,6 +55,7 @@
 
 	<ItemGroup>
 		<None Include="$(MSBuildThisFileDirectory)..\LICENSE" Pack="true" PackagePath="LICENSE" />
+		<None Include="$(MSBuildThisFileDirectory)..\README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -61,7 +64,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="stylecop.analyzers" Version="1.2.0-beta.507" PrivateAssets="all" />
-		<PackageReference Include="Roslynator.Analyzers" Version="4.6.0" PrivateAssets="All" />
+		<PackageReference Include="Roslynator.Analyzers" Version="4.6.1" PrivateAssets="All" />
 	</ItemGroup>
 
 	<ItemGroup>
