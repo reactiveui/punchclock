@@ -3,7 +3,6 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <PackageId>Punchclock</PackageId>
     <Nullable>enable</Nullable>
-    <LangVersion>latest</LangVersion>
     <WarningsAsErrors>CS8625;CS8604;CS8600;CS8614;CS8603;CS8618;CS8619</WarningsAsErrors>
   </PropertyGroup>
 
