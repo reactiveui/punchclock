@@ -81,7 +81,7 @@ internal class PriorityQueue<T>(int capacity)
     {
         if (count == 0)
         {
-            return Array.Empty<T>();
+            return [];
         }
 
         var ret = new T[count];
