@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2021 .NET Foundation and Contributors. All rights reserved.
+﻿// Copyright (c) 2024 .NET Foundation and Contributors. All rights reserved.
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
@@ -99,10 +99,7 @@ internal class PriorityQueue<T>(int capacity)
     /// Removes all the items currently contained within the queue and returns them.
     /// </summary>
     /// <returns>All the items from the queue.</returns>
-    public T[] DequeueAll()
-    {
-        return DequeueSome(Count);
-    }
+    public T[] DequeueAll() => DequeueSome(Count);
 
     /// <summary>
     /// Adds a item in the correct location based on priority to the queue.
@@ -141,10 +138,7 @@ internal class PriorityQueue<T>(int capacity)
         return false;
     }
 
-    private bool IsHigherPriority(int left, int right)
-    {
-        return _items[left].CompareTo(_items[right]) < 0;
-    }
+    private bool IsHigherPriority(int left, int right) => _items[left].CompareTo(_items[right]) < 0;
 
     private void Percolate(int index)
     {
@@ -166,10 +160,7 @@ internal class PriorityQueue<T>(int capacity)
         }
     }
 
-    private void Heapify()
-    {
-        Heapify(0);
-    }
+    private void Heapify() => Heapify(0);
 
     private void Heapify(int index)
     {

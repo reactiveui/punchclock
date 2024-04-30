@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2021 .NET Foundation and Contributors. All rights reserved.
+﻿// Copyright (c) 2024 .NET Foundation and Contributors. All rights reserved.
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
@@ -26,7 +26,7 @@ internal class PrioritySemaphoreSubject<T> : ISubject<T>
     /// <param name="sched">The scheduler to use when emitting the items.</param>
     public PrioritySemaphoreSubject(int maxCount, IScheduler? sched = null)
     {
-        _inner = sched != null ? (ISubject<T>)new ScheduledSubject<T>(sched) : new Subject<T>();
+        _inner = sched != null ? new ScheduledSubject<T>(sched) : new Subject<T>();
         MaximumCount = maxCount;
     }
 
@@ -100,10 +100,7 @@ internal class PrioritySemaphoreSubject<T> : ISubject<T>
     }
 
     /// <inheritdoc />
-    public IDisposable Subscribe(IObserver<T> observer)
-    {
-        return _inner.Subscribe(observer);
-    }
+    public IDisposable Subscribe(IObserver<T> observer) => _inner.Subscribe(observer);
 
     private void YieldUntilEmptyOrBlocked()
     {

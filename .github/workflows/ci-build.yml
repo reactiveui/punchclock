@@ -20,7 +20,7 @@ jobs:
     with:
       configuration: Release
       productNamespacePrefix: "Punchclock"
-      useVisualStudioPreview: true
+      useVisualStudioPreview: false
       useMauiCheckDotNetTool: false
       installWorkflows: false
       dotNetBuild: true
