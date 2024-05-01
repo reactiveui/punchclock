@@ -1,4 +1,4 @@
-// Copyright (c) 2021 .NET Foundation and Contributors. All rights reserved.
+// Copyright (c) 2024 .NET Foundation and Contributors. All rights reserved.
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
@@ -43,22 +43,13 @@ internal class ScheduledSubject<T> : ISubject<T>, IDisposable
     }
 
     /// <inheritdoc />
-    public void OnCompleted()
-    {
-        _subject.OnCompleted();
-    }
+    public void OnCompleted() => _subject.OnCompleted();
 
     /// <inheritdoc />
-    public void OnError(Exception error)
-    {
-        _subject.OnError(error);
-    }
+    public void OnError(Exception error) => _subject.OnError(error);
 
     /// <inheritdoc />
-    public void OnNext(T value)
-    {
-        _subject.OnNext(value);
-    }
+    public void OnNext(T value) => _subject.OnNext(value);
 
     /// <inheritdoc />
     public IDisposable Subscribe(IObserver<T>? observer)

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2021 .NET Foundation and Contributors. All rights reserved.
+﻿// Copyright (c) 2024 .NET Foundation and Contributors. All rights reserved.
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
@@ -124,10 +124,8 @@ public class OperationQueue : IDisposable
     /// <param name="key">Items with the same key will be run in order.</param>
     /// <param name="asyncCalculationFunc">The async method to execute when scheduled.</param>
     /// <returns>The result of the async calculation.</returns>
-    public IObservable<T> EnqueueObservableOperation<T>(int priority, string key, Func<IObservable<T>> asyncCalculationFunc)
-    {
-        return EnqueueObservableOperation(priority, key, Observable.Never<Unit>(), asyncCalculationFunc);
-    }
+    public IObservable<T> EnqueueObservableOperation<T>(int priority, string key, Func<IObservable<T>> asyncCalculationFunc) =>
+        EnqueueObservableOperation(priority, key, Observable.Never<Unit>(), asyncCalculationFunc);
 
     /// <summary>
     /// This method enqueues an action to be run at a later time, according
@@ -137,10 +135,8 @@ public class OperationQueue : IDisposable
     /// <param name="priority">Higher priorities run before lower ones.</param>
     /// <param name="asyncCalculationFunc">The async method to execute when scheduled.</param>
     /// <returns>The result of the async calculation.</returns>
-    public IObservable<T> EnqueueObservableOperation<T>(int priority, Func<IObservable<T>> asyncCalculationFunc)
-    {
-        return EnqueueObservableOperation(priority, DefaultKey, Observable.Never<Unit>(), asyncCalculationFunc);
-    }
+    public IObservable<T> EnqueueObservableOperation<T>(int priority, Func<IObservable<T>> asyncCalculationFunc) =>
+        EnqueueObservableOperation(priority, DefaultKey, Observable.Never<Unit>(), asyncCalculationFunc);
 
     /// <summary>
     /// This method pauses the dispatch queue. Inflight operations will not
