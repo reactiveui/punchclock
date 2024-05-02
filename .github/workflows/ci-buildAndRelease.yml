@@ -10,8 +10,8 @@ env:
   productNamespacePrefix: "Punchclock"
 
 permissions:
-  contents: read
-
+  contents: write
+  
 jobs:
   release:
     uses: reactiveui/actions-common/.github/workflows/workflow-common-release.yml@main
