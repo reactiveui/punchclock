@@ -8,6 +8,7 @@
 		<NoWarn>$(NoWarn);VSX1000;SA1010</NoWarn>
 		<Platform>AnyCPU</Platform>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageIcon>logo.png</PackageIcon>
 		<Description>Make sure your asynchronous operations show up to work on time</Description>
 		<PackageReleaseNotes>https://github.com/reactiveui/punchclock/releases</PackageReleaseNotes>
 		<RepositoryUrl>https://github.com/reactiveui/punchclock</RepositoryUrl>
@@ -22,7 +23,6 @@
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
 		<!-- Optional: Include PDB in the built .nupkg -->
 		<AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
-		<PackageIconUrl>https://raw.githubusercontent.com/reactiveui/styleguide/master/logo_punchclock/main.png?raw=true</PackageIconUrl>
 
 		<EnableNETAnalyzers>True</EnableNETAnalyzers>
 		<AnalysisLevel>latest</AnalysisLevel>
@@ -38,6 +38,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<None Include="$(MSBuildThisFileDirectory)..\images\logo.png" Pack="true" PackagePath="\" />
 		<None Include="$(MSBuildThisFileDirectory)..\LICENSE" Pack="true" PackagePath="LICENSE" />
 		<None Include="$(MSBuildThisFileDirectory)..\README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
