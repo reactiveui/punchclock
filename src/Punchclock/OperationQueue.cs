@@ -15,19 +15,23 @@ using System.Threading;
 namespace Punchclock;
 
 /// <summary>
+/// <para>
 /// OperationQueue is the core of PunchClock, and represents a scheduler for
 /// deferred actions, such as network requests. This scheduler supports
 /// scheduling via priorities, as well as serializing requests that access
 /// the same data.
-///
+/// </para>
+/// <para>
 /// The queue allows a fixed number of concurrent in-flight operations at a
 /// time. When there are available "slots", items are dispatched as they come
 /// in. When the slots are full, the queueing policy starts to apply.
-///
+/// </para>
+/// <para>
 /// The queue, similar to Akavache's KeyedOperationQueue, also allows keys to
 /// be specified to serialize operations - if you have three "foo" items, they
 /// will wait in line and only one "foo" can run. However, a "bar" and "baz"
 /// item can run at the same time as a "foo" item.
+/// </para>
 /// </summary>
 public class OperationQueue : IDisposable
 {

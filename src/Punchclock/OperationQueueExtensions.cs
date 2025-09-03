@@ -5,8 +5,8 @@
 
 using System;
 using System.Reactive;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using System.Reactive.Subjects;
 using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
@@ -135,20 +135,19 @@ public static class OperationQueueExtensions
             .ToTask();
     }
 
-    private static IObservable<Unit> ConvertTokenToObservable(CancellationToken token)
-    {
-        var cancel = new AsyncSubject<Unit>();
-
-        if (token.IsCancellationRequested)
+    private static IObservable<Unit> ConvertTokenToObservable(CancellationToken token) =>
+        Observable.Create<Unit>(observer =>
         {
-            return Observable.Throw<Unit>(new ArgumentException("Token is already cancelled"));
-        }
+            if (token.IsCancellationRequested)
+            {
+                observer.OnError(new OperationCanceledException(token));
+                return Disposable.Empty;
+            }
 
-        token.Register(() =>
-        {
-            cancel.OnNext(Unit.Default);
-            cancel.OnCompleted();
+            return token.Register(() =>
+            {
+                observer.OnNext(Unit.Default);
+                observer.OnCompleted();
+            });
         });
-        return cancel;
-    }
 }
