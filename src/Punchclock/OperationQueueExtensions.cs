@@ -140,7 +140,7 @@ public static class OperationQueueExtensions
         {
             if (token.IsCancellationRequested)
             {
-                observer.OnError(new OperationCanceledException(token));
+                observer.OnError(new ArgumentException("Token is already cancelled", nameof(token)));
                 return Disposable.Empty;
             }
 
