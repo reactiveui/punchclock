@@ -6,7 +6,6 @@
 
 	<ItemGroup>
 		<PackageReference Include="DynamicData" Version="9.4.1" />
-		<PackageReference Include="splat" Version="16.1.*" />
 		<PackageReference Include="PublicApiGenerator" Version="11.4.6" />
 		<PackageReference Include="Verify.Xunit" Version="30.10.0" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
