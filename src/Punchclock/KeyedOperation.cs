@@ -34,7 +34,8 @@ internal abstract class KeyedOperation : IComparable<KeyedOperation>
         // up concurrency slots
         if (KeyIsDefault != other.KeyIsDefault)
         {
-            return KeyIsDefault ? 1 : -1;
+            // If this is non-keyed (default), it should sort before keyed -> return -1
+            return KeyIsDefault ? -1 : 1;
         }
 
         return other.Priority.CompareTo(Priority);

@@ -24,43 +24,155 @@ Then, you try to manage issuing less requests by hand, and it becomes a
 spaghetti mess as different parts of your app reach into each other to try to
 figure out who's doing what. Let's figure out a better way.
 
-### So many words, gimme the examples
+## Key features
 
-```cs
-var wc = new WebClient();
-var opQueue = new OperationQueue(2 /*at a time*/);
+- Bounded concurrency with a priority-aware semaphore
+- Priority scheduling (higher number runs first)
+- Key-based serialization (only one operation per key runs at a time)
+- Pause/resume with reference counting
+- Cancellation via CancellationToken or IObservable
+- Task and IObservable friendly API
 
-// Download a bunch of images
-var foo = opQueue.Enqueue(1, 
-    () => wc.DownloadFile("https://example.com/foo.jpg", "foo.jpg"));
-var bar = opQueue.Enqueue(1, 
-    () => wc.DownloadFile("https://example.com/bar.jpg", "bar.jpg"));
-var baz = opQueue.Enqueue(1, 
-    () => wc.DownloadFile("https://example.com/baz.jpg", "baz.jpg"));
-var bamf = opQueue.Enqueue(1, 
-    () => wc.DownloadFile("https://example.com/bamf.jpg", "bamf.jpg"));
+## Install
 
-// We'll be downloading the images two at a time, even though we started 
-// them all at once
-await Task.WaitAll(foo, bar, baz, bamf);
+- NuGet: `dotnet add package Punchclock`
+
+## Quick start
+
+```csharp
+using Punchclock;
+using System.Net.Http;
+
+var queue = new OperationQueue(maximumConcurrent: 2);
+var http = new HttpClient();
+
+// Fire a bunch of downloads – only two will run at a time
+var t1 = queue.Enqueue(1, () => http.GetStringAsync("https://example.com/a"));
+var t2 = queue.Enqueue(1, () => http.GetStringAsync("https://example.com/b"));
+var t3 = queue.Enqueue(1, () => http.GetStringAsync("https://example.com/c"));
+await Task.WhenAll(t1, t2, t3);
 ```
 
-Now, in a completely different part of your app, if you need something right
-away, you can specify it via the priority:
+## Priorities
 
-```cs
-// This file is super important, we don't care if it cuts in line in front
-// of some images or other stuff
-var wc = new WebClient();
-await opQueue.Enqueue(10 /* It's Important */, 
-    () => wc.DownloadFileTaskAsync("http://example.com/cool.txt", "./cool.txt"));
+- Higher numbers win. A priority 10 operation will preempt priority 1 when a slot opens.
+
+```csharp
+await queue.Enqueue(10, () => http.GetStringAsync("https://example.com/urgent"));
 ```
 
-## What else can this library do
+## Keys: serialize related work
 
-* Cancellation via CancellationTokens or via Observables
-* Ensure certain operations don't run concurrently via a key
-* Queue pause / resume
+- Use a key to ensure only one operation for that key runs at a time.
+- Useful to avoid thundering herds against the same resource.
+
+```csharp
+// These will run one-after-another because they share the same key
+var k1 = queue.Enqueue(1, key: "user:42", () => LoadUserAsync(42));
+var k2 = queue.Enqueue(1, key: "user:42", () => LoadUserPostsAsync(42));
+await Task.WhenAll(k1, k2);
+```
+
+## Cancellation
+
+- Via CancellationToken:
+
+```csharp
+using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+await queue.Enqueue(1, key: "img:1", () => DownloadImageAsync("/1"), cts.Token);
+```
+
+- Via IObservable cancellation signal:
+
+```csharp
+var cancel = new Subject<Unit>();
+var obs = queue.EnqueueObservableOperation(1, "slow", cancel, () => Expensive().ToObservable());
+cancel.OnNext(Unit.Default); // cancels if not yet running or in-flight
+```
+
+## Pause and resume
+
+```csharp
+var gate = queue.PauseQueue();
+// enqueue work while paused; nothing executes yet
+// ...
+gate.Dispose(); // resumes and drains respecting priority/keys
+```
+
+## Adjust concurrency at runtime
+
+```csharp
+queue.SetMaximumConcurrent(8); // increases throughput
+```
+
+## Shutting down
+
+```csharp
+await queue.ShutdownQueue(); // completes when outstanding work finishes
+```
+
+## API overview
+
+- OperationQueue
+  - ctor(int maximumConcurrent = 4)
+  - IObservable<T> EnqueueObservableOperation<T>(int priority, Func<IObservable<T>>)
+  - IObservable<T> EnqueueObservableOperation<T>(int priority, string key, Func<IObservable<T>>)
+  - IObservable<T> EnqueueObservableOperation<T, TDontCare>(int priority, string key, IObservable<TDontCare> cancel, Func<IObservable<T>>)
+  - IDisposable PauseQueue()
+  - void SetMaximumConcurrent(int maximumConcurrent)
+  - IObservable<Unit> ShutdownQueue()
+
+- OperationQueueExtensions
+  - Task Enqueue(int priority, Func<Task>)
+  - Task<T> Enqueue<T>(int priority, Func<Task<T>>)
+  - Task Enqueue(int priority, string key, Func<Task>)
+  - Task<T> Enqueue<T>(int priority, string key, Func<Task<T>>)
+  - Overloads with CancellationToken for all of the above
+
+## Best practices
+
+- Prefer Task-based Enqueue APIs in application code; use observable APIs when composing with Rx.
+- Use descriptive keys for shared resources (e.g., "user:{id}", "file:{path}").
+- Keep operations idempotent and short; long operations block concurrency slots.
+- Use higher priorities sparingly; they jump the queue when a slot opens.
+- PauseQueue is ref-counted; always dispose the returned handle exactly once.
+- For cancellation via token, reuse CTS per user action to cancel pending work quickly.
+
+## Advanced notes
+
+- Unkeyed work is prioritized ahead of keyed work internally to keep the pipeline flowing; keys are serialized per group.
+- The semaphore releases when an operation completes, errors, or is canceled.
+- Cancellation before evaluation prevents invoking the supplied function.
+
+## Full examples
+
+- Image downloader with keys and priorities
+
+```csharp
+var queue = new OperationQueue(3);
+
+Task Download(string url, string dest, int pri, string key) =>
+    queue.Enqueue(pri, key, async () =>
+    {
+        using var http = new HttpClient();
+        var bytes = await http.GetByteArrayAsync(url);
+        await File.WriteAllBytesAsync(dest, bytes);
+    });
+
+var tasks = new[]
+{
+    Download("https://example.com/a.jpg", "a.jpg", 1, "img"),
+    Download("https://example.com/b.jpg", "b.jpg", 1, "img"),
+    queue.Enqueue(5, () => Task.Delay(100)), // higher priority misc work
+};
+await Task.WhenAll(tasks);
+```
+
+## Troubleshooting
+
+- Nothing runs? Ensure you didn't leave the queue paused. Dispose the token from PauseQueue.
+- Starvation? Check if you assigned very high priorities to long-running tasks.
+- Deadlock-like behavior with keys? Remember keyed operations are strictly serialized; avoid long critical sections.
 
 ## Contribute
 
@@ -68,7 +180,7 @@ Punchclock is developed under an OSI-approved open source license, making it fre
 
 So here's to you, lovely person who wants to join us — this is how you can support us:
 
-* [Responding to questions on StackOverflow](https://stackoverflow.com/questions/tagged/punchclock)
-* [Passing on knowledge and teaching the next generation of developers](https://ericsink.com/entries/dont_use_rxui.html)
-* Submitting documentation updates where you see fit or lacking.
-* Making contributions to the code base.
+- [Responding to questions on StackOverflow](https://stackoverflow.com/questions/tagged/punchclock)
+- [Passing on knowledge and teaching the next generation of developers](https://ericsink.com/entries/dont_use_rxui.html)
+- Submitting documentation updates where you see fit or lacking.
+- Making contributions to the code base.
