@@ -15,7 +15,7 @@
 		<PackageReference Include="Xunit.SkippableFact" Version="1.5.23" />
 		<PackageReference Include="Xunit.StaFact" Version="1.2.69" />
 		<PackageReference Include="FluentAssertions" Version="8.6.0" />
-		<PackageReference Include="DiffEngine" Version="16.2.3" />
+		<PackageReference Include="DiffEngine" Version="16.8.0" />
 		<PackageReference Include="coverlet.msbuild" Version="6.0.4">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
