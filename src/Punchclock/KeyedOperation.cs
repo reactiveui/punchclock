@@ -25,6 +25,11 @@ internal abstract class KeyedOperation : IComparable<KeyedOperation>
 
     public bool KeyIsDefault => string.IsNullOrEmpty(Key) || Key == OperationQueue.DefaultKey;
 
+    // Random tie-breaker support
+    internal int RandomOrder { get; set; }
+
+    internal bool UseRandomTiebreak { get; set; }
+
     public abstract IObservable<Unit> EvaluateFunc();
 
     public int CompareTo(KeyedOperation other)
@@ -38,7 +43,32 @@ internal abstract class KeyedOperation : IComparable<KeyedOperation>
             return KeyIsDefault ? -1 : 1;
         }
 
-        return other.Priority.CompareTo(Priority);
+        // Higher priority should sort before lower priority
+        var c = other.Priority.CompareTo(Priority);
+        if (c != 0)
+        {
+            return c;
+        }
+
+        // Same priority
+        // Preserve FIFO within the same key group (non-default keys)
+        if (!KeyIsDefault && string.Equals(Key, other.Key, StringComparison.Ordinal))
+        {
+            return Id.CompareTo(other.Id);
+        }
+
+        // For equal priority across different keys or unkeyed items, optionally randomize tie-break
+        if (UseRandomTiebreak || other.UseRandomTiebreak)
+        {
+            c = RandomOrder.CompareTo(other.RandomOrder);
+            if (c != 0)
+            {
+                return c;
+            }
+        }
+
+        // Final stable tie-breaker: insertion order
+        return Id.CompareTo(other.Id);
     }
 }
 

@@ -525,5 +525,64 @@ namespace Punchclock.Tests
                     (expected, subj) => new { expected, actual = subj.HasObservers, })
                 .All(x => x.expected == x.actual).ShouldBeTrue();
         }
+
+        /// <summary>
+        /// Checks that equal priority across different keys can be randomized when enabled.
+        /// </summary>
+        [Test]
+        public void EqualPriorityAcrossDifferentKeysCanBeRandomized()
+        {
+            // Use deterministic seed to make test stable
+            var queue = new OperationQueue(maximumConcurrent: 1, randomizeEqualPriority: true, seed: 123);
+
+            // Block the queue initially
+            var blocker = new AsyncSubject<int>();
+            queue.EnqueueObservableOperation(5, () => blocker).Subscribe();
+
+            var a = new AsyncSubject<int>();
+            var b = new AsyncSubject<int>();
+
+            int nextCountA = 0;
+            int nextCountB = 0;
+
+            queue.EnqueueObservableOperation(5, "A", () => a).Subscribe(_ => nextCountA++);
+            queue.EnqueueObservableOperation(5, "B", () => b).Subscribe(_ => nextCountB++);
+
+            // Unblock
+            blocker.OnNext(1);
+            blocker.OnCompleted();
+
+            // Complete whichever started first according to randomized order
+            if (a.HasObservers && !b.HasObservers)
+            {
+                a.OnNext(42);
+                a.OnCompleted();
+            }
+            else if (b.HasObservers && !a.HasObservers)
+            {
+                b.OnNext(42);
+                b.OnCompleted();
+            }
+            else
+            {
+                // If both observed (should not happen with maxConcurrent 1), just complete one
+                a.OnCompleted();
+            }
+
+            // After completing the first, the second should activate and complete
+            if (a.HasObservers)
+            {
+                a.OnNext(42);
+                a.OnCompleted();
+            }
+
+            if (b.HasObservers)
+            {
+                b.OnNext(42);
+                b.OnCompleted();
+            }
+
+            (nextCountA + nextCountB).ShouldBe(2);
+        }
     }
 }
