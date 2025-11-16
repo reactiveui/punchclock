@@ -1,0 +1,23 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="System.Reactive" Version="6.1.0" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
+    <PackageVersion Include="Nerdbank.GitVersioning" Version="3.9.50" />
+    <PackageVersion Include="stylecop.analyzers" Version="1.2.0-beta.556" />
+    <PackageVersion Include="Roslynator.Analyzers" Version="4.14.1" />
+
+    <PackageVersion Include="DynamicData" Version="9.4.1" />
+    <PackageVersion Include="PublicApiGenerator" Version="11.4.6" />
+    <PackageVersion Include="Verify.NUnit" Version="30.10.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="NUnit" Version="4.4.0" />
+    <PackageVersion Include="NUnit3TestAdapter" Version="4.6.0" />
+    <PackageVersion Include="FluentAssertions" Version="8.6.0" />
+    <PackageVersion Include="DiffEngine" Version="16.8.0" />
+    <PackageVersion Include="coverlet.msbuild" Version="6.0.4" />
+  </ItemGroup>
+</Project>
