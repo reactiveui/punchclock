@@ -13,8 +13,6 @@ permissions:
 
 jobs:
   build:
-    permissions:
-      contents: none
     uses: reactiveui/actions-common/.github/workflows/workflow-common-setup-and-build.yml@main
     with:
       configuration: Release
