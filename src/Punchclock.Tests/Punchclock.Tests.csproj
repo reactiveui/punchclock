@@ -14,7 +14,8 @@
 		<PackageReference Include="Microsoft.NET.Test.Sdk" />
 		<PackageReference Include="NUnit" />
 		<PackageReference Include="NUnit3TestAdapter" />
-		<PackageReference Include="FluentAssertions" />
+		<PackageReference Include="NUnit.Analyzers" />
+		<PackageReference Include="Shouldly" />
 		<PackageReference Include="DiffEngine" />
 		<PackageReference Include="coverlet.msbuild">
 			<PrivateAssets>all</PrivateAssets>
