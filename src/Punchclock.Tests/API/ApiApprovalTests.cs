@@ -5,7 +5,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
-using Xunit;
+using NUnit.Framework; // switched from Xunit
 
 namespace Punchclock.APITests;
 
@@ -19,6 +19,6 @@ public class ApiApprovalTests
     /// Tests to make sure the punchclock project is approved.
     /// </summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
-    [Fact]
+    [Test] // was [Fact]
     public Task PunchclockTests() => typeof(OperationQueue).Assembly.CheckApproval(["Punchclock"]);
 }
