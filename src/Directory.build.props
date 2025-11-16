@@ -1,7 +1,7 @@
 <Project>
 	<PropertyGroup>
-		<Copyright>Copyright (c) .NET Foundation and Contributors</Copyright>
-		<Authors>.NET Foundation and Contributors</Authors>
+		<Copyright>Copyright (c) ReactiveUI and Contributors</Copyright>
+		<Authors>ReactiveUI and Contributors</Authors>
 		
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageProjectUrl>https://github.com/reactiveui/punchclock/</PackageProjectUrl>
