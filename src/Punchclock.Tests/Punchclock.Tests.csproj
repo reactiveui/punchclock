@@ -3,6 +3,8 @@
 		<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
 		<TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">$(TargetFrameworks);net472</TargetFrameworks>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<Nullable>enable</Nullable>
+		<LangVersion>preview</LangVersion>
 	</PropertyGroup>
 
 	<ItemGroup>

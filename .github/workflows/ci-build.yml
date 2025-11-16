@@ -1,23 +1,21 @@
-name: build
+﻿name: Build
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
-env:
-  productNamespacePrefix: "Punchclock"
-
+    branches:
+      - main          # ✅ run on main
+  pull_request:        # (optional) run on PRs targeting any branch
+  
+# Needed so the reusable workflow can optionally delete the temp per-OS artifacts it creates.
 permissions:
   contents: read
+  actions: write
 
 jobs:
   build:
-    permissions:
-      contents: none
     uses: reactiveui/actions-common/.github/workflows/workflow-common-setup-and-build.yml@main
     with:
       configuration: Release
       productNamespacePrefix: "Punchclock"
-      installWorkflows: false
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
