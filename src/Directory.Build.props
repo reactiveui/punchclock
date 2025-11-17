@@ -5,8 +5,6 @@
 		
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageProjectUrl>https://github.com/reactiveui/punchclock/</PackageProjectUrl>
-		<Owners>xanaisbettsx;ghuntley</Owners>
-		<NoWarn>$(NoWarn);VSX1000;SA1010</NoWarn>
 		<Platform>AnyCPU</Platform>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>logo.png</PackageIcon>
