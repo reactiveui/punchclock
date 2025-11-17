@@ -1,6 +1,6 @@
-// Copyright (c) 2025 .NET Foundation and Contributors. All rights reserved.
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+// Copyright (c) 2025 ReactiveUI and Contributors. All rights reserved.
+// Licensed to the ReactiveUI and Contributors under one or more agreements.
+// ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
 using System;
@@ -10,7 +10,6 @@ using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
-using Shouldly;
 
 namespace Punchclock.Tests
 {
@@ -25,18 +24,20 @@ namespace Punchclock.Tests
         [Test]
         public void Enqueue_WithNullQueue_ThrowsArgumentNullException()
         {
+            using var assertScope = Assert.EnterMultipleScope();
+
             OperationQueue? q = null;
-            var ex1 = Should.Throw<ArgumentNullException>(() => OperationQueueExtensions.Enqueue(q!, 1, () => Task.CompletedTask));
-            ex1.ParamName.ShouldBe("operationQueue");
+            var ex1 = Assert.Throws<ArgumentNullException>(() => OperationQueueExtensions.Enqueue(q!, 1, () => Task.CompletedTask));
+            Assert.That(ex1!.ParamName, Is.EqualTo("operationQueue"));
 
-            var ex2 = Should.Throw<ArgumentNullException>(() => OperationQueueExtensions.Enqueue(q!, 1, "k", () => Task.CompletedTask));
-            ex2.ParamName.ShouldBe("operationQueue");
+            var ex2 = Assert.Throws<ArgumentNullException>(() => OperationQueueExtensions.Enqueue(q!, 1, "k", () => Task.CompletedTask));
+            Assert.That(ex2!.ParamName, Is.EqualTo("operationQueue"));
 
-            var ex3 = Should.Throw<ArgumentNullException>(() => OperationQueueExtensions.Enqueue<int>(q!, 1, () => Task.FromResult(42)));
-            ex3.ParamName.ShouldBe("operationQueue");
+            var ex3 = Assert.Throws<ArgumentNullException>(() => OperationQueueExtensions.Enqueue<int>(q!, 1, () => Task.FromResult(42)));
+            Assert.That(ex3!.ParamName, Is.EqualTo("operationQueue"));
 
-            var ex4 = Should.Throw<ArgumentNullException>(() => OperationQueueExtensions.Enqueue<int>(q!, 1, "k", () => Task.FromResult(42)));
-            ex4.ParamName.ShouldBe("operationQueue");
+            var ex4 = Assert.Throws<ArgumentNullException>(() => OperationQueueExtensions.Enqueue<int>(q!, 1, "k", () => Task.FromResult(42)));
+            Assert.That(ex4!.ParamName, Is.EqualTo("operationQueue"));
         }
 
         /// <summary>
@@ -46,15 +47,17 @@ namespace Punchclock.Tests
         [Test]
         public async Task Enqueue_TaskOverloads_RunAndReturnResults()
         {
+            using var assertScope = Assert.EnterMultipleScope();
+
             var q = new OperationQueue(2);
 
             await OperationQueueExtensions.Enqueue(q, 5, () => Task.CompletedTask);
             var r1 = await OperationQueueExtensions.Enqueue(q, 5, () => Task.FromResult(123));
-            r1.ShouldBe(123);
+            Assert.That(r1, Is.EqualTo(123));
 
             await OperationQueueExtensions.Enqueue(q, 5, "key", () => Task.CompletedTask);
             var r2 = await OperationQueueExtensions.Enqueue(q, 5, "key", () => Task.FromResult("hi"));
-            r2.ShouldBe("hi");
+            Assert.That(r2, Is.EqualTo("hi"));
         }
 
         /// <summary>
@@ -63,16 +66,18 @@ namespace Punchclock.Tests
         [Test]
         public void Enqueue_WithAlreadyCanceledToken_CancelsImmediately()
         {
+            using var assertScope = Assert.EnterMultipleScope();
+
             var q = new OperationQueue(1);
             using var cts = new CancellationTokenSource();
             cts.Cancel();
 
             // Task-returning overload
             var t1 = OperationQueueExtensions.Enqueue(q, 1, "k", () => Task.FromResult(1), cts.Token);
-            Should.Throw<TaskCanceledException>(() => t1.GetAwaiter().GetResult());
+            Assert.Throws<TaskCanceledException>(() => t1.GetAwaiter().GetResult());
 
             var t2 = OperationQueueExtensions.Enqueue(q, 1, "k", () => Task.CompletedTask, cts.Token);
-            Should.Throw<TaskCanceledException>(() => t2.GetAwaiter().GetResult());
+            Assert.Throws<TaskCanceledException>(() => t2.GetAwaiter().GetResult());
         }
 
         /// <summary>
@@ -82,6 +87,8 @@ namespace Punchclock.Tests
         [Test]
         public async Task Enqueue_WithCancellationToken_CancelsPendingOperation()
         {
+            using var assertScope = Assert.EnterMultipleScope();
+
             var q = new OperationQueue(1);
 
             // Block the queue with a subject that we complete later
@@ -102,12 +109,12 @@ namespace Punchclock.Tests
                 },
                 cts.Token);
 
-            started.ShouldBeFalse();
+            Assert.That(started, Is.False);
             cts.Cancel();
 
-            await Should.ThrowAsync<TaskCanceledException>(async () => await pending);
+            Assert.ThrowsAsync<TaskCanceledException>(async () => await pending);
 
-            started.ShouldBeFalse();
+            Assert.That(started, Is.False);
             gate.OnNext(0);
             gate.OnCompleted();
         }
@@ -119,6 +126,8 @@ namespace Punchclock.Tests
         [Test]
         public async Task ShutdownQueue_CompletesAfterOutstandingWork()
         {
+            using var assertScope = Assert.EnterMultipleScope();
+
             var q = new OperationQueue(1);
             var tcs = new TaskCompletionSource<int>();
             var work = OperationQueueExtensions.Enqueue(q, 1, () => tcs.Task);
@@ -129,10 +138,10 @@ namespace Punchclock.Tests
                 ex => shutdownTcs.TrySetException(ex),
                 () => shutdownTcs.TrySetResult(true));
 
-            shutdownTcs.Task.IsCompleted.ShouldBeFalse();
+            Assert.That(shutdownTcs.Task.IsCompleted, Is.False);
 
             tcs.SetResult(10);
-            (await work).ShouldBe(10);
+            Assert.That(await work, Is.EqualTo(10));
             await shutdownTcs.Task; // should complete without throwing
         }
 
@@ -142,6 +151,8 @@ namespace Punchclock.Tests
         [Test]
         public void PauseQueue_IsRefCounted()
         {
+            using var assertScope = Assert.EnterMultipleScope();
+
             var q = new OperationQueue(1);
 
             var p1 = q.PauseQueue();
@@ -157,13 +168,13 @@ namespace Punchclock.Tests
                 }));
 
             using var sub = obs.Subscribe(_ => { });
-            ran.ShouldBeFalse();
+            Assert.That(ran, Is.False);
 
             p1.Dispose();
-            ran.ShouldBeFalse();
+            Assert.That(ran, Is.False);
 
             p2.Dispose();
-            ran.ShouldBeTrue();
+            Assert.That(ran, Is.True);
         }
     }
 }

@@ -1,6 +1,6 @@
-﻿// Copyright (c) 2025 .NET Foundation and Contributors. All rights reserved.
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+﻿// Copyright (c) 2025 ReactiveUI and Contributors. All rights reserved.
+// Licensed to the ReactiveUI and Contributors under one or more agreements.
+// ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
 using System;
@@ -11,27 +11,87 @@ using System.Reactive.Subjects;
 
 namespace Punchclock;
 
+/// <summary>
+/// KeyedOperation.
+/// </summary>
+/// <seealso cref="System.IComparable&lt;Punchclock.KeyedOperation&gt;" />
 internal abstract class KeyedOperation : IComparable<KeyedOperation>
 {
+    /// <summary>
+    /// Gets or sets a value indicating whether [cancelled early].
+    /// </summary>
+    /// <value>
+    ///   <c>true</c> if [cancelled early]; otherwise, <c>false</c>.
+    /// </value>
     public bool CancelledEarly { get; set; }
 
+    /// <summary>
+    /// Gets or sets the priority.
+    /// </summary>
+    /// <value>
+    /// The priority.
+    /// </value>
     public int Priority { get; set; }
 
+    /// <summary>
+    /// Gets or sets the identifier.
+    /// </summary>
+    /// <value>
+    /// The identifier.
+    /// </value>
     public int Id { get; set; }
 
+    /// <summary>
+    /// Gets or sets the key.
+    /// </summary>
+    /// <value>
+    /// The key.
+    /// </value>
     public string? Key { get; set; }
 
+    /// <summary>
+    /// Gets or sets the cancel signal.
+    /// </summary>
+    /// <value>
+    /// The cancel signal.
+    /// </value>
     public IObservable<Unit>? CancelSignal { get; set; }
 
+    /// <summary>
+    /// Gets a value indicating whether [key is default].
+    /// </summary>
+    /// <value>
+    ///   <c>true</c> if [key is default]; otherwise, <c>false</c>.
+    /// </value>
     public bool KeyIsDefault => string.IsNullOrEmpty(Key) || Key == OperationQueue.DefaultKey;
 
-    // Random tie-breaker support
+    /// <summary>
+    /// Gets or sets the random order.
+    /// </summary>
+    /// <value>
+    /// The random order.
+    /// </value>
     internal int RandomOrder { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether [use random tiebreak].
+    /// </summary>
+    /// <value>
+    ///   <c>true</c> if [use random tiebreak]; otherwise, <c>false</c>.
+    /// </value>
     internal bool UseRandomTiebreak { get; set; }
 
+    /// <summary>
+    /// Evaluates the function.
+    /// </summary>
+    /// <returns>An Observable of Unit.</returns>
     public abstract IObservable<Unit> EvaluateFunc();
 
+    /// <summary>
+    /// Compares to.
+    /// </summary>
+    /// <param name="other">The other.</param>
+    /// <returns>The compare result.</returns>
     public int CompareTo(KeyedOperation other)
     {
         // NB: Non-keyed operations always come before keyed operations in
@@ -75,10 +135,28 @@ internal abstract class KeyedOperation : IComparable<KeyedOperation>
 [SuppressMessage("StyleCop.CSharp.MaintainabilityRules", "SA1402:File may only contain a single type", Justification = "Generic implementation of same class name.")]
 internal class KeyedOperation<T> : KeyedOperation
 {
+    /// <summary>
+    /// Gets or sets the function.
+    /// </summary>
+    /// <value>
+    /// The function.
+    /// </value>
     public Func<IObservable<T>>? Func { get; set; }
 
+    /// <summary>
+    /// Gets the result.
+    /// </summary>
+    /// <value>
+    /// The result.
+    /// </value>
     public ReplaySubject<T> Result { get; } = new ReplaySubject<T>();
 
+    /// <summary>
+    /// Evaluates the function.
+    /// </summary>
+    /// <returns>
+    /// An Observable of Unit.
+    /// </returns>
     public override IObservable<Unit> EvaluateFunc()
     {
         if (Func == null)

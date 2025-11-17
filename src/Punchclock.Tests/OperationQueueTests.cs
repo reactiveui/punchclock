@@ -1,6 +1,6 @@
-﻿// Copyright (c) 2025 .NET Foundation and Contributors. All rights reserved.
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+﻿// Copyright (c) 2025 ReactiveUI and Contributors. All rights reserved.
+// Licensed to the ReactiveUI and Contributors under one or more agreements.
+// ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
 using System;
@@ -12,7 +12,6 @@ using System.Reactive.Subjects;
 using DynamicData;
 using DynamicData.Binding;
 using NUnit.Framework; // switched from Xunit
-using Shouldly; // use Shouldly assertions
 
 namespace Punchclock.Tests
 {
@@ -27,6 +26,8 @@ namespace Punchclock.Tests
         [Test] // was [Fact]
         public void ItemsShouldBeDispatchedByPriority()
         {
+            using var scope = Assert.EnterMultipleScope();
+
             var subjects = Enumerable.Range(0, 5).Select(x => new AsyncSubject<int>()).ToArray();
             var priorities = new[] { 5, 5, 5, 10, 1, };
             var fixture = new OperationQueue(2);
@@ -44,35 +45,32 @@ namespace Punchclock.Tests
                     return y;
                 }).ToArray();
 
-            // Alright, we've got the first two subjects taking up our two live
-            // slots, and 3,4,5 queued up. However, the order of completion should
-            // be "4,3,5" because of the priority.
-            outputs.All(x => x.Count == 0).ShouldBeTrue();
+            Assert.That(outputs.All(x => x.Count == 0), Is.True);
 
             subjects[0].OnNext(42);
             subjects[0].OnCompleted();
-            outputs.Select(x => x.Count).ToArray().ShouldBe([1, 0, 0, 0, 0,]);
+            Assert.That(outputs.Select(x => x.Count).ToArray(), Is.EqualTo(new[] { 1, 0, 0, 0, 0, }));
 
             // 0 => completed, 1,3 => live, 2,4 => queued. Make sure 4 *doesn't* fire because
             // the priority should invert it.
             subjects[4].OnNext(42);
             subjects[4].OnCompleted();
-            outputs.Select(x => x.Count).ToArray().ShouldBe([1, 0, 0, 0, 0,]);
+            Assert.That(outputs.Select(x => x.Count).ToArray(), Is.EqualTo(new[] { 1, 0, 0, 0, 0, }));
 
             // At the end, 0,1 => completed, 3,2 => live, 4 is queued
             subjects[1].OnNext(42);
             subjects[1].OnCompleted();
-            outputs.Select(x => x.Count).ToArray().ShouldBe([1, 1, 0, 0, 0,]);
+            Assert.That(outputs.Select(x => x.Count).ToArray(), Is.EqualTo(new[] { 1, 1, 0, 0, 0, }));
 
             // At the end, 0,1,2,4 => completed, 3 is live (remember, we completed
             // 4 early)
             subjects[2].OnNext(42);
             subjects[2].OnCompleted();
-            outputs.Select(x => x.Count).ToArray().ShouldBe([1, 1, 1, 0, 1,]);
+            Assert.That(outputs.Select(x => x.Count).ToArray(), Is.EqualTo(new[] { 1, 1, 1, 0, 1, }));
 
             subjects[3].OnNext(42);
             subjects[3].OnCompleted();
-            outputs.Select(x => x.Count).ToArray().ShouldBe([1, 1, 1, 1, 1,]);
+            Assert.That(outputs.Select(x => x.Count).ToArray(), Is.EqualTo(new[] { 1, 1, 1, 1, 1, }));
         }
 
         /// <summary>
@@ -81,6 +79,8 @@ namespace Punchclock.Tests
         [Test]
         public void KeyedItemsShouldBeSerialized()
         {
+            using var scope = Assert.EnterMultipleScope();
+
             var subj1 = new AsyncSubject<int>();
             var subj2 = new AsyncSubject<int>();
 
@@ -117,8 +117,8 @@ namespace Punchclock.Tests
                 .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
                 .Bind(out var out2).Subscribe();
 
-            subscribeCount1.ShouldBe(0);
-            subscribeCount2.ShouldBe(0);
+            Assert.That(subscribeCount1, Is.Zero);
+            Assert.That(subscribeCount2, Is.Zero);
 
             // Dispatch both subj1 and subj2, we should end up with input1 live,
             // but input2 in queue because of the key
@@ -126,26 +126,29 @@ namespace Punchclock.Tests
             subj1.OnCompleted();
             subj2.OnNext(42);
             subj2.OnCompleted();
-            subscribeCount1.ShouldBe(1);
-            subscribeCount2.ShouldBe(0);
-            out1.ShouldBeEmpty();
-            out2.ShouldBeEmpty();
+
+            Assert.That(subscribeCount1, Is.EqualTo(1));
+            Assert.That(subscribeCount2, Is.Zero);
+            Assert.That(out1, Has.Count.EqualTo(0));
+            Assert.That(out2, Has.Count.EqualTo(0));
 
             // Dispatch input1, input2 can now execute
             input1Subj.OnNext(42);
             input1Subj.OnCompleted();
-            subscribeCount1.ShouldBe(1);
-            subscribeCount2.ShouldBe(1);
-            out1.Count.ShouldBe(1);
-            out2.ShouldBeEmpty();
+
+            Assert.That(subscribeCount1, Is.EqualTo(1));
+            Assert.That(subscribeCount2, Is.EqualTo(1));
+            Assert.That(out1, Has.Count.EqualTo(1));
+            Assert.That(out2, Has.Count.EqualTo(0));
 
             // Dispatch input2, everything is finished
             input2Subj.OnNext(42);
             input2Subj.OnCompleted();
-            subscribeCount1.ShouldBe(1);
-            subscribeCount2.ShouldBe(1);
-            out1.Count.ShouldBe(1);
-            out2.Count.ShouldBe(1);
+
+            Assert.That(subscribeCount1, Is.EqualTo(1));
+            Assert.That(subscribeCount2, Is.EqualTo(1));
+            Assert.That(out1, Has.Count.EqualTo(1));
+            Assert.That(out2, Has.Count.EqualTo(1));
         }
 
         /// <summary>
@@ -154,6 +157,8 @@ namespace Punchclock.Tests
         [Test]
         public void NonkeyedItemsShouldRunInParallel()
         {
+            using var scope = Assert.EnterMultipleScope();
+
             var unkeyed1Subj = new AsyncSubject<int>();
             var unkeyed1SubCount = 0;
             var unkeyed1 = System.Reactive.Linq.Observable.Defer(() =>
@@ -171,13 +176,15 @@ namespace Punchclock.Tests
             });
 
             var fixture = new OperationQueue(2);
-            unkeyed1SubCount.ShouldBe(0);
-            unkeyed2SubCount.ShouldBe(0);
+
+            Assert.That(unkeyed1SubCount, Is.Zero);
+            Assert.That(unkeyed2SubCount, Is.Zero);
 
             fixture.EnqueueObservableOperation(5, () => unkeyed1);
             fixture.EnqueueObservableOperation(5, () => unkeyed2);
-            unkeyed1SubCount.ShouldBe(1);
-            unkeyed2SubCount.ShouldBe(1);
+
+            Assert.That(unkeyed1SubCount, Is.EqualTo(1));
+            Assert.That(unkeyed2SubCount, Is.EqualTo(1));
         }
 
         /// <summary>
@@ -186,6 +193,8 @@ namespace Punchclock.Tests
         [Test]
         public void ShutdownShouldSignalOnceEverythingCompletes()
         {
+            using var scope = Assert.EnterMultipleScope();
+
             var subjects = Enumerable.Range(0, 5).Select(x => new AsyncSubject<int>()).ToArray();
             var priorities = new[] { 5, 5, 5, 10, 1, };
             var fixture = new OperationQueue(2);
@@ -208,22 +217,23 @@ namespace Punchclock.Tests
                 .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
                 .Bind(out var shutdown).Subscribe();
 
-            outputs.All(x => x.Count == 0).ShouldBeTrue();
-            shutdown.ShouldBeEmpty();
+            Assert.That(outputs.All(x => x.Count == 0), Is.True);
+            Assert.That(shutdown, Has.Count.EqualTo(0));
 
-            for (int i = 0; i < 4; i++)
+            for (var i = 0; i < 4; i++)
             {
                 subjects[i].OnNext(42);
                 subjects[i].OnCompleted();
             }
 
-            shutdown.ShouldBeEmpty();
+            Assert.That(shutdown, Has.Count.EqualTo(0));
 
             // Complete the last one, that should signal that we're shut down
             subjects[4].OnNext(42);
             subjects[4].OnCompleted();
-            outputs.All(x => x.Count == 1).ShouldBeTrue();
-            shutdown.Count.ShouldBe(1);
+
+            Assert.That(outputs.All(x => x.Count == 1), Is.True);
+            Assert.That(shutdown, Has.Count.EqualTo(1));
         }
 
         /// <summary>
@@ -232,6 +242,8 @@ namespace Punchclock.Tests
         [Test]
         public void PausingTheQueueShouldHoldItemsUntilUnpaused()
         {
+            using var scope = Assert.EnterMultipleScope();
+
             var item = System.Reactive.Linq.Observable.Return(42);
 
             var fixture = new OperationQueue(2);
@@ -243,7 +255,7 @@ namespace Punchclock.Tests
              .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
              .Bind(out var prePauseOutput).Subscribe();
 
-            prePauseOutput.Count.ShouldBe(2);
+            Assert.That(prePauseOutput, Has.Count.EqualTo(2));
 
             var unpause1 = fixture.PauseQueue();
 
@@ -257,16 +269,16 @@ namespace Punchclock.Tests
              .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
              .Bind(out var pauseOutput).Subscribe();
 
-            pauseOutput.ShouldBeEmpty();
+            Assert.That(pauseOutput, Has.Count.EqualTo(0));
 
             var unpause2 = fixture.PauseQueue();
-            pauseOutput.ShouldBeEmpty();
+            Assert.That(pauseOutput, Has.Count.EqualTo(0));
 
             unpause1.Dispose();
-            pauseOutput.ShouldBeEmpty();
+            Assert.That(pauseOutput, Has.Count.EqualTo(0));
 
             unpause2.Dispose();
-            pauseOutput.Count.ShouldBe(2);
+            Assert.That(pauseOutput, Has.Count.EqualTo(2));
         }
 
         /// <summary>
@@ -275,6 +287,8 @@ namespace Punchclock.Tests
         [Test]
         public void CancellingItemsShouldNotResultInThemBeingReturned()
         {
+            using var scope = Assert.EnterMultipleScope();
+
             var subj1 = new AsyncSubject<int>();
             var subj2 = new AsyncSubject<int>();
 
@@ -296,28 +310,27 @@ namespace Punchclock.Tests
              .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
              .Bind(out var output).Subscribe();
 
-            // Still blocked by subj1,2
-            output.ShouldBeEmpty();
+            Assert.That(output, Has.Count.EqualTo(0));
 
             // Still blocked by subj1,2, only baz is in queue
             cancel1.OnNext(Unit.Default);
             cancel1.OnCompleted();
-            output.ShouldBeEmpty();
+            Assert.That(output, Has.Count.EqualTo(0));
 
             // foo was cancelled, baz is still good
             subj1.OnNext(42);
             subj1.OnCompleted();
-            output.Count.ShouldBe(1);
+            Assert.That(output, Has.Count.EqualTo(1));
 
             // don't care that cancelled item finished
             item1.OnNext(42);
             item1.OnCompleted();
-            output.Count.ShouldBe(1);
+            Assert.That(output, Has.Count.EqualTo(1));
 
             // still shouldn't see anything
             subj2.OnNext(42);
             subj2.OnCompleted();
-            output.Count.ShouldBe(1);
+            Assert.That(output, Has.Count.EqualTo(1));
         }
 
         /// <summary>
@@ -326,6 +339,8 @@ namespace Punchclock.Tests
         [Test]
         public void CancellingItemsShouldntEvenBeEvaluated()
         {
+            using var scope = Assert.EnterMultipleScope();
+
             var subj1 = new AsyncSubject<int>();
             var subj2 = new AsyncSubject<int>();
 
@@ -338,7 +353,7 @@ namespace Punchclock.Tests
             }
 
             var cancel1 = new Subject<Unit>();
-            bool wasCalled = false;
+            var wasCalled = false;
             var item1 = new AsyncSubject<int>();
 
             fixture.EnqueueObservableOperation(5, "foo", cancel1, () =>
@@ -348,28 +363,27 @@ namespace Punchclock.Tests
             }).ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
               .Bind(out var output).Subscribe();
 
-            // Still blocked by subj1,2
-            output.ShouldBeEmpty();
-            wasCalled.ShouldBeFalse();
+            Assert.That(output, Has.Count.EqualTo(0));
+            Assert.That(wasCalled, Is.False);
 
             // Still blocked by subj1,2 - however, we've cancelled foo before
             // it even had a chance to run - if that's the case, we shouldn't
             // even call the evaluation func
             cancel1.OnNext(Unit.Default);
             cancel1.OnCompleted();
-            output.ShouldBeEmpty();
-            wasCalled.ShouldBeFalse();
+            Assert.That(output, Has.Count.EqualTo(0));
+            Assert.That(wasCalled, Is.False);
 
             // Unblock subj1,2, we still shouldn't see wasCalled = true
             subj1.OnNext(42);
             subj1.OnCompleted();
-            output.ShouldBeEmpty();
-            wasCalled.ShouldBeFalse();
+            Assert.That(output, Has.Count.EqualTo(0));
+            Assert.That(wasCalled, Is.False);
 
             subj2.OnNext(42);
             subj2.OnCompleted();
-            output.ShouldBeEmpty();
-            wasCalled.ShouldBeFalse();
+            Assert.That(output, Has.Count.EqualTo(0));
+            Assert.That(wasCalled, Is.False);
         }
 
         /// <summary>
@@ -378,6 +392,8 @@ namespace Punchclock.Tests
         [Test]
         public void QueueShouldRespectMaximumConcurrent()
         {
+            using var scope = Assert.EnterMultipleScope();
+
             var unkeyed1Subj = new AsyncSubject<int>();
             var unkeyed1SubCount = 0;
             var unkeyed1 = System.Reactive.Linq.Observable.Defer(() =>
@@ -403,17 +419,18 @@ namespace Punchclock.Tests
             });
 
             var fixture = new OperationQueue(2);
-            unkeyed1SubCount.ShouldBe(0);
-            unkeyed2SubCount.ShouldBe(0);
-            unkeyed3SubCount.ShouldBe(0);
+
+            Assert.That(unkeyed1SubCount, Is.Zero);
+            Assert.That(unkeyed2SubCount, Is.Zero);
+            Assert.That(unkeyed3SubCount, Is.Zero);
 
             fixture.EnqueueObservableOperation(5, () => unkeyed1);
             fixture.EnqueueObservableOperation(5, () => unkeyed2);
             fixture.EnqueueObservableOperation(5, () => unkeyed3);
 
-            unkeyed1SubCount.ShouldBe(1);
-            unkeyed2SubCount.ShouldBe(1);
-            unkeyed3SubCount.ShouldBe(0);
+            Assert.That(unkeyed1SubCount, Is.EqualTo(1));
+            Assert.That(unkeyed2SubCount, Is.EqualTo(1));
+            Assert.That(unkeyed3SubCount, Is.Zero);
         }
 
         /// <summary>
@@ -422,6 +439,8 @@ namespace Punchclock.Tests
         [Test]
         public void ShouldBeAbleToIncreaseTheMaximunConcurrentValueOfAnExistingQueue()
         {
+            using var scope = Assert.EnterMultipleScope();
+
             var unkeyed1Subj = new AsyncSubject<int>();
             var unkeyed1SubCount = 0;
             var unkeyed1 = System.Reactive.Linq.Observable.Defer(() =>
@@ -455,27 +474,28 @@ namespace Punchclock.Tests
             });
 
             var fixture = new OperationQueue(2);
-            unkeyed1SubCount.ShouldBe(0);
-            unkeyed2SubCount.ShouldBe(0);
-            unkeyed3SubCount.ShouldBe(0);
-            unkeyed4SubCount.ShouldBe(0);
+
+            Assert.That(unkeyed1SubCount, Is.Zero);
+            Assert.That(unkeyed2SubCount, Is.Zero);
+            Assert.That(unkeyed3SubCount, Is.Zero);
+            Assert.That(unkeyed4SubCount, Is.Zero);
 
             fixture.EnqueueObservableOperation(5, () => unkeyed1);
             fixture.EnqueueObservableOperation(5, () => unkeyed2);
             fixture.EnqueueObservableOperation(5, () => unkeyed3);
             fixture.EnqueueObservableOperation(5, () => unkeyed4);
 
-            unkeyed1SubCount.ShouldBe(1);
-            unkeyed2SubCount.ShouldBe(1);
-            unkeyed3SubCount.ShouldBe(0);
-            unkeyed4SubCount.ShouldBe(0);
+            Assert.That(unkeyed1SubCount, Is.EqualTo(1));
+            Assert.That(unkeyed2SubCount, Is.EqualTo(1));
+            Assert.That(unkeyed3SubCount, Is.Zero);
+            Assert.That(unkeyed4SubCount, Is.Zero);
 
             fixture.SetMaximumConcurrent(3);
 
-            unkeyed1SubCount.ShouldBe(1);
-            unkeyed2SubCount.ShouldBe(1);
-            unkeyed3SubCount.ShouldBe(1);
-            unkeyed4SubCount.ShouldBe(0);
+            Assert.That(unkeyed1SubCount, Is.EqualTo(1));
+            Assert.That(unkeyed2SubCount, Is.EqualTo(1));
+            Assert.That(unkeyed3SubCount, Is.EqualTo(1));
+            Assert.That(unkeyed4SubCount, Is.Zero);
         }
 
         /// <summary>
@@ -484,6 +504,8 @@ namespace Punchclock.Tests
         [Test]
         public void ShouldBeAbleToDecreaseTheMaximunConcurrentValueOfAnExistingQueue()
         {
+            using var scope = Assert.EnterMultipleScope();
+
             var subjects = Enumerable.Range(0, 6).Select(x => new AsyncSubject<int>()).ToArray();
             var fixture = new OperationQueue(3);
 
@@ -499,10 +521,13 @@ namespace Punchclock.Tests
                     return output;
                 }).ToArray();
 
-            new[] { true, true, true, false, false, false, }.Zip(
-                    subjects,
-                    (expected, subj) => new { expected, actual = subj.HasObservers, })
-                .All(x => x.expected == x.actual).ShouldBeTrue();
+            Assert.That(
+                new[] { true, true, true, false, false, false, }
+                    .Zip(
+                        subjects,
+                        (expected, subj) => new { expected, actual = subj.HasObservers, })
+                    .All(x => x.expected == x.actual),
+                Is.True);
 
             fixture.SetMaximumConcurrent(2);
 
@@ -511,19 +536,25 @@ namespace Punchclock.Tests
             subjects[0].OnNext(42);
             subjects[0].OnCompleted();
 
-            new[] { false, true, true, false, false, false, }.Zip(
-                    subjects,
-                    (expected, subj) => new { expected, actual = subj.HasObservers, })
-                .All(x => x.expected == x.actual).ShouldBeTrue();
+            Assert.That(
+                new[] { false, true, true, false, false, false, }
+                    .Zip(
+                        subjects,
+                        (expected, subj) => new { expected, actual = subj.HasObservers, })
+                    .All(x => x.expected == x.actual),
+                Is.True);
 
             // Complete subj[1], now 2,3 are live
             subjects[1].OnNext(42);
             subjects[1].OnCompleted();
 
-            new[] { false, false, true, true, false, false, }.Zip(
-                    subjects,
-                    (expected, subj) => new { expected, actual = subj.HasObservers, })
-                .All(x => x.expected == x.actual).ShouldBeTrue();
+            Assert.That(
+                new[] { false, false, true, true, false, false, }
+                    .Zip(
+                        subjects,
+                        (expected, subj) => new { expected, actual = subj.HasObservers, })
+                    .All(x => x.expected == x.actual),
+                Is.True);
         }
 
         /// <summary>
@@ -532,6 +563,8 @@ namespace Punchclock.Tests
         [Test]
         public void EqualPriorityAcrossDifferentKeysCanBeRandomized()
         {
+            using var scope = Assert.EnterMultipleScope();
+
             // Use deterministic seed to make test stable
             var queue = new OperationQueue(maximumConcurrent: 1, randomizeEqualPriority: true, seed: 123);
 
@@ -542,8 +575,8 @@ namespace Punchclock.Tests
             var a = new AsyncSubject<int>();
             var b = new AsyncSubject<int>();
 
-            int nextCountA = 0;
-            int nextCountB = 0;
+            var nextCountA = 0;
+            var nextCountB = 0;
 
             queue.EnqueueObservableOperation(5, "A", () => a).Subscribe(_ => nextCountA++);
             queue.EnqueueObservableOperation(5, "B", () => b).Subscribe(_ => nextCountB++);
@@ -582,7 +615,7 @@ namespace Punchclock.Tests
                 b.OnCompleted();
             }
 
-            (nextCountA + nextCountB).ShouldBe(2);
+            Assert.That(nextCountA + nextCountB, Is.EqualTo(2));
         }
     }
 }

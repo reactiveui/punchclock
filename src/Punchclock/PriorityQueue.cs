@@ -1,6 +1,6 @@
-﻿// Copyright (c) 2025 .NET Foundation and Contributors. All rights reserved.
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+﻿// Copyright (c) 2025 ReactiveUI and Contributors. All rights reserved.
+// Licensed to the ReactiveUI and Contributors under one or more agreements.
+// ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
 using System;
@@ -86,7 +86,7 @@ internal class PriorityQueue<T>(int capacity)
 
         var ret = new T[count];
         count = Math.Min(count, Count);
-        for (int i = 0; i < count; i++)
+        for (var i = 0; i < count; i++)
         {
             ret[i] = Peek();
             RemoveAt(0, false);
