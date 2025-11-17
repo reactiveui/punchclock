@@ -40,6 +40,8 @@ public class OperationQueue : IDisposable
     private readonly Subject<KeyedOperation> _queuedOps = new();
     private readonly IConnectableObservable<KeyedOperation> _resultObs;
     private readonly PrioritySemaphoreSubject<KeyedOperation> _scheduledGate;
+    private readonly bool _randomizeEqualPriority;
+    private readonly Random? _random;
     private int _maximumConcurrent;
     private int _pauseRefCount;
     private bool _isDisposed;
@@ -51,9 +53,22 @@ public class OperationQueue : IDisposable
     /// </summary>
     /// <param name="maximumConcurrent">The maximum number of concurrent operations.</param>
     public OperationQueue(int maximumConcurrent = 4)
+        : this(maximumConcurrent, false, null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OperationQueue"/> class with optional randomness support.
+    /// </summary>
+    /// <param name="maximumConcurrent">The maximum number of concurrent operations.</param>
+    /// <param name="randomizeEqualPriority">If true, randomizes execution order among equal-priority items across different keys.</param>
+    /// <param name="seed">Optional seed to make randomization deterministic for tests.</param>
+    public OperationQueue(int maximumConcurrent, bool randomizeEqualPriority, int? seed)
     {
         _maximumConcurrent = maximumConcurrent;
         _scheduledGate = new(maximumConcurrent);
+        _randomizeEqualPriority = randomizeEqualPriority;
+        _random = randomizeEqualPriority ? (seed.HasValue ? new Random(seed.Value) : new Random()) : null;
 
         _resultObs = _queuedOps
             .Multicast(_scheduledGate).RefCount()
@@ -101,6 +116,12 @@ public class OperationQueue : IDisposable
             CancelSignal = cancelReplay.Select(_ => Unit.Default),
             Func = asyncCalculationFunc,
         };
+
+        if (_randomizeEqualPriority)
+        {
+            item.UseRandomTiebreak = true;
+            item.RandomOrder = _random!.Next();
+        }
 
         cancel
             .Do(_ =>

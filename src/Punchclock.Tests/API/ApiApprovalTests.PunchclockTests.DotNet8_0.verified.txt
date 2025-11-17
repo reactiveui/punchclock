@@ -4,6 +4,7 @@ namespace Punchclock
     public class OperationQueue : System.IDisposable
     {
         public OperationQueue(int maximumConcurrent = 4) { }
+        public OperationQueue(int maximumConcurrent, bool randomizeEqualPriority, int? seed) { }
         public void Dispose() { }
         protected virtual void Dispose(bool isDisposing) { }
         public System.IObservable<T> EnqueueObservableOperation<T>(int priority, System.Func<System.IObservable<T>> asyncCalculationFunc) { }
