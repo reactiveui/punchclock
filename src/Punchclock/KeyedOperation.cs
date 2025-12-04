@@ -14,7 +14,6 @@ namespace Punchclock;
 /// <summary>
 /// KeyedOperation.
 /// </summary>
-/// <seealso cref="System.IComparable&lt;Punchclock.KeyedOperation&gt;" />
 internal abstract class KeyedOperation : IComparable<KeyedOperation>
 {
     /// <summary>
