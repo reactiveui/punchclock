@@ -12,7 +12,7 @@
 
 		<PackageVersion Include="DynamicData" Version="9.4.1" />
 		<PackageVersion Include="PublicApiGenerator" Version="11.5.3" />
-		<PackageVersion Include="Verify.NUnit" Version="31.7.3" />
+		<PackageVersion Include="Verify.NUnit" Version="31.8.0" />
 		<PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
 		<PackageVersion Include="NUnit" Version="4.4.0" />
 		<PackageVersion Include="NUnit3TestAdapter" Version="5.2.0" />
