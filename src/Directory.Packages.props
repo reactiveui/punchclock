@@ -18,7 +18,7 @@
 		<PackageVersion Include="NUnit3TestAdapter" Version="6.0.1" />
 		<PackageVersion Include="NUnit.Analyzers" Version="4.11.2" />
 		<PackageVersion Include="Shouldly" Version="4.3.0" />
-		<PackageVersion Include="DiffEngine" Version="18.0.1" />
+		<PackageVersion Include="DiffEngine" Version="18.2.0" />
 		<PackageVersion Include="coverlet.msbuild" Version="6.0.4" />
 	</ItemGroup>
 </Project>
