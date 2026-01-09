@@ -5,6 +5,7 @@
 
 using System;
 using System.Reactive;
+using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
@@ -243,7 +244,24 @@ public static class OperationQueueExtensions
 #if NET8_0_OR_GREATER
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-    internal static IObservable<Unit> ConvertTokenToObservable(CancellationToken token)
+    internal static IObservable<Unit> ConvertTokenToObservable(CancellationToken token) =>
+        ConvertTokenToObservable(null, token);
+
+    /// <summary>
+    /// Converts a <see cref="CancellationToken"/> to an observable that signals when cancellation is requested.
+    /// This overload accepts a scheduler for testing purposes.
+    /// </summary>
+    /// <param name="scheduler">Optional scheduler for subscription. Used for testing temporal behavior.</param>
+    /// <param name="token">The cancellation token to convert.</param>
+    /// <returns>
+    /// An observable that emits <see cref="Unit.Default"/> when the token is cancelled.
+    /// For non-cancellable tokens, returns an observable that never completes (fast path).
+    /// </returns>
+    /// <exception cref="OperationCanceledException">Thrown immediately if the token is already cancelled.</exception>
+#if NET8_0_OR_GREATER
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+#endif
+    internal static IObservable<Unit> ConvertTokenToObservable(IScheduler? scheduler, CancellationToken token)
     {
         // Fast path: non-cancellable tokens never cancel, so return never-completing observable
         if (!token.CanBeCanceled)
@@ -258,7 +276,7 @@ public static class OperationQueueExtensions
         }
 
         // Standard path: create observable that signals on cancellation
-        return Observable.Create<Unit>(observer =>
+        var obs = Observable.Create<Unit>(observer =>
         {
             // Double-check cancellation after observable creation
             if (token.IsCancellationRequested)
@@ -273,5 +291,7 @@ public static class OperationQueueExtensions
                 observer.OnCompleted();
             });
         });
+
+        return scheduler != null ? obs.SubscribeOn(scheduler) : obs;
     }
 }

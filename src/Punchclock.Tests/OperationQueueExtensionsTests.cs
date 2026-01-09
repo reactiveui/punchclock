@@ -504,4 +504,122 @@ public class OperationQueueExtensionsTests
             await Assert.That(completed).IsTrue();
         }
     }
+
+    /// <summary>
+    /// Covers lines 108-109 - normal enqueue path with cancellable token (non-generic overload).
+    /// Verifies that operations with cancellable tokens that don't get cancelled execute normally.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    public async Task Enqueue_NonGeneric_WithCancellableTokenNotCancelled_ExecutesOperation()
+    {
+        using (Assert.Multiple())
+        {
+            using var queue = new OperationQueue(2, ImmediateScheduler.Instance);
+            using var cts = new CancellationTokenSource();
+
+            var executed = false;
+
+            // Enqueue with cancellable token but don't cancel it (non-generic overload)
+            await queue.Enqueue(
+                1,
+                "key",
+                () =>
+                {
+                    executed = true;
+                    return Task.CompletedTask;
+                },
+                cts.Token);
+
+            await Assert.That(executed).IsTrue();
+            await Assert.That(cts.IsCancellationRequested).IsFalse();
+        }
+    }
+
+    /// <summary>
+    /// Covers lines 108-109 - normal enqueue path with cancellable token (generic overload).
+    /// Verifies that operations with cancellable tokens that don't get cancelled execute normally.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    public async Task Enqueue_Generic_WithCancellableTokenNotCancelled_ExecutesOperation()
+    {
+        using (Assert.Multiple())
+        {
+            using var queue = new OperationQueue(2, ImmediateScheduler.Instance);
+            using var cts = new CancellationTokenSource();
+
+            // Enqueue with cancellable token but don't cancel it (generic overload)
+            var result = await queue.Enqueue(1, "key", () => Task.FromResult(42), cts.Token);
+
+            await Assert.That(result).IsEqualTo(42);
+            await Assert.That(cts.IsCancellationRequested).IsFalse();
+        }
+    }
+
+    /// <summary>
+    /// Covers lines 264/266-267 (now 281/283-284) - race condition where token is cancelled
+    /// between ConvertTokenToObservable call and Observable.Create subscription.
+    /// Uses TestScheduler to control when the cancellation happens.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    public async Task ConvertTokenToObservable_WithRaceCancellation_HandlesCorrectly()
+    {
+        using (Assert.Multiple())
+        {
+            var testScheduler = new TestScheduler();
+            using var cts = new CancellationTokenSource();
+
+            // Schedule cancellation to happen during subscription
+            testScheduler.Schedule(TimeSpan.FromTicks(5), () => cts.Cancel());
+
+            var observable = OperationQueueExtensions.ConvertTokenToObservable(testScheduler, cts.Token);
+
+            Exception? caughtException = null;
+            var receivedValues = new List<Unit>();
+
+            // Subscribe at time 0
+            testScheduler.Schedule(TimeSpan.FromTicks(10), () =>
+            {
+                observable.Subscribe(
+                    v => receivedValues.Add(v),
+                    ex => caughtException = ex);
+            });
+
+            // Advance scheduler to trigger subscription and cancellation
+            testScheduler.AdvanceBy(TimeSpan.FromTicks(20).Ticks);
+
+            // Should have caught the race condition and errored
+            await Assert.That(caughtException).IsNotNull();
+            await Assert.That(caughtException).IsTypeOf<OperationCanceledException>();
+            await Assert.That(receivedValues).IsEmpty();
+        }
+    }
+
+    /// <summary>
+    /// Verifies line 103 - both branches of IsCancellationRequested check.
+    /// Tests both the true case (already cancelled) and false case (not cancelled).
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    public async Task Enqueue_CancellationTokenCheck_HandlesBothPaths()
+    {
+        using (Assert.Multiple())
+        {
+            using var queue = new OperationQueue(2, ImmediateScheduler.Instance);
+
+            // Test false branch (not cancelled) - lines 108-109
+            using var cts1 = new CancellationTokenSource();
+            var result1 = await queue.Enqueue(1, "key1", () => Task.FromResult(1), cts1.Token);
+            await Assert.That(result1).IsEqualTo(1);
+
+            // Test true branch (already cancelled) - line 105
+            using var cts2 = new CancellationTokenSource();
+            cts2.Cancel();
+            await Assert.That(async () =>
+                await queue.Enqueue(1, "key2", () => Task.FromResult(2), cts2.Token))
+                .Throws<TaskCanceledException>();
+        }
+    }
 }
