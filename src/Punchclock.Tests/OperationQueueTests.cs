@@ -769,8 +769,6 @@ public class OperationQueueTests
             queue.EnqueueObservableOperation(1, string.Empty, () => Observable.Return(2))
                 .Subscribe(_ => completed2 = true);
 
-            await Task.Delay(100);
-
             // Both should complete concurrently since they're treated as DefaultKey
             await Assert.That(completed1).IsTrue();
             await Assert.That(completed2).IsTrue();
@@ -797,8 +795,7 @@ public class OperationQueueTests
             queue.EnqueueObservableOperation(1, null!, () => Observable.Return(2))
                 .Subscribe(_ => completed2 = true);
 
-            await Task.Delay(100);
-
+            // Operations complete without delay
             await Assert.That(completed1).IsTrue();
             await Assert.That(completed2).IsTrue();
         }
@@ -822,7 +819,7 @@ public class OperationQueueTests
             pauseHandle.Dispose();
 
             // Queue should still be in shutdown state
-            await Task.Delay(50);
+            // Operations complete without delay
             await Task.CompletedTask; // Verify no exceptions
         }
     }
@@ -855,7 +852,7 @@ public class OperationQueueTests
             queue.EnqueueObservableOperation(1, "a", () => Observable.Return(1)).Subscribe(_ => completed++);
             queue.EnqueueObservableOperation(1, "b", () => Observable.Return(2)).Subscribe(_ => completed++);
 
-            await Task.Delay(100);
+            // ImmediateScheduler executes synchronously
             await Assert.That(completed).IsEqualTo(2);
         }
     }
@@ -878,7 +875,7 @@ public class OperationQueueTests
             queue.EnqueueObservableOperation(1, () => Observable.Return(42))
                 .Subscribe(_ => completed = true);
 
-            await Task.Delay(50);
+            // Operations complete synchronously
             await Assert.That(completed).IsTrue();
         }
     }

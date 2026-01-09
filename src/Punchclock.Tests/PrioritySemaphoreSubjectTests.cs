@@ -56,14 +56,14 @@ public class PrioritySemaphoreSubjectTests
             subject.OnNext(item1);
             subject.Release();
 
-            await Task.Delay(50);
+            // ImmediateScheduler executes synchronously
             await Assert.That(received).Count().IsEqualTo(1);
             await Assert.That(received[0]).IsEqualTo(item1);
 
             subject.OnNext(item2);
             subject.Release();
 
-            await Task.Delay(50);
+            // ImmediateScheduler executes synchronously
             await Assert.That(received).Count().IsEqualTo(2);
         }
     }
@@ -94,8 +94,7 @@ public class PrioritySemaphoreSubjectTests
             subject.Release();
             subject.Release();
 
-            await Task.Delay(100);
-
+            // ImmediateScheduler executes synchronously
             await Assert.That(received).Count().IsEqualTo(3);
             await Assert.That(received[0]).IsEqualTo(item1); // First one goes through immediately
             await Assert.That(received[1]).IsEqualTo(item2); // Higher priority
@@ -137,12 +136,12 @@ public class PrioritySemaphoreSubjectTests
             subject.OnNext(new TestItem(1));
             subject.OnNext(new TestItem(2));
 
-            await Task.Delay(50);
+            // ImmediateScheduler executes synchronously
             await Assert.That(received).IsEmpty();
 
             subject.MaximumCount = 2; // Resume
 
-            await Task.Delay(50);
+            // ImmediateScheduler executes synchronously
             await Assert.That(received).Count().IsEqualTo(2);
         }
     }
@@ -164,12 +163,12 @@ public class PrioritySemaphoreSubjectTests
             subject.OnNext(new TestItem(1));
             subject.OnNext(new TestItem(2));
 
-            await Task.Delay(50);
+            // ImmediateScheduler executes synchronously
             await Assert.That(received).Count().IsEqualTo(1);
 
             subject.Release(); // Allow second item
 
-            await Task.Delay(50);
+            // ImmediateScheduler executes synchronously
             await Assert.That(received).Count().IsEqualTo(2);
         }
     }
@@ -197,7 +196,7 @@ public class PrioritySemaphoreSubjectTests
 
             subject.OnCompleted();
 
-            await Task.Delay(100);
+            // ImmediateScheduler executes synchronously
             await Assert.That(received).Count().IsEqualTo(3); // All drained
             await Assert.That(completed).IsTrue();
         }
@@ -226,7 +225,7 @@ public class PrioritySemaphoreSubjectTests
             var expectedException = new InvalidOperationException("test error");
             subject.OnError(expectedException);
 
-            await Task.Delay(50);
+            // ImmediateScheduler executes synchronously
             await Assert.That(error).IsEqualTo(expectedException);
         }
     }
@@ -248,12 +247,12 @@ public class PrioritySemaphoreSubjectTests
             subject.OnNext(new TestItem(1));
             subject.OnCompleted();
 
-            await Task.Delay(50);
+            // ImmediateScheduler executes synchronously
             var countAfterComplete = received.Count;
 
             subject.OnNext(new TestItem(2)); // Should be ignored
 
-            await Task.Delay(50);
+            // ImmediateScheduler executes synchronously
             await Assert.That(received.Count).IsEqualTo(countAfterComplete);
         }
     }
@@ -277,12 +276,12 @@ public class PrioritySemaphoreSubjectTests
             subject.OnNext(new TestItem(1));
             subject.OnError(new InvalidOperationException("error"));
 
-            await Task.Delay(50);
+            // ImmediateScheduler executes synchronously
             var countAfterError = received.Count;
 
             subject.OnNext(new TestItem(2)); // Should be ignored
 
-            await Task.Delay(50);
+            // ImmediateScheduler executes synchronously
             await Assert.That(received.Count).IsEqualTo(countAfterError);
         }
     }
@@ -321,7 +320,7 @@ public class PrioritySemaphoreSubjectTests
             // This should hit line 94 - queue is null after completion
             subject.OnNext(new TestItem(2));
 
-            await Task.Delay(50);
+            // ImmediateScheduler executes synchronously
             await Assert.That(received).Count().IsEqualTo(1); // Only the first item
         }
     }

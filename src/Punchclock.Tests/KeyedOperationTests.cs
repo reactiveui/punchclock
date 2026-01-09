@@ -205,7 +205,7 @@ public class KeyedOperationTests
             cancelSubject.OnNext(System.Reactive.Unit.Default);
             cancelSubject.OnCompleted();
 
-            await Task.Delay(50);
+            // TakeUntil completes synchronously when cancel signal completes
             await Assert.That(completed).IsTrue();
         }
     }

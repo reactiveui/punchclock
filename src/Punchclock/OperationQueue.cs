@@ -106,7 +106,17 @@ public class OperationQueue : IDisposable
     /// </summary>
     /// <param name="maximumConcurrent">The maximum number of concurrent operations. Must be positive.</param>
     public OperationQueue(int maximumConcurrent = 4)
-        : this(maximumConcurrent, randomizeEqualPriority: false, seed: null)
+        : this(maximumConcurrent, randomizeEqualPriority: false, seed: null, scheduler: null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OperationQueue"/> class with a scheduler.
+    /// </summary>
+    /// <param name="maximumConcurrent">The maximum number of concurrent operations. Must be positive.</param>
+    /// <param name="scheduler">Scheduler for controlling execution timing. Useful for testing.</param>
+    public OperationQueue(int maximumConcurrent, IScheduler scheduler)
+        : this(maximumConcurrent, randomizeEqualPriority: false, seed: null, scheduler: scheduler)
     {
     }
 
@@ -117,6 +127,18 @@ public class OperationQueue : IDisposable
     /// <param name="randomizeEqualPriority">If true, randomizes execution order among equal-priority items across different keys.</param>
     /// <param name="seed">Optional seed to make randomization deterministic for tests.</param>
     public OperationQueue(int maximumConcurrent, bool randomizeEqualPriority, int? seed)
+        : this(maximumConcurrent, randomizeEqualPriority, seed, scheduler: null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OperationQueue"/> class with optional randomness support and scheduler.
+    /// </summary>
+    /// <param name="maximumConcurrent">The maximum number of concurrent operations. Must be positive.</param>
+    /// <param name="randomizeEqualPriority">If true, randomizes execution order among equal-priority items across different keys.</param>
+    /// <param name="seed">Optional seed to make randomization deterministic for tests.</param>
+    /// <param name="scheduler">Scheduler for controlling execution timing. Useful for testing.</param>
+    public OperationQueue(int maximumConcurrent, bool randomizeEqualPriority, int? seed, IScheduler? scheduler)
     {
         if (maximumConcurrent <= 0)
         {
@@ -124,7 +146,7 @@ public class OperationQueue : IDisposable
         }
 
         _maximumConcurrent = maximumConcurrent;
-        _scheduledGate = new(maximumConcurrent);
+        _scheduledGate = new(maximumConcurrent, scheduler);
         _randomizeEqualPriority = randomizeEqualPriority;
         _random = randomizeEqualPriority ? (seed.HasValue ? new Random(seed.Value) : new Random()) : null;
 

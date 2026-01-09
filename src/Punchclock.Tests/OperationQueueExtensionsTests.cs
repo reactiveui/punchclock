@@ -5,8 +5,10 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive;
+using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using Microsoft.Reactive.Testing;
 
 namespace Punchclock.Tests;
 
@@ -396,7 +398,7 @@ public class OperationQueueExtensionsTests
     {
         using (Assert.Multiple())
         {
-            using var queue = new OperationQueue(1);
+            using var queue = new OperationQueue(1, ImmediateScheduler.Instance);
 
             // Block the queue
             var blocker = new Subject<int>();
@@ -404,19 +406,14 @@ public class OperationQueueExtensionsTests
 
             using var cts = new CancellationTokenSource();
 
-            // Enqueue with cancellable token - will enter Observable.Create path (lines 261-268)
+            // Enqueue with cancellable token - operation won't start until queue is unblocked
             var task = queue.Enqueue(
                 1,
                 "key",
-                async () =>
-                {
-                    await Task.Delay(5000); // Long delay
-                    return 42;
-                },
+                () => Task.FromResult(42),
                 cts.Token);
 
-            // Cancel after a short delay - this tests the cancellation registration path
-            await Task.Delay(50);
+            // Cancel before the operation starts
             cts.Cancel();
 
             await Assert.That(async () => await task).Throws<TaskCanceledException>();
