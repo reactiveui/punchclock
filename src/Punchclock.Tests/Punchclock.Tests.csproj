@@ -9,7 +9,8 @@
 		<PackageReference Include="Verify.TUnit" />
 		<PackageReference Include="TUnit" />
 		<PackageReference Include="DiffEngine" />
-    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
+		<PackageReference Include="Microsoft.Reactive.Testing" />
+		<PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
 	</ItemGroup>
 
 	<ItemGroup>

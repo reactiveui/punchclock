@@ -424,4 +424,87 @@ public class OperationQueueExtensionsTests
             blocker.OnCompleted(); // Unblock queue for cleanup
         }
     }
+
+    /// <summary>
+    /// Covers OperationQueueExtensions line 249 - ConvertTokenToObservable with non-cancellable token.
+    /// Verifies that non-cancellable tokens return Observable.Never (never completes).
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    public async Task ConvertTokenToObservable_WithNonCancellableToken_ReturnsNever()
+    {
+        using (Assert.Multiple())
+        {
+            var token = CancellationToken.None;
+            var observable = OperationQueueExtensions.ConvertTokenToObservable(token);
+
+            var completed = false;
+            var receivedValues = new List<Unit>();
+
+            using var subscription = observable.Subscribe(
+                v => receivedValues.Add(v),
+                ex => { },
+                () => completed = true);
+
+            // Observable.Never never emits or completes
+            await Assert.That(receivedValues).IsEmpty();
+            await Assert.That(completed).IsFalse();
+        }
+    }
+
+    /// <summary>
+    /// Covers OperationQueueExtensions lines 255/257 - ConvertTokenToObservable with already-cancelled token.
+    /// Verifies that already-cancelled tokens return Observable.Throw immediately.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    public async Task ConvertTokenToObservable_WithAlreadyCancelledToken_ThrowsImmediately()
+    {
+        using (Assert.Multiple())
+        {
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            var observable = OperationQueueExtensions.ConvertTokenToObservable(cts.Token);
+
+            Exception? caughtException = null;
+            observable.Subscribe(
+                v => { },
+                ex => caughtException = ex);
+
+            // Observable.Throw emits error synchronously
+            await Assert.That(caughtException).IsNotNull();
+            await Assert.That(caughtException).IsTypeOf<OperationCanceledException>();
+        }
+    }
+
+    /// <summary>
+    /// Covers the normal cancellation path - token registration and callback.
+    /// Verifies that cancelling a token after subscription emits Unit.Default and completes.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    public async Task ConvertTokenToObservable_WithCancellableToken_CanBeCancelled()
+    {
+        using (Assert.Multiple())
+        {
+            using var cts = new CancellationTokenSource();
+
+            var observable = OperationQueueExtensions.ConvertTokenToObservable(cts.Token);
+
+            var receivedValues = new List<Unit>();
+            var completed = false;
+
+            using var subscription = observable.Subscribe(
+                v => receivedValues.Add(v),
+                ex => { },
+                () => completed = true);
+
+            // Cancel the token - should emit Unit.Default and complete synchronously
+            cts.Cancel();
+
+            await Assert.That(receivedValues).Count().IsEqualTo(1);
+            await Assert.That(completed).IsTrue();
+        }
+    }
 }

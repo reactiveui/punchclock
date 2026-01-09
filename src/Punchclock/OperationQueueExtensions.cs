@@ -243,7 +243,7 @@ public static class OperationQueueExtensions
 #if NET8_0_OR_GREATER
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-    private static IObservable<Unit> ConvertTokenToObservable(CancellationToken token)
+    internal static IObservable<Unit> ConvertTokenToObservable(CancellationToken token)
     {
         // Fast path: non-cancellable tokens never cancel, so return never-completing observable
         if (!token.CanBeCanceled)
