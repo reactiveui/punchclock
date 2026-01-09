@@ -1,6 +1,6 @@
 ﻿[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Punchclock.Benchmarks.New")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Punchclock.Tests")]
-[assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v8.0", FrameworkDisplayName=".NET 8.0")]
+[assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v10.0", FrameworkDisplayName=".NET 10.0")]
 namespace Punchclock
 {
     public class OperationQueue : System.IDisposable

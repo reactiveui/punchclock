@@ -1,10 +1,14 @@
-﻿[assembly: System.Runtime.Versioning.TargetFramework(".NETStandard,Version=v2.0", FrameworkDisplayName=".NET Standard 2.0")]
+﻿[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Punchclock.Benchmarks.New")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Punchclock.Tests")]
+[assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v9.0", FrameworkDisplayName=".NET 9.0")]
 namespace Punchclock
 {
     public class OperationQueue : System.IDisposable
     {
         public OperationQueue(int maximumConcurrent = 4) { }
+        public OperationQueue(int maximumConcurrent, System.Reactive.Concurrency.IScheduler scheduler) { }
         public OperationQueue(int maximumConcurrent, bool randomizeEqualPriority, int? seed) { }
+        public OperationQueue(int maximumConcurrent, bool randomizeEqualPriority, int? seed, System.Reactive.Concurrency.IScheduler? scheduler) { }
         public void Dispose() { }
         protected virtual void Dispose(bool isDisposing) { }
         public System.IObservable<T> EnqueueObservableOperation<T>(int priority, System.Func<System.IObservable<T>> asyncCalculationFunc) { }
