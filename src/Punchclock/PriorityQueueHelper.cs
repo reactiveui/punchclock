@@ -22,7 +22,8 @@ internal static class PriorityQueueHelper
 
     /// <summary>
     /// Percolates (bubbles up) an item at the given index to maintain quaternary heap property.
-    /// The item is repeatedly swapped with its parent until the heap property is restored.
+    /// Uses an iterative "hole" approach: moves parents down until finding the correct position,
+    /// then places the item once. This reduces memory writes compared to recursive swapping.
     /// </summary>
     /// <typeparam name="T">The type of items in the heap, must be comparable.</typeparam>
     /// <param name="items">The array representing the heap structure.</param>
@@ -32,6 +33,7 @@ internal static class PriorityQueueHelper
     /// This method is used after insertion to restore the quaternary heap property.
     /// Quaternary heap: parent = (index - 1) / 4.
     /// Time complexity: O(log₄ n) where n is the count of items in the heap.
+    /// Implementation follows dotnet/runtime's iterative hole-based approach for better performance.
     /// </remarks>
     internal static void Percolate<T>(T[] items, int index, int count)
         where T : IComparable<T>
@@ -41,23 +43,34 @@ internal static class PriorityQueueHelper
             return;
         }
 
+        // Save the item we're percolating - this creates a "hole" at index
+        var item = items[index];
+        var currentIndex = index;
+
         // Quaternary heap: parent = (index - 1) / 4
-        var parent = (index - 1) / Arity;
-        if (parent < 0 || parent == index)
+        while (currentIndex > 0)
         {
-            return;
+            var parent = (currentIndex - 1) / Arity;
+
+            // If parent has higher priority, we've found the right spot
+            if (!IsHigherPriority(item, items[parent]))
+            {
+                break;
+            }
+
+            // Move parent down into the hole
+            items[currentIndex] = items[parent];
+            currentIndex = parent;
         }
 
-        if (IsHigherPriority(items, index, parent))
-        {
-            (items[parent], items[index]) = (items[index], items[parent]);
-            Percolate(items, parent, count);
-        }
+        // Place the item in its final position
+        items[currentIndex] = item;
     }
 
     /// <summary>
     /// Heapifies (sinks down) an item at the given index to maintain quaternary heap property.
-    /// The item is repeatedly swapped with its highest-priority child until the heap property is restored.
+    /// Uses an iterative "hole" approach: moves highest-priority children up until finding the correct position,
+    /// then places the item once. This reduces memory writes compared to recursive swapping.
     /// </summary>
     /// <typeparam name="T">The type of items in the heap, must be comparable.</typeparam>
     /// <param name="items">The array representing the heap structure.</param>
@@ -67,6 +80,7 @@ internal static class PriorityQueueHelper
     /// This method is used after removal to restore the quaternary heap property.
     /// Quaternary heap: children are at 4*index + 1, 4*index + 2, 4*index + 3, 4*index + 4.
     /// Time complexity: O(log₄ n) where n is the count of items in the heap.
+    /// Implementation follows dotnet/runtime's iterative hole-based approach for better performance.
     /// </remarks>
     internal static void Heapify<T>(T[] items, int index, int count)
         where T : IComparable<T>
@@ -76,23 +90,46 @@ internal static class PriorityQueueHelper
             return;
         }
 
+        // Save the item we're heapifying - this creates a "hole" at index
+        var item = items[index];
+        var currentIndex = index;
+
         // Quaternary heap: children are at 4*index + 1, 4*index + 2, 4*index + 3, 4*index + 4
-        var first = index;
-
-        for (var i = 1; i <= Arity; i++)
+        while (true)
         {
-            var child = (Arity * index) + i;
-            if (child < count && IsHigherPriority(items, child, first))
+            var firstChild = (Arity * currentIndex) + 1;
+
+            // If no children exist, we've found the right spot
+            if (firstChild >= count)
             {
-                first = child;
+                break;
             }
+
+            // Find the highest-priority child among the 4 children
+            var highestPriorityChild = firstChild;
+            var lastChild = Math.Min(firstChild + Arity, count);
+
+            for (var child = firstChild + 1; child < lastChild; child++)
+            {
+                if (IsHigherPriority(items, child, highestPriorityChild))
+                {
+                    highestPriorityChild = child;
+                }
+            }
+
+            // If the item has higher priority than the best child, we've found the right spot
+            if (!IsHigherPriority(items[highestPriorityChild], item))
+            {
+                break;
+            }
+
+            // Move the highest-priority child up into the hole
+            items[currentIndex] = items[highestPriorityChild];
+            currentIndex = highestPriorityChild;
         }
 
-        if (first != index)
-        {
-            (items[first], items[index]) = (items[index], items[first]);
-            Heapify(items, first, count);
-        }
+        // Place the item in its final position
+        items[currentIndex] = item;
     }
 
     /// <summary>
@@ -135,8 +172,15 @@ internal static class PriorityQueueHelper
     /// <param name="right">The index of the right item to compare.</param>
     /// <returns>True if the left item has higher priority (should be dequeued first); otherwise false.</returns>
     /// <remarks>
+    /// <para>
     /// In a max-heap, higher priority means a smaller comparison value (CompareTo returns negative).
     /// This method is aggressively inlined for performance on hot paths.
+    /// </para>
+    /// <para>
+    /// This implementation assumes items have a total ordering (CompareTo never returns 0 for distinct items).
+    /// In Punchclock, this is guaranteed by wrapping items in IndexedItem with FIFO sequence IDs.
+    /// If reusing this helper for heaps without FIFO sequencing, use &lt;= 0 instead of &lt; 0 to allow equal priorities.
+    /// </para>
     /// </remarks>
 #if NET8_0_OR_GREATER
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -146,4 +190,24 @@ internal static class PriorityQueueHelper
     private static bool IsHigherPriority<T>(T[] items, int left, int right)
         where T : IComparable<T>
         => items[left].CompareTo(items[right]) < 0;
+
+    /// <summary>
+    /// Determines whether the left item has higher priority than the right item.
+    /// </summary>
+    /// <typeparam name="T">The type of items in the heap, must be comparable.</typeparam>
+    /// <param name="left">The left item to compare.</param>
+    /// <param name="right">The right item to compare.</param>
+    /// <returns>True if the left item has higher priority (should be dequeued first); otherwise false.</returns>
+    /// <remarks>
+    /// This overload is used during iterative heap operations when comparing a saved item
+    /// with array elements. Aggressively inlined for performance on hot paths.
+    /// </remarks>
+#if NET8_0_OR_GREATER
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+#else
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+    private static bool IsHigherPriority<T>(T left, T right)
+        where T : IComparable<T>
+        => left.CompareTo(right) < 0;
 }

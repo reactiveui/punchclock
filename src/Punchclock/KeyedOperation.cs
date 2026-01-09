@@ -16,7 +16,7 @@ namespace Punchclock;
 /// Base class for operations that can be enqueued in an <see cref="OperationQueue"/>.
 /// Supports priority ordering, key-based serialization, and cancellation.
 /// </summary>
-internal abstract record KeyedOperation : IComparable<KeyedOperation>
+internal abstract class KeyedOperation : IComparable<KeyedOperation>
 {
     /// <summary>
     /// Gets or sets a value indicating whether this operation was cancelled before execution started.
@@ -97,15 +97,46 @@ internal abstract record KeyedOperation : IComparable<KeyedOperation>
     public abstract IObservable<Unit> EvaluateFunc();
 
     /// <summary>
-    /// Compares this operation to another for priority ordering.
+    /// Compares this operation to another for priority-based scheduling.
     /// Implements priority-based scheduling with key-based serialization and FIFO tie-breaking.
     /// </summary>
     /// <param name="other">The other operation to compare against.</param>
     /// <returns>
     /// A negative value if this operation should be dequeued first,
     /// a positive value if <paramref name="other"/> should be dequeued first,
-    /// or zero if they have equivalent priority (should not happen due to FIFO tie-breaking).
+    /// or zero if they have equivalent priority.
     /// </returns>
+    /// <remarks>
+    /// <para><strong>Design Decision: Partial Ordering</strong></para>
+    /// <para>
+    /// This CompareTo implementation intentionally violates the strict IComparable contract
+    /// by returning 0 for distinct operations with equal priority/key. This is a deliberate
+    /// architectural choice to separate concerns:
+    /// </para>
+    /// <list type="bullet">
+    ///   <item><description>KeyedOperation: Business logic ordering (priority, key, randomization)</description></item>
+    ///   <item><description>PriorityQueue.IndexedItem: Data structure concern (FIFO sequencing)</description></item>
+    /// </list>
+    /// <para>
+    /// This separation provides cleaner architecture and allows PriorityQueue to handle
+    /// sequencing independently. The alternative (including Id in CompareTo) would:
+    /// </para>
+    /// <list type="number">
+    ///   <item><description>Create tight coupling between KeyedOperation and OperationQueue's Id assignment</description></item>
+    ///   <item><description>Add redundant comparisons (Id always agrees with IndexedItem sequence)</description></item>
+    ///   <item><description>Reduce flexibility for alternative queue implementations</description></item>
+    /// </list>
+    /// <para>
+    /// <strong>Safety:</strong> KeyedOperation is internal to OperationQueue and never used
+    /// in containers (SortedSet, Array.Sort) that require strict CompareTo contracts.
+    /// Do not use KeyedOperation in sorting containers outside of its intended context.
+    /// </para>
+    /// <para>
+    /// <strong>Historical Note:</strong> Previously, KeyedOperation.Id (global sequence from OperationQueue)
+    /// was used for tie-breaking. Now, tie-breaking uses IndexedItem.Id (per-queue sequence from PriorityQueue),
+    /// which provides the same FIFO ordering within a single queue but isolates queues from each other's sequencing.
+    /// </para>
+    /// </remarks>
 #if NET8_0_OR_GREATER
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
@@ -144,61 +175,9 @@ internal abstract record KeyedOperation : IComparable<KeyedOperation>
             }
         }
 
-        // Equal priority - let PriorityQueue's FIFO sequence handle tie-breaking
-        // GroupBy + Concat ensures same-key operations run sequentially regardless of heap order
+        // Equal priority - defer final tie-breaking to PriorityQueue's IndexedItem FIFO sequencing.
+        // See CompareTo documentation for design rationale.
+        // GroupBy + Concat in OperationQueue ensures same-key operations run sequentially regardless of heap order.
         return 0;
-    }
-}
-
-/// <summary>
-/// Typed operation that can be enqueued in an <see cref="OperationQueue"/>.
-/// Wraps a user-provided function that returns an observable of <typeparamref name="T"/>.
-/// </summary>
-/// <typeparam name="T">The type of value produced by this operation.</typeparam>
-[SuppressMessage("StyleCop.CSharp.MaintainabilityRules", "SA1402:File may only contain a single type", Justification = "Generic implementation of same class name.")]
-internal sealed record KeyedOperation<T> : KeyedOperation
-{
-    /// <summary>
-    /// Gets the function that produces the observable result for this operation.
-    /// </summary>
-    /// <value>
-    /// A function that returns an <see cref="IObservable{T}"/> when invoked, or null if not set.
-    /// </value>
-    public Func<IObservable<T>>? Func { get; init; }
-
-    /// <summary>
-    /// Gets the replay subject that multicasts the operation result to all subscribers.
-    /// Results are cached so late subscribers receive the same values.
-    /// </summary>
-    /// <value>
-    /// A <see cref="ReplaySubject{T}"/> that replays all emitted values to new subscribers.
-    /// </value>
-    public ReplaySubject<T> Result { get; } = new();
-
-    /// <summary>
-    /// Evaluates the operation function and multicasts the result through <see cref="Result"/>.
-    /// Respects early cancellation and the cancellation signal.
-    /// </summary>
-    /// <returns>
-    /// An observable of <see cref="Unit"/> that completes when the operation finishes.
-    /// Returns an empty observable if the function is null or the operation was cancelled early.
-    /// </returns>
-    public override IObservable<Unit> EvaluateFunc()
-    {
-        if (Func is null)
-        {
-            return Observable.Empty<Unit>();
-        }
-
-        if (CancelledEarly)
-        {
-            return Observable.Empty<Unit>();
-        }
-
-        var signal = CancelSignal ?? Observable.Empty<Unit>();
-        var ret = Func().TakeUntil(signal).Multicast(Result);
-        ret.Connect();
-
-        return ret.Select(_ => Unit.Default);
     }
 }

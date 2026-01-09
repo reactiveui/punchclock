@@ -275,8 +275,21 @@ internal class PriorityQueue<T>
         // The replacement item might need to move up or down to restore heap property
         if (index < Count)
         {
-            PriorityQueueHelper.Percolate(_items, index, Count);  // Try moving up if it has higher priority than parent
-            PriorityQueueHelper.Heapify(_items, index, Count);    // Try moving down if it has lower priority than children
+            // Optimization: Check if item should move up before trying heapify
+            // Note: Guard index > 0 because (0-1)/4 truncates to 0, not -1
+            if (index > 0)
+            {
+                var parent = (index - 1) / Arity;
+                if (parent >= 0 && _items[index].CompareTo(_items[parent]) < 0)
+                {
+                    // Item has higher priority than parent - percolate up and early exit
+                    PriorityQueueHelper.Percolate(_items, index, Count);
+                    return;
+                }
+            }
+
+            // Item doesn't need to move up, try moving down
+            PriorityQueueHelper.Heapify(_items, index, Count);
         }
 
         // Shrink array if utilization drops below 25% and either single removal or below default capacity
