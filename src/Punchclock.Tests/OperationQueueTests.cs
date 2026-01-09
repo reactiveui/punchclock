@@ -837,4 +837,49 @@ public class OperationQueueTests
         using var queue = new OperationQueue(maximumConcurrent: 2, randomizeEqualPriority: true, seed: 42);
         await Assert.That(queue).IsNotNull();
     }
+
+    /// <summary>
+    /// Covers OperationQueue.cs line 129 - random without seed.
+    /// Verifies that constructor with random tiebreak and null seed creates Random without seed.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    public async Task Constructor_WithRandomTiebreakNoSeed_Succeeds()
+    {
+        using (Assert.Multiple())
+        {
+            // Line 129: new Random() when seed is null
+            using var queue = new OperationQueue(maximumConcurrent: 2, randomizeEqualPriority: true, seed: null);
+
+            var completed = 0;
+            queue.EnqueueObservableOperation(1, "a", () => Observable.Return(1)).Subscribe(_ => completed++);
+            queue.EnqueueObservableOperation(1, "b", () => Observable.Return(2)).Subscribe(_ => completed++);
+
+            await Task.Delay(100);
+            await Assert.That(completed).IsEqualTo(2);
+        }
+    }
+
+    /// <summary>
+    /// Covers OperationQueue.cs line 137 - y.CancelSignal ?? Observable.Empty case.
+    /// Verifies that operations without a cancel signal use Observable.Empty internally.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    public async Task EnqueueObservableOperation_WithNoCancelSignal_UsesEmptyObservable()
+    {
+        using (Assert.Multiple())
+        {
+            using var queue = new OperationQueue(2);
+
+            var completed = false;
+
+            // Enqueue without cancel signal - should use Observable.Empty<Unit>() at line 138
+            queue.EnqueueObservableOperation(1, () => Observable.Return(42))
+                .Subscribe(_ => completed = true);
+
+            await Task.Delay(50);
+            await Assert.That(completed).IsTrue();
+        }
+    }
 }

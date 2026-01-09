@@ -363,4 +363,65 @@ public class OperationQueueExtensionsTests
             await Assert.That(() => cancellable).Throws<TaskCanceledException>();
         }
     }
+
+    /// <summary>
+    /// Covers OperationQueueExtensions lines 108/109 - normal cancellation token path.
+    /// Verifies that a cancellable token that is not cancelled executes the operation normally.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    public async Task Enqueue_WithCancellableTokenNotCancelled_ExecutesNormally()
+    {
+        using (Assert.Multiple())
+        {
+            using var queue = new OperationQueue(2);
+            using var cts = new CancellationTokenSource();
+
+            // Token is cancellable but not cancelled - should use normal path (lines 108/109)
+            var result = await queue.Enqueue(1, "key", () => Task.FromResult(42), cts.Token);
+
+            await Assert.That(result).IsEqualTo(42);
+            await Assert.That(cts.IsCancellationRequested).IsFalse();
+        }
+    }
+
+    /// <summary>
+    /// Covers OperationQueueExtensions lines 266/267 - cancellation during operation execution.
+    /// Verifies that cancelling a token after the operation has been enqueued but before execution
+    /// completes properly cancels the task.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    public async Task Enqueue_WithTokenCancelledDuringExecution_CancelsTask()
+    {
+        using (Assert.Multiple())
+        {
+            using var queue = new OperationQueue(1);
+
+            // Block the queue
+            var blocker = new Subject<int>();
+            queue.EnqueueObservableOperation(1, () => blocker).Subscribe();
+
+            using var cts = new CancellationTokenSource();
+
+            // Enqueue with cancellable token - will enter Observable.Create path (lines 261-268)
+            var task = queue.Enqueue(
+                1,
+                "key",
+                async () =>
+                {
+                    await Task.Delay(5000); // Long delay
+                    return 42;
+                },
+                cts.Token);
+
+            // Cancel after a short delay - this tests the cancellation registration path
+            await Task.Delay(50);
+            cts.Cancel();
+
+            await Assert.That(async () => await task).Throws<TaskCanceledException>();
+
+            blocker.OnCompleted(); // Unblock queue for cleanup
+        }
+    }
 }

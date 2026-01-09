@@ -222,6 +222,58 @@ public class KeyedOperationTests
     }
 
     /// <summary>
+    /// Covers KeyedOperation.cs line 127 - keyed operation after non-keyed in comparison.
+    /// Verifies that when comparing two operations with equal priority, a keyed operation
+    /// returns positive (comes after) when compared to a non-keyed operation.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    public async Task CompareTo_KeyedAfterNonKeyed_ReturnsPositive()
+    {
+        var keyed = new KeyedOperation<int>
+        {
+            Priority = 1,
+            Key = "custom-key",
+            Id = 1,
+            Func = () => Observable.Return(1),
+        };
+
+        var nonKeyed = new KeyedOperation<int>
+        {
+            Priority = 1,
+            Key = OperationQueue.DefaultKey,
+            Id = 2,
+            Func = () => Observable.Return(2),
+        };
+
+        // keyed.CompareTo(nonKeyed) should return 1 (line 127: return 1)
+        var result = keyed.CompareTo(nonKeyed);
+        await Assert.That(result).IsGreaterThan(0);
+    }
+
+    /// <summary>
+    /// Covers KeyedOperation.cs line 190 - EvaluateFunc with null Func.
+    /// Verifies that when Func is null, EvaluateFunc returns an empty observable.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    public async Task EvaluateFunc_WithNullFunc_ReturnsEmpty()
+    {
+        var op = new KeyedOperation<int>
+        {
+            Priority = 1,
+            Key = "test",
+            Id = 1,
+            Func = null, // Null func - should hit line 190
+        };
+
+        var results = new List<System.Reactive.Unit>();
+        op.EvaluateFunc().Subscribe(results.Add);
+
+        await Assert.That(results).IsEmpty();
+    }
+
+    /// <summary>
     /// Helper to create a KeyedOperation for testing.
     /// </summary>
     private static KeyedOperation<int> CreateOperation(

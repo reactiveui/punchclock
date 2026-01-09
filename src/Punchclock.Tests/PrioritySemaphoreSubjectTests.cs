@@ -301,6 +301,32 @@ public class PrioritySemaphoreSubjectTests
     }
 
     /// <summary>
+    /// Covers PrioritySemaphoreSubject.cs line 94 - OnNext after completion.
+    /// Verifies that calling OnNext after OnCompleted is safely ignored (queue is null).
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    public async Task OnNext_AfterCompletion_IsIgnored()
+    {
+        using (Assert.Multiple())
+        {
+            var subject = new PrioritySemaphoreSubject<TestItem>(2, ImmediateScheduler.Instance);
+            var received = new List<TestItem>();
+
+            subject.Subscribe(received.Add);
+
+            subject.OnNext(new TestItem(1));
+            subject.OnCompleted();
+
+            // This should hit line 94 - queue is null after completion
+            subject.OnNext(new TestItem(2));
+
+            await Task.Delay(50);
+            await Assert.That(received).Count().IsEqualTo(1); // Only the first item
+        }
+    }
+
+    /// <summary>
     /// Test item that is comparable by priority.
     /// </summary>
     private sealed record TestItem(int Priority) : IComparable<TestItem>

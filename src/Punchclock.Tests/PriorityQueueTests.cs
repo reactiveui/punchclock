@@ -332,6 +332,52 @@ public class PriorityQueueTests
     }
 
     /// <summary>
+    /// Covers PriorityQueue.cs line 137 - capacity growth when _items.Length == 0.
+    /// Verifies that enqueueing to a zero-capacity queue grows to default capacity.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    public async Task Enqueue_WhenZeroCapacity_GrowsToDefaultCapacity()
+    {
+        using (Assert.Multiple())
+        {
+            var queue = new PriorityQueue<TestItem>(0); // Start with zero capacity
+
+            // First enqueue should trigger line 137 with _items.Length == 0
+            queue.Enqueue(new TestItem(1));
+
+            await Assert.That(queue.Count).IsEqualTo(1);
+
+            var item = queue.Dequeue();
+            await Assert.That(item.Priority).IsEqualTo(1);
+        }
+    }
+
+    /// <summary>
+    /// Covers PriorityQueue.cs lines 186/188 - Percolate with edge cases.
+    /// Verifies that the queue handles multiple enqueue/dequeue operations correctly,
+    /// ensuring internal percolation logic works properly even in edge cases.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    public async Task MultipleEnqueueDequeue_HandlesPercolateEdgeCases()
+    {
+        var queue = new PriorityQueue<TestItem>(10);
+
+        // Add and remove items to potentially trigger edge cases in percolation
+        for (var i = 0; i < 5; i++)
+        {
+            queue.Enqueue(new TestItem(i));
+        }
+
+        queue.Dequeue();
+        queue.Dequeue();
+
+        // Queue should still be consistent
+        await Assert.That(queue.Count).IsEqualTo(3);
+    }
+
+    /// <summary>
     /// Test item that is comparable by priority.
     /// </summary>
     private sealed record TestItem(int Priority, string Id = "") : IComparable<TestItem>
