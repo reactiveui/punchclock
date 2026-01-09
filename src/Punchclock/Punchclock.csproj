@@ -13,6 +13,7 @@
 
 	<ItemGroup>
 		<InternalsVisibleTo Include="Punchclock.Tests" />
+		<InternalsVisibleTo Include="Punchclock.Benchmarks.New" />
 	</ItemGroup>
 
 </Project>
