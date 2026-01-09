@@ -124,11 +124,35 @@ internal class PrioritySemaphoreSubject<T> : ISubject<T>
         }
 
         // Drain all remaining items to inner subject
+#if NET8_0_OR_GREATER
+        // Use Span-based API with ArrayPool to reduce allocations
+        const int batchSize = 128;
+        var pool = System.Buffers.ArrayPool<T>.Shared;
+        var buffer = pool.Rent(Math.Min(queue.Count, batchSize));
+
+        try
+        {
+            while (queue.Count > 0)
+            {
+                var count = queue.DequeueRange(buffer.AsSpan());
+                for (var i = 0; i < count; i++)
+                {
+                    _inner.OnNext(buffer[i]);
+                }
+            }
+        }
+        finally
+        {
+            pool.Return(buffer, clearArray: System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<T>());
+        }
+#else
+        // Legacy TFMs: use array-based API
         var items = queue.DequeueAll();
         foreach (var v in items)
         {
             _inner.OnNext(v);
         }
+#endif
 
         _inner.OnCompleted();
     }
