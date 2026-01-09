@@ -34,6 +34,14 @@
 		<IsPackable>false</IsPackable>
 	</PropertyGroup>
 
+  <!-- MTP Native JSON Configuration -->
+  <ItemGroup Condition="$(IsTestProject)">
+    <None Include="$(MSBuildThisFileDirectory)testconfig.json">
+      <Link>$(AssemblyName).testconfig.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 	<ItemGroup Condition="'$(IsTestProject)' != 'true'">
 		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
 	</ItemGroup>

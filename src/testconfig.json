@@ -11,7 +11,7 @@
         "format": "cobertura",
         "skipAutoProperties": true,
         "modulePaths": {
-          "include": [ "ReactiveUI\\..*" ],
+          "include": [ "Punchclock\\..*" ],
           "exclude": [ ".*Tests.*", ".*TestRunner.*" ]
         }
       }
