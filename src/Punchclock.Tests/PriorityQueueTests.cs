@@ -783,6 +783,24 @@ public class PriorityQueueTests
         await Assert.That(queue.Count).IsEqualTo(20);
         await Assert.That(queue.VerifyHeapProperty()).IsTrue();
     }
+
+    /// <summary>
+    /// Covers PriorityQueue.cs line 191 - EnqueueRange with zero initial capacity.
+    /// Verifies that when _items.Length == 0, the capacity defaults to DefaultCapacity (16).
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    public async Task EnqueueRange_WithZeroInitialCapacity_UsesDefaultCapacity()
+    {
+        var queue = new PriorityQueue<TestItem>(0); // Start with zero capacity
+        var items = Enumerable.Range(0, 5).Select(i => new TestItem(i)).ToArray();
+
+        // Line 191: _items.Length == 0 ? DefaultCapacity : _items.Length * 2
+        queue.EnqueueRange(items); // Should use DefaultCapacity path
+
+        await Assert.That(queue.Count).IsEqualTo(5);
+        await Assert.That(queue.VerifyHeapProperty()).IsTrue();
+    }
 #endif
 
     /// <summary>

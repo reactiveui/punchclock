@@ -150,7 +150,7 @@ internal class PriorityQueue<T>
 
         var index = Count++;
         _items[index] = new IndexedItem(item, ++_sequenceCounter);
-        Percolate(index);
+        PriorityQueueHelper.Percolate(_items, index, Count);
     }
 
     /// <summary>
@@ -199,7 +199,7 @@ internal class PriorityQueue<T>
         {
             var index = Count++;
             _items[index] = new IndexedItem(item, ++_sequenceCounter);
-            Percolate(index);
+            PriorityQueueHelper.Percolate(_items, index, Count);
         }
     }
 
@@ -259,91 +259,7 @@ internal class PriorityQueue<T>
     /// This method is primarily used for testing and validation.
     /// </summary>
     /// <returns>True if the heap property is satisfied; otherwise false.</returns>
-    internal bool VerifyHeapProperty()
-    {
-        // Verify quaternary heap property: each parent has higher priority than all 4 children
-        for (var i = 0; i < Count; i++)
-        {
-            for (var childOffset = 1; childOffset <= Arity; childOffset++)
-            {
-                var child = (Arity * i) + childOffset;
-                if (child < Count && !IsHigherPriority(i, child))
-                {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// Determines whether the left item has higher priority than the right item.
-    /// </summary>
-    /// <param name="left">The left index.</param>
-    /// <param name="right">The right index.</param>
-    /// <returns>True if the left item should be dequeued before the right item.</returns>
-#if NET8_0_OR_GREATER
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-#else
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-    private bool IsHigherPriority(int left, int right) => _items[left].CompareTo(_items[right]) < 0;
-
-    /// <summary>
-    /// Percolates (bubbles up) an item to maintain heap property after insertion.
-    /// </summary>
-    /// <param name="index">The index of the item to percolate.</param>
-    private void Percolate(int index)
-    {
-        if (index >= Count || index < 0)
-        {
-            return;
-        }
-
-        // Quaternary heap: parent = (index - 1) / 4
-        var parent = (index - 1) / Arity;
-        if (parent < 0 || parent == index)
-        {
-            return;
-        }
-
-        if (IsHigherPriority(index, parent))
-        {
-            (_items[parent], _items[index]) = (_items[index], _items[parent]);
-            Percolate(parent);
-        }
-    }
-
-    /// <summary>
-    /// Heapifies (sinks down) an item to maintain heap property after removal.
-    /// </summary>
-    /// <param name="index">The index of the item to heapify.</param>
-    private void Heapify(int index)
-    {
-        if (index >= Count || index < 0)
-        {
-            return;
-        }
-
-        // Quaternary heap: children are at 4*index + 1, 4*index + 2, 4*index + 3, 4*index + 4
-        var first = index;
-
-        for (var i = 1; i <= Arity; i++)
-        {
-            var child = (Arity * index) + i;
-            if (child < Count && IsHigherPriority(child, first))
-            {
-                first = child;
-            }
-        }
-
-        if (first != index)
-        {
-            (_items[first], _items[index]) = (_items[index], _items[first]);
-            Heapify(first);
-        }
-    }
+    internal bool VerifyHeapProperty() => PriorityQueueHelper.VerifyHeapProperty(_items, Count);
 
     /// <summary>
     /// Removes the item at the specified index and rebalances the heap.
@@ -359,8 +275,8 @@ internal class PriorityQueue<T>
         // The replacement item might need to move up or down to restore heap property
         if (index < Count)
         {
-            Percolate(index);  // Try moving up if it has higher priority than parent
-            Heapify(index);    // Try moving down if it has lower priority than children
+            PriorityQueueHelper.Percolate(_items, index, Count);  // Try moving up if it has higher priority than parent
+            PriorityQueueHelper.Heapify(_items, index, Count);    // Try moving down if it has lower priority than children
         }
 
         // Shrink array if utilization drops below 25% and either single removal or below default capacity

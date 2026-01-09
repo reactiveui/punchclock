@@ -11,11 +11,17 @@ namespace Punchclock;
 /// <summary>
 /// Internal helper class providing static heap operations for priority queues.
 /// Extracted for testability and potential reuse across different heap implementations.
+/// Uses a quaternary (4-ary) heap structure for improved performance.
 /// </summary>
 internal static class PriorityQueueHelper
 {
     /// <summary>
-    /// Percolates (bubbles up) an item at the given index to maintain max-heap property.
+    /// Number of children per node in the quaternary heap.
+    /// </summary>
+    private const int Arity = 4;
+
+    /// <summary>
+    /// Percolates (bubbles up) an item at the given index to maintain quaternary heap property.
     /// The item is repeatedly swapped with its parent until the heap property is restored.
     /// </summary>
     /// <typeparam name="T">The type of items in the heap, must be comparable.</typeparam>
@@ -23,8 +29,9 @@ internal static class PriorityQueueHelper
     /// <param name="index">The zero-based index of the item to percolate upward.</param>
     /// <param name="count">The current number of valid items in the heap.</param>
     /// <remarks>
-    /// This method is used after insertion to restore the max-heap property.
-    /// Time complexity: O(log n) where n is the count of items in the heap.
+    /// This method is used after insertion to restore the quaternary heap property.
+    /// Quaternary heap: parent = (index - 1) / 4.
+    /// Time complexity: O(log₄ n) where n is the count of items in the heap.
     /// </remarks>
     internal static void Percolate<T>(T[] items, int index, int count)
         where T : IComparable<T>
@@ -34,7 +41,8 @@ internal static class PriorityQueueHelper
             return;
         }
 
-        var parent = (index - 1) / 2;
+        // Quaternary heap: parent = (index - 1) / 4
+        var parent = (index - 1) / Arity;
         if (parent < 0 || parent == index)
         {
             return;
@@ -48,7 +56,7 @@ internal static class PriorityQueueHelper
     }
 
     /// <summary>
-    /// Heapifies (sinks down) an item at the given index to maintain max-heap property.
+    /// Heapifies (sinks down) an item at the given index to maintain quaternary heap property.
     /// The item is repeatedly swapped with its highest-priority child until the heap property is restored.
     /// </summary>
     /// <typeparam name="T">The type of items in the heap, must be comparable.</typeparam>
@@ -56,8 +64,9 @@ internal static class PriorityQueueHelper
     /// <param name="index">The zero-based index of the item to heapify downward.</param>
     /// <param name="count">The current number of valid items in the heap.</param>
     /// <remarks>
-    /// This method is used after removal to restore the max-heap property.
-    /// Time complexity: O(log n) where n is the count of items in the heap.
+    /// This method is used after removal to restore the quaternary heap property.
+    /// Quaternary heap: children are at 4*index + 1, 4*index + 2, 4*index + 3, 4*index + 4.
+    /// Time complexity: O(log₄ n) where n is the count of items in the heap.
     /// </remarks>
     internal static void Heapify<T>(T[] items, int index, int count)
         where T : IComparable<T>
@@ -67,18 +76,16 @@ internal static class PriorityQueueHelper
             return;
         }
 
-        var left = (2 * index) + 1;
-        var right = (2 * index) + 2;
+        // Quaternary heap: children are at 4*index + 1, 4*index + 2, 4*index + 3, 4*index + 4
         var first = index;
 
-        if (left < count && IsHigherPriority(items, left, first))
+        for (var i = 1; i <= Arity; i++)
         {
-            first = left;
-        }
-
-        if (right < count && IsHigherPriority(items, right, first))
-        {
-            first = right;
+            var child = (Arity * index) + i;
+            if (child < count && IsHigherPriority(items, child, first))
+            {
+                first = child;
+            }
         }
 
         if (first != index)
@@ -89,13 +96,13 @@ internal static class PriorityQueueHelper
     }
 
     /// <summary>
-    /// Verifies that the max-heap property holds for the entire heap structure.
-    /// For each node, verifies it has higher priority than both of its children.
+    /// Verifies that the quaternary heap property holds for the entire heap structure.
+    /// For each node, verifies it has higher priority than all four of its children.
     /// </summary>
     /// <typeparam name="T">The type of items in the heap, must be comparable.</typeparam>
     /// <param name="items">The array representing the heap structure.</param>
     /// <param name="count">The current number of valid items in the heap.</param>
-    /// <returns>True if the max-heap property is satisfied for all nodes; otherwise false.</returns>
+    /// <returns>True if the quaternary heap property is satisfied for all nodes; otherwise false.</returns>
     /// <remarks>
     /// This method is primarily used for testing and validation purposes.
     /// Time complexity: O(n) where n is the count of items in the heap.
@@ -103,19 +110,16 @@ internal static class PriorityQueueHelper
     internal static bool VerifyHeapProperty<T>(T[] items, int count)
         where T : IComparable<T>
     {
+        // Verify quaternary heap property: each parent has higher priority than all 4 children
         for (var i = 0; i < count; i++)
         {
-            var left = (2 * i) + 1;
-            var right = (2 * i) + 2;
-
-            if (left < count && !IsHigherPriority(items, i, left))
+            for (var childOffset = 1; childOffset <= Arity; childOffset++)
             {
-                return false;
-            }
-
-            if (right < count && !IsHigherPriority(items, i, right))
-            {
-                return false;
+                var child = (Arity * i) + childOffset;
+                if (child < count && !IsHigherPriority(items, i, child))
+                {
+                    return false;
+                }
             }
         }
 

@@ -12,6 +12,7 @@ using System.Reactive.Subjects;
 using System.Threading;
 using DynamicData;
 using DynamicData.Binding;
+using Microsoft.Reactive.Testing;
 using TUnit.Assertions.Enums;
 
 namespace Punchclock.Tests;

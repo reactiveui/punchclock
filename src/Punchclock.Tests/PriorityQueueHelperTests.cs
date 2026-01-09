@@ -412,26 +412,36 @@ public class PriorityQueueHelperTests
 
     /// <summary>
     /// Verifies that Heapify from middle node only affects subtree.
+    /// Quaternary heap: node at index 1 has children at 5,6,7,8.
     /// </summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task Heapify_MiddleNode_SinksPartially()
     {
+        // Quaternary heap structure:
+        // Index 0: children at 1, 2, 3, 4
+        // Index 1: children at 5, 6, 7, 8
         var items = new[]
         {
-            new TestItem(5),
-            new TestItem(30),
-            new TestItem(15),
-            new TestItem(10),
-            new TestItem(20),
+            new TestItem(1),   // Root (index 0)
+            new TestItem(100), // Child of root (index 1) - HIGH value, will sink
+            new TestItem(6),   // Child of root (index 2)
+            new TestItem(7),   // Child of root (index 3)
+            new TestItem(8),   // Child of root (index 4)
+            new TestItem(10),  // Child of node 1 (index 5)
+            new TestItem(15),  // Child of node 1 (index 6)
+            new TestItem(20),  // Child of node 1 (index 7)
+            new TestItem(25),  // Child of node 1 (index 8)
         };
 
-        PriorityQueueHelper.Heapify(items, 1, 5);
+        // Heapify node at index 1 (priority 100) - should sink down to its subtree
+        PriorityQueueHelper.Heapify(items, 1, 9);
 
         using (Assert.Multiple())
         {
-            await Assert.That(items[1].Priority).IsNotEqualTo(30);
-            await Assert.That(PriorityQueueHelper.VerifyHeapProperty(items, 5)).IsTrue();
+            await Assert.That(items[1].Priority).IsNotEqualTo(100); // Should have sunk
+            await Assert.That(items[1].Priority).IsLessThan(100); // Should be swapped with a child
+            await Assert.That(PriorityQueueHelper.VerifyHeapProperty(items, 9)).IsTrue();
         }
     }
 
@@ -583,20 +593,29 @@ public class PriorityQueueHelperTests
     }
 
     /// <summary>
-    /// Verifies that VerifyHeapProperty returns false for complex invalid heap.
+    /// Verifies that VerifyHeapProperty returns false for complex invalid quaternary heap.
+    /// Quaternary heap: index 0 has children 1,2,3,4; index 1 has children 5,6,7,8; etc.
     /// </summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task VerifyHeapProperty_ComplexInvalidHeap_ReturnsFalse()
     {
+        // Quaternary heap structure:
+        // Index 0: children at 1, 2, 3, 4
+        // Index 1: children at 5, 6, 7, 8
+        // Index 2: children at 9, 10, 11, 12
+        // Index 3: children at 13, 14, 15, 16
         var items = new[]
         {
             new TestItem(1),   new TestItem(3),   new TestItem(5),
             new TestItem(7),   new TestItem(9),   new TestItem(11),  new TestItem(13),
-            new TestItem(15),  new TestItem(6),   new TestItem(19),  new TestItem(21),
+            new TestItem(15),  new TestItem(17),  new TestItem(2),   new TestItem(21), // Index 9 has priority 2, parent is index 2 (priority 5)
             new TestItem(23),  new TestItem(25),  new TestItem(27),  new TestItem(29),
         };
 
+        // Index 9's parent is (9-1)/4 = 2, so parent is index 2 with priority 5
+        // Child at index 9 has priority 2, which is HIGHER priority (lower value) than parent priority 5
+        // This violates the max-heap property
         var result = PriorityQueueHelper.VerifyHeapProperty(items, 15);
         await Assert.That(result).IsFalse();
     }
