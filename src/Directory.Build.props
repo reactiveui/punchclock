@@ -13,7 +13,6 @@
 		<RepositoryUrl>https://github.com/reactiveui/punchclock</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-		<CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)/analyzers.ruleset</CodeAnalysisRuleSet>
 		<IsTestProject>$(MSBuildProjectName.Contains('Tests'))</IsTestProject>
 		<DebugType>Embedded</DebugType>
 		<!-- Optional: Publish the repository URL in the built .nupkg (in the NuSpec <Repository> element) -->
@@ -22,9 +21,13 @@
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
 		<!-- Optional: Include PDB in the built .nupkg -->
 		<AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
-
+    <WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<EnableNETAnalyzers>True</EnableNETAnalyzers>
 		<AnalysisLevel>latest</AnalysisLevel>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="$(IsTestProject)">
@@ -53,4 +56,13 @@
 	<ItemGroup>
 		<AdditionalFiles Include="$(MSBuildThisFileDirectory)/stylecop.json" Link="stylecop.json" />
 	</ItemGroup>
+
+	<PropertyGroup>
+		<PunchclockModernTargets>net8.0;net9.0;net10.0</PunchclockModernTargets>
+
+		<PunchclockLegacyTargets Condition="$([MSBuild]::IsOsPlatform('Windows'))">net462;net472;net481</PunchclockLegacyTargets>
+
+		<PunchclockCoreTargets>$(PunchclockModernTargets)</PunchclockCoreTargets>
+		<PunchclockCoreTargets Condition=" '$(PunchclockLegacyTargets)' != '' ">$(PunchclockCoreTargets);$(PunchclockLegacyTargets)</PunchclockCoreTargets>
+	</PropertyGroup>
 </Project>

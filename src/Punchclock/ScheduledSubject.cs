@@ -13,32 +13,76 @@ using System.Threading;
 namespace Punchclock;
 
 /// <summary>
-/// A subject which emits using the specified scheduler.
+/// A subject which emits items using the specified scheduler.
+/// Manages default observer fallback when no active subscribers exist.
 /// </summary>
 /// <typeparam name="T">The type of item to emit.</typeparam>
 internal class ScheduledSubject<T> : ISubject<T>, IDisposable
 {
+    /// <summary>
+    /// Synchronization primitive guarding mutations to subscription state.
+    /// </summary>
+    /// <remarks>
+    /// Protects updates to <see cref="_defaultObserverSub"/> and <see cref="_observerRefCount"/>.
+    /// </remarks>
+#if NET9_0_OR_GREATER
+    private readonly Lock _gate = new();
+#else
+    private readonly object _gate = new();
+#endif
+
+    /// <summary>
+    /// The default observer to receive items when no other subscribers are active.
+    /// </summary>
     private readonly IObserver<T>? _defaultObserver;
+
+    /// <summary>
+    /// The scheduler used for emitting items to observers.
+    /// </summary>
     private readonly IScheduler _scheduler;
+
+    /// <summary>
+    /// The underlying subject that manages the observable stream.
+    /// </summary>
     private readonly Subject<T> _subject = new();
 
+    /// <summary>
+    /// Reference count of active non-default observers.
+    /// </summary>
     private int _observerRefCount;
+
+    /// <summary>
+    /// Subscription handle for the default observer. Null when no default observer is active.
+    /// </summary>
     private IDisposable? _defaultObserverSub;
+
+    /// <summary>
+    /// Tracks whether this instance has been disposed.
+    /// </summary>
     private bool _isDisposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ScheduledSubject{T}"/> class.
     /// </summary>
     /// <param name="scheduler">The scheduler to emit items on.</param>
-    /// <param name="defaultObserver">A default observable which will get values if no other subscribes.</param>
+    /// <param name="defaultObserver">A default observer which will receive values when no other subscribers are active. Can be null.</param>
     public ScheduledSubject(IScheduler scheduler, IObserver<T>? defaultObserver = null)
     {
+#if NET8_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(scheduler);
+#else
+        if (scheduler is null)
+        {
+            throw new ArgumentNullException(nameof(scheduler));
+        }
+#endif
+
         _scheduler = scheduler;
         _defaultObserver = defaultObserver;
 
         if (defaultObserver != null)
         {
-            _defaultObserverSub = _subject.ObserveOn(_scheduler).Subscribe(_defaultObserver);
+            _defaultObserverSub = _subject.ObserveOn(_scheduler).Subscribe(defaultObserver);
         }
     }
 
@@ -52,23 +96,49 @@ internal class ScheduledSubject<T> : ISubject<T>, IDisposable
     public void OnNext(T value) => _subject.OnNext(value);
 
     /// <inheritdoc />
-    public IDisposable Subscribe(IObserver<T>? observer)
+    public IDisposable Subscribe(IObserver<T> observer)
     {
-        if (_defaultObserverSub != null)
+#if NET8_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(observer);
+#else
+        if (observer is null)
         {
-            _defaultObserverSub.Dispose();
-            _defaultObserverSub = null;
+            throw new ArgumentNullException(nameof(observer));
+        }
+#endif
+
+        IDisposable? defaultSubToDispose = null;
+
+        lock (_gate)
+        {
+            // If we have a default observer subscription active, disable it
+            if (_defaultObserverSub != null)
+            {
+                defaultSubToDispose = _defaultObserverSub;
+                _defaultObserverSub = null;
+            }
+
+            Interlocked.Increment(ref _observerRefCount);
         }
 
-        Interlocked.Increment(ref _observerRefCount);
+        // Dispose outside the lock
+        defaultSubToDispose?.Dispose();
 
         return new CompositeDisposable(
             _subject.ObserveOn(_scheduler).Subscribe(observer),
             Disposable.Create(() =>
             {
-                if (Interlocked.Decrement(ref _observerRefCount) <= 0 && _defaultObserver != null)
+                var defaultObserver = _defaultObserver;
+                if (Interlocked.Decrement(ref _observerRefCount) <= 0 && defaultObserver != null)
                 {
-                    _defaultObserverSub = _subject.ObserveOn(_scheduler).Subscribe(_defaultObserver);
+                    lock (_gate)
+                    {
+                        // Re-check inside lock in case another subscription happened
+                        if (Volatile.Read(ref _observerRefCount) <= 0 && _defaultObserverSub is null)
+                        {
+                            _defaultObserverSub = _subject.ObserveOn(_scheduler).Subscribe(defaultObserver);
+                        }
+                    }
                 }
             }));
     }
@@ -76,24 +146,24 @@ internal class ScheduledSubject<T> : ISubject<T>, IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        Dispose(true);
+        Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
 
     /// <summary>
     /// Disposes managed resources that are disposable and handles cleanup of unmanaged items.
     /// </summary>
-    /// <param name="isDisposing">If we are disposing managed resources.</param>
-    protected virtual void Dispose(bool isDisposing)
+    /// <param name="disposing">If we are disposing managed resources.</param>
+    protected virtual void Dispose(bool disposing)
     {
         if (_isDisposed)
         {
             return;
         }
 
-        if (isDisposing)
+        if (disposing)
         {
-            _subject?.Dispose();
+            _subject.Dispose();
             _defaultObserverSub?.Dispose();
         }
 

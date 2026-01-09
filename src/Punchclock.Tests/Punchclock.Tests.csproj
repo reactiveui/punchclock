@@ -1,25 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
-		<TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">$(TargetFrameworks);net472</TargetFrameworks>
-		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-		<Nullable>enable</Nullable>
-		<LangVersion>preview</LangVersion>
+		<TargetFrameworks>$(PunchclockModernTargets)</TargetFrameworks>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="DynamicData" />
 		<PackageReference Include="PublicApiGenerator" />
-		<PackageReference Include="Verify.NUnit" />
-		<PackageReference Include="Microsoft.NET.Test.Sdk" />
-		<PackageReference Include="NUnit" />
-		<PackageReference Include="NUnit3TestAdapter" />
-		<PackageReference Include="NUnit.Analyzers" />
+		<PackageReference Include="Verify.TUnit" />
+		<PackageReference Include="TUnit" />
 		<PackageReference Include="DiffEngine" />
-		<PackageReference Include="coverlet.msbuild">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-		</PackageReference>
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
 	</ItemGroup>
 
 	<ItemGroup>

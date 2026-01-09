@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 ReactiveUI and Contributors. All rights reserved.
+// Copyright (c) 2025 ReactiveUI and Contributors. All rights reserved.
 // Licensed to the ReactiveUI and Contributors under one or more agreements.
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
@@ -9,25 +9,29 @@ using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Threading;
 using DynamicData;
 using DynamicData.Binding;
-using NUnit.Framework; // switched from Xunit
+using TUnit.Assertions.Enums;
 
-namespace Punchclock.Tests
+namespace Punchclock.Tests;
+
+/// <summary>
+/// Tests for the operation queue.
+/// </summary>
+public class OperationQueueTests
 {
     /// <summary>
-    /// Tests for the operation queue.
+    /// Checks to make sure that items are dispatched based on their priority.
     /// </summary>
-    public class OperationQueueTests
+    /// <param name="cancellationToken">Cancellation token for timeout.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    [Timeout(5000)]
+    public async Task ItemsShouldBeDispatchedByPriority(CancellationToken cancellationToken)
     {
-        /// <summary>
-        /// Checks to make sure that items are dispatched based on their priority.
-        /// </summary>
-        [Test] // was [Fact]
-        public void ItemsShouldBeDispatchedByPriority()
+        using (Assert.Multiple())
         {
-            using var scope = Assert.EnterMultipleScope();
-
             var subjects = Enumerable.Range(0, 5).Select(x => new AsyncSubject<int>()).ToArray();
             var priorities = new[] { 5, 5, 5, 10, 1, };
             var fixture = new OperationQueue(2);
@@ -45,42 +49,51 @@ namespace Punchclock.Tests
                     return y;
                 }).ToArray();
 
-            Assert.That(outputs.All(x => x.Count == 0), Is.True);
+            await Assert.That(outputs.All(x => x.Count == 0)).IsTrue();
 
             subjects[0].OnNext(42);
             subjects[0].OnCompleted();
-            Assert.That(outputs.Select(x => x.Count).ToArray(), Is.EqualTo(new[] { 1, 0, 0, 0, 0, }));
+            await Task.Delay(100, cancellationToken);
+            await Assert.That(outputs.Select(x => x.Count).ToArray()).IsEquivalentTo(new[] { 1, 0, 0, 0, 0, }, CollectionOrdering.Matching);
 
             // 0 => completed, 1,3 => live, 2,4 => queued. Make sure 4 *doesn't* fire because
             // the priority should invert it.
             subjects[4].OnNext(42);
             subjects[4].OnCompleted();
-            Assert.That(outputs.Select(x => x.Count).ToArray(), Is.EqualTo(new[] { 1, 0, 0, 0, 0, }));
+            await Task.Delay(100, cancellationToken);
+            await Assert.That(outputs.Select(x => x.Count).ToArray()).IsEquivalentTo(new[] { 1, 0, 0, 0, 0, }, CollectionOrdering.Matching);
 
             // At the end, 0,1 => completed, 3,2 => live, 4 is queued
             subjects[1].OnNext(42);
             subjects[1].OnCompleted();
-            Assert.That(outputs.Select(x => x.Count).ToArray(), Is.EqualTo(new[] { 1, 1, 0, 0, 0, }));
+            await Task.Delay(100, cancellationToken);
+            await Assert.That(outputs.Select(x => x.Count).ToArray()).IsEquivalentTo(new[] { 1, 1, 0, 0, 0, }, CollectionOrdering.Matching);
 
             // At the end, 0,1,2,4 => completed, 3 is live (remember, we completed
             // 4 early)
             subjects[2].OnNext(42);
             subjects[2].OnCompleted();
-            Assert.That(outputs.Select(x => x.Count).ToArray(), Is.EqualTo(new[] { 1, 1, 1, 0, 1, }));
+            await Task.Delay(100, cancellationToken);
+            await Assert.That(outputs.Select(x => x.Count).ToArray()).IsEquivalentTo(new[] { 1, 1, 1, 0, 1, }, CollectionOrdering.Matching);
 
             subjects[3].OnNext(42);
             subjects[3].OnCompleted();
-            Assert.That(outputs.Select(x => x.Count).ToArray(), Is.EqualTo(new[] { 1, 1, 1, 1, 1, }));
+            await Task.Delay(100, cancellationToken);
+            await Assert.That(outputs.Select(x => x.Count).ToArray()).IsEquivalentTo(new[] { 1, 1, 1, 1, 1, }, CollectionOrdering.Matching);
         }
+    }
 
-        /// <summary>
-        /// Checks to make sure that keyed items are serialized.
-        /// </summary>
-        [Test]
-        public void KeyedItemsShouldBeSerialized()
+    /// <summary>
+    /// Checks to make sure that keyed items are serialized.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token for timeout.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    [Timeout(5000)]
+    public async Task KeyedItemsShouldBeSerialized(CancellationToken cancellationToken)
+    {
+        using (Assert.Multiple())
         {
-            using var scope = Assert.EnterMultipleScope();
-
             var subj1 = new AsyncSubject<int>();
             var subj2 = new AsyncSubject<int>();
 
@@ -104,7 +117,7 @@ namespace Punchclock.Tests
             // Block up the queue
             foreach (var v in new[] { subj1, subj2, })
             {
-                fixture.EnqueueObservableOperation(5, () => v);
+                fixture.EnqueueObservableOperation(5, () => v).Subscribe();
             }
 
             // subj1,2 are live, input1,2 are in queue
@@ -117,8 +130,8 @@ namespace Punchclock.Tests
                 .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
                 .Bind(out var out2).Subscribe();
 
-            Assert.That(subscribeCount1, Is.Zero);
-            Assert.That(subscribeCount2, Is.Zero);
+            await Assert.That(subscribeCount1).IsZero();
+            await Assert.That(subscribeCount2).IsZero();
 
             // Dispatch both subj1 and subj2, we should end up with input1 live,
             // but input2 in queue because of the key
@@ -127,38 +140,42 @@ namespace Punchclock.Tests
             subj2.OnNext(42);
             subj2.OnCompleted();
 
-            Assert.That(subscribeCount1, Is.EqualTo(1));
-            Assert.That(subscribeCount2, Is.Zero);
-            Assert.That(out1, Has.Count.EqualTo(0));
-            Assert.That(out2, Has.Count.EqualTo(0));
+            await Assert.That(subscribeCount1).IsEqualTo(1);
+            await Assert.That(subscribeCount2).IsZero();
+            await Assert.That(out1.Count).IsEqualTo(0);
+            await Assert.That(out2.Count).IsEqualTo(0);
 
             // Dispatch input1, input2 can now execute
             input1Subj.OnNext(42);
             input1Subj.OnCompleted();
 
-            Assert.That(subscribeCount1, Is.EqualTo(1));
-            Assert.That(subscribeCount2, Is.EqualTo(1));
-            Assert.That(out1, Has.Count.EqualTo(1));
-            Assert.That(out2, Has.Count.EqualTo(0));
+            await Assert.That(subscribeCount1).IsEqualTo(1);
+            await Assert.That(subscribeCount2).IsEqualTo(1);
+            await Assert.That(out1.Count).IsEqualTo(1);
+            await Assert.That(out2.Count).IsEqualTo(0);
 
             // Dispatch input2, everything is finished
             input2Subj.OnNext(42);
             input2Subj.OnCompleted();
 
-            Assert.That(subscribeCount1, Is.EqualTo(1));
-            Assert.That(subscribeCount2, Is.EqualTo(1));
-            Assert.That(out1, Has.Count.EqualTo(1));
-            Assert.That(out2, Has.Count.EqualTo(1));
+            await Assert.That(subscribeCount1).IsEqualTo(1);
+            await Assert.That(subscribeCount2).IsEqualTo(1);
+            await Assert.That(out1.Count).IsEqualTo(1);
+            await Assert.That(out2.Count).IsEqualTo(1);
         }
+    }
 
-        /// <summary>
-        /// Checks to make sure that non key items are run in parallel.
-        /// </summary>
-        [Test]
-        public void NonkeyedItemsShouldRunInParallel()
+    /// <summary>
+    /// Checks to make sure that non key items are run in parallel.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token for timeout.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    [Timeout(5000)]
+    public async Task NonkeyedItemsShouldRunInParallel(CancellationToken cancellationToken)
+    {
+        using (Assert.Multiple())
         {
-            using var scope = Assert.EnterMultipleScope();
-
             var unkeyed1Subj = new AsyncSubject<int>();
             var unkeyed1SubCount = 0;
             var unkeyed1 = System.Reactive.Linq.Observable.Defer(() =>
@@ -177,24 +194,28 @@ namespace Punchclock.Tests
 
             var fixture = new OperationQueue(2);
 
-            Assert.That(unkeyed1SubCount, Is.Zero);
-            Assert.That(unkeyed2SubCount, Is.Zero);
+            await Assert.That(unkeyed1SubCount).IsZero();
+            await Assert.That(unkeyed2SubCount).IsZero();
 
-            fixture.EnqueueObservableOperation(5, () => unkeyed1);
-            fixture.EnqueueObservableOperation(5, () => unkeyed2);
+            fixture.EnqueueObservableOperation(5, () => unkeyed1).Subscribe();
+            fixture.EnqueueObservableOperation(5, () => unkeyed2).Subscribe();
 
-            Assert.That(unkeyed1SubCount, Is.EqualTo(1));
-            Assert.That(unkeyed2SubCount, Is.EqualTo(1));
+            await Assert.That(unkeyed1SubCount).IsEqualTo(1);
+            await Assert.That(unkeyed2SubCount).IsEqualTo(1);
         }
+    }
 
-        /// <summary>
-        /// Checks to make sure that shutdown signals once everything completes.
-        /// </summary>
-        [Test]
-        public void ShutdownShouldSignalOnceEverythingCompletes()
+    /// <summary>
+    /// Checks to make sure that shutdown signals once everything completes.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token for timeout.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    [Timeout(5000)]
+    public async Task ShutdownShouldSignalOnceEverythingCompletes(CancellationToken cancellationToken)
+    {
+        using (Assert.Multiple())
         {
-            using var scope = Assert.EnterMultipleScope();
-
             var subjects = Enumerable.Range(0, 5).Select(x => new AsyncSubject<int>()).ToArray();
             var priorities = new[] { 5, 5, 5, 10, 1, };
             var fixture = new OperationQueue(2);
@@ -217,8 +238,8 @@ namespace Punchclock.Tests
                 .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
                 .Bind(out var shutdown).Subscribe();
 
-            Assert.That(outputs.All(x => x.Count == 0), Is.True);
-            Assert.That(shutdown, Has.Count.EqualTo(0));
+            await Assert.That(outputs.All(x => x.Count == 0)).IsTrue();
+            await Assert.That(shutdown.Count).IsEqualTo(0);
 
             for (var i = 0; i < 4; i++)
             {
@@ -226,24 +247,28 @@ namespace Punchclock.Tests
                 subjects[i].OnCompleted();
             }
 
-            Assert.That(shutdown, Has.Count.EqualTo(0));
+            await Assert.That(shutdown.Count).IsEqualTo(0);
 
             // Complete the last one, that should signal that we're shut down
             subjects[4].OnNext(42);
             subjects[4].OnCompleted();
 
-            Assert.That(outputs.All(x => x.Count == 1), Is.True);
-            Assert.That(shutdown, Has.Count.EqualTo(1));
+            await Assert.That(outputs.All(x => x.Count == 1)).IsTrue();
+            await Assert.That(shutdown.Count).IsEqualTo(1);
         }
+    }
 
-        /// <summary>
-        /// Checks to make sure that the queue holds items until unpaused.
-        /// </summary>
-        [Test]
-        public void PausingTheQueueShouldHoldItemsUntilUnpaused()
+    /// <summary>
+    /// Checks to make sure that the queue holds items until unpaused.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token for timeout.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    [Timeout(5000)]
+    public async Task PausingTheQueueShouldHoldItemsUntilUnpaused(CancellationToken cancellationToken)
+    {
+        using (Assert.Multiple())
         {
-            using var scope = Assert.EnterMultipleScope();
-
             var item = System.Reactive.Linq.Observable.Return(42);
 
             var fixture = new OperationQueue(2);
@@ -255,7 +280,7 @@ namespace Punchclock.Tests
              .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
              .Bind(out var prePauseOutput).Subscribe();
 
-            Assert.That(prePauseOutput, Has.Count.EqualTo(2));
+            await Assert.That(prePauseOutput.Count).IsEqualTo(2);
 
             var unpause1 = fixture.PauseQueue();
 
@@ -269,26 +294,30 @@ namespace Punchclock.Tests
              .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
              .Bind(out var pauseOutput).Subscribe();
 
-            Assert.That(pauseOutput, Has.Count.EqualTo(0));
+            await Assert.That(pauseOutput.Count).IsEqualTo(0);
 
             var unpause2 = fixture.PauseQueue();
-            Assert.That(pauseOutput, Has.Count.EqualTo(0));
+            await Assert.That(pauseOutput.Count).IsEqualTo(0);
 
             unpause1.Dispose();
-            Assert.That(pauseOutput, Has.Count.EqualTo(0));
+            await Assert.That(pauseOutput.Count).IsEqualTo(0);
 
             unpause2.Dispose();
-            Assert.That(pauseOutput, Has.Count.EqualTo(2));
+            await Assert.That(pauseOutput.Count).IsEqualTo(2);
         }
+    }
 
-        /// <summary>
-        /// Checks that cancelling items should not result in them being returned.
-        /// </summary>
-        [Test]
-        public void CancellingItemsShouldNotResultInThemBeingReturned()
+    /// <summary>
+    /// Checks that cancelling items should not result in them being returned.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token for timeout.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    [Timeout(5000)]
+    public async Task CancellingItemsShouldNotResultInThemBeingReturned(CancellationToken cancellationToken)
+    {
+        using (Assert.Multiple())
         {
-            using var scope = Assert.EnterMultipleScope();
-
             var subj1 = new AsyncSubject<int>();
             var subj2 = new AsyncSubject<int>();
 
@@ -297,7 +326,7 @@ namespace Punchclock.Tests
             // Block up the queue
             foreach (var v in new[] { subj1, subj2, })
             {
-                fixture.EnqueueObservableOperation(5, () => v);
+                fixture.EnqueueObservableOperation(5, () => v).Subscribe();
             }
 
             var cancel1 = new Subject<Unit>();
@@ -310,37 +339,41 @@ namespace Punchclock.Tests
              .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
              .Bind(out var output).Subscribe();
 
-            Assert.That(output, Has.Count.EqualTo(0));
+            await Assert.That(output.Count).IsEqualTo(0);
 
             // Still blocked by subj1,2, only baz is in queue
             cancel1.OnNext(Unit.Default);
             cancel1.OnCompleted();
-            Assert.That(output, Has.Count.EqualTo(0));
+            await Assert.That(output.Count).IsEqualTo(0);
 
             // foo was cancelled, baz is still good
             subj1.OnNext(42);
             subj1.OnCompleted();
-            Assert.That(output, Has.Count.EqualTo(1));
+            await Assert.That(output.Count).IsEqualTo(1);
 
             // don't care that cancelled item finished
             item1.OnNext(42);
             item1.OnCompleted();
-            Assert.That(output, Has.Count.EqualTo(1));
+            await Assert.That(output.Count).IsEqualTo(1);
 
             // still shouldn't see anything
             subj2.OnNext(42);
             subj2.OnCompleted();
-            Assert.That(output, Has.Count.EqualTo(1));
+            await Assert.That(output.Count).IsEqualTo(1);
         }
+    }
 
-        /// <summary>
-        /// Checks that the cancelling of items, that the items won't be evaluated.
-        /// </summary>
-        [Test]
-        public void CancellingItemsShouldntEvenBeEvaluated()
+    /// <summary>
+    /// Checks that the cancelling of items, that the items won't be evaluated.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token for timeout.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    [Timeout(5000)]
+    public async Task CancellingItemsShouldntEvenBeEvaluated(CancellationToken cancellationToken)
+    {
+        using (Assert.Multiple())
         {
-            using var scope = Assert.EnterMultipleScope();
-
             var subj1 = new AsyncSubject<int>();
             var subj2 = new AsyncSubject<int>();
 
@@ -349,7 +382,7 @@ namespace Punchclock.Tests
             // Block up the queue
             foreach (var v in new[] { subj1, subj2, })
             {
-                fixture.EnqueueObservableOperation(5, () => v);
+                fixture.EnqueueObservableOperation(5, () => v).Subscribe();
             }
 
             var cancel1 = new Subject<Unit>();
@@ -363,37 +396,41 @@ namespace Punchclock.Tests
             }).ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
               .Bind(out var output).Subscribe();
 
-            Assert.That(output, Has.Count.EqualTo(0));
-            Assert.That(wasCalled, Is.False);
+            await Assert.That(output.Count).IsEqualTo(0);
+            await Assert.That(wasCalled).IsFalse();
 
             // Still blocked by subj1,2 - however, we've cancelled foo before
             // it even had a chance to run - if that's the case, we shouldn't
             // even call the evaluation func
             cancel1.OnNext(Unit.Default);
             cancel1.OnCompleted();
-            Assert.That(output, Has.Count.EqualTo(0));
-            Assert.That(wasCalled, Is.False);
+            await Assert.That(output.Count).IsEqualTo(0);
+            await Assert.That(wasCalled).IsFalse();
 
             // Unblock subj1,2, we still shouldn't see wasCalled = true
             subj1.OnNext(42);
             subj1.OnCompleted();
-            Assert.That(output, Has.Count.EqualTo(0));
-            Assert.That(wasCalled, Is.False);
+            await Assert.That(output.Count).IsEqualTo(0);
+            await Assert.That(wasCalled).IsFalse();
 
             subj2.OnNext(42);
             subj2.OnCompleted();
-            Assert.That(output, Has.Count.EqualTo(0));
-            Assert.That(wasCalled, Is.False);
+            await Assert.That(output.Count).IsEqualTo(0);
+            await Assert.That(wasCalled).IsFalse();
         }
+    }
 
-        /// <summary>
-        /// Checks to make sure the queue respects maximum concurrency.
-        /// </summary>
-        [Test]
-        public void QueueShouldRespectMaximumConcurrent()
+    /// <summary>
+    /// Checks to make sure the queue respects maximum concurrency.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token for timeout.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    [Timeout(5000)]
+    public async Task QueueShouldRespectMaximumConcurrent(CancellationToken cancellationToken)
+    {
+        using (Assert.Multiple())
         {
-            using var scope = Assert.EnterMultipleScope();
-
             var unkeyed1Subj = new AsyncSubject<int>();
             var unkeyed1SubCount = 0;
             var unkeyed1 = System.Reactive.Linq.Observable.Defer(() =>
@@ -420,27 +457,31 @@ namespace Punchclock.Tests
 
             var fixture = new OperationQueue(2);
 
-            Assert.That(unkeyed1SubCount, Is.Zero);
-            Assert.That(unkeyed2SubCount, Is.Zero);
-            Assert.That(unkeyed3SubCount, Is.Zero);
+            await Assert.That(unkeyed1SubCount).IsZero();
+            await Assert.That(unkeyed2SubCount).IsZero();
+            await Assert.That(unkeyed3SubCount).IsZero();
 
-            fixture.EnqueueObservableOperation(5, () => unkeyed1);
-            fixture.EnqueueObservableOperation(5, () => unkeyed2);
-            fixture.EnqueueObservableOperation(5, () => unkeyed3);
+            fixture.EnqueueObservableOperation(5, () => unkeyed1).Subscribe();
+            fixture.EnqueueObservableOperation(5, () => unkeyed2).Subscribe();
+            fixture.EnqueueObservableOperation(5, () => unkeyed3).Subscribe();
 
-            Assert.That(unkeyed1SubCount, Is.EqualTo(1));
-            Assert.That(unkeyed2SubCount, Is.EqualTo(1));
-            Assert.That(unkeyed3SubCount, Is.Zero);
+            await Assert.That(unkeyed1SubCount).IsEqualTo(1);
+            await Assert.That(unkeyed2SubCount).IsEqualTo(1);
+            await Assert.That(unkeyed3SubCount).IsZero();
         }
+    }
 
-        /// <summary>
-        /// Checks to see if the maximum concurrency is increased that the existing queue adapts.
-        /// </summary>
-        [Test]
-        public void ShouldBeAbleToIncreaseTheMaximunConcurrentValueOfAnExistingQueue()
+    /// <summary>
+    /// Checks to see if the maximum concurrency is increased that the existing queue adapts.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token for timeout.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    [Timeout(5000)]
+    public async Task ShouldBeAbleToIncreaseTheMaximunConcurrentValueOfAnExistingQueue(CancellationToken cancellationToken)
+    {
+        using (Assert.Multiple())
         {
-            using var scope = Assert.EnterMultipleScope();
-
             var unkeyed1Subj = new AsyncSubject<int>();
             var unkeyed1SubCount = 0;
             var unkeyed1 = System.Reactive.Linq.Observable.Defer(() =>
@@ -475,37 +516,41 @@ namespace Punchclock.Tests
 
             var fixture = new OperationQueue(2);
 
-            Assert.That(unkeyed1SubCount, Is.Zero);
-            Assert.That(unkeyed2SubCount, Is.Zero);
-            Assert.That(unkeyed3SubCount, Is.Zero);
-            Assert.That(unkeyed4SubCount, Is.Zero);
+            await Assert.That(unkeyed1SubCount).IsZero();
+            await Assert.That(unkeyed2SubCount).IsZero();
+            await Assert.That(unkeyed3SubCount).IsZero();
+            await Assert.That(unkeyed4SubCount).IsZero();
 
-            fixture.EnqueueObservableOperation(5, () => unkeyed1);
-            fixture.EnqueueObservableOperation(5, () => unkeyed2);
-            fixture.EnqueueObservableOperation(5, () => unkeyed3);
-            fixture.EnqueueObservableOperation(5, () => unkeyed4);
+            fixture.EnqueueObservableOperation(5, () => unkeyed1).Subscribe();
+            fixture.EnqueueObservableOperation(5, () => unkeyed2).Subscribe();
+            fixture.EnqueueObservableOperation(5, () => unkeyed3).Subscribe();
+            fixture.EnqueueObservableOperation(5, () => unkeyed4).Subscribe();
 
-            Assert.That(unkeyed1SubCount, Is.EqualTo(1));
-            Assert.That(unkeyed2SubCount, Is.EqualTo(1));
-            Assert.That(unkeyed3SubCount, Is.Zero);
-            Assert.That(unkeyed4SubCount, Is.Zero);
+            await Assert.That(unkeyed1SubCount).IsEqualTo(1);
+            await Assert.That(unkeyed2SubCount).IsEqualTo(1);
+            await Assert.That(unkeyed3SubCount).IsZero();
+            await Assert.That(unkeyed4SubCount).IsZero();
 
             fixture.SetMaximumConcurrent(3);
 
-            Assert.That(unkeyed1SubCount, Is.EqualTo(1));
-            Assert.That(unkeyed2SubCount, Is.EqualTo(1));
-            Assert.That(unkeyed3SubCount, Is.EqualTo(1));
-            Assert.That(unkeyed4SubCount, Is.Zero);
+            await Assert.That(unkeyed1SubCount).IsEqualTo(1);
+            await Assert.That(unkeyed2SubCount).IsEqualTo(1);
+            await Assert.That(unkeyed3SubCount).IsEqualTo(1);
+            await Assert.That(unkeyed4SubCount).IsZero();
         }
+    }
 
-        /// <summary>
-        /// Checks to make sure that decreasing the maximum concurrency the queue adapts.
-        /// </summary>
-        [Test]
-        public void ShouldBeAbleToDecreaseTheMaximunConcurrentValueOfAnExistingQueue()
+    /// <summary>
+    /// Checks to make sure that decreasing the maximum concurrency the queue adapts.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token for timeout.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    [Timeout(5000)]
+    public async Task ShouldBeAbleToDecreaseTheMaximunConcurrentValueOfAnExistingQueue(CancellationToken cancellationToken)
+    {
+        using (Assert.Multiple())
         {
-            using var scope = Assert.EnterMultipleScope();
-
             var subjects = Enumerable.Range(0, 6).Select(x => new AsyncSubject<int>()).ToArray();
             var fixture = new OperationQueue(3);
 
@@ -521,13 +566,12 @@ namespace Punchclock.Tests
                     return output;
                 }).ToArray();
 
-            Assert.That(
+            await Assert.That(
                 new[] { true, true, true, false, false, false, }
                     .Zip(
                         subjects,
                         (expected, subj) => new { expected, actual = subj.HasObservers, })
-                    .All(x => x.expected == x.actual),
-                Is.True);
+                    .All(x => x.expected == x.actual)).IsTrue();
 
             fixture.SetMaximumConcurrent(2);
 
@@ -536,35 +580,37 @@ namespace Punchclock.Tests
             subjects[0].OnNext(42);
             subjects[0].OnCompleted();
 
-            Assert.That(
+            await Assert.That(
                 new[] { false, true, true, false, false, false, }
                     .Zip(
                         subjects,
                         (expected, subj) => new { expected, actual = subj.HasObservers, })
-                    .All(x => x.expected == x.actual),
-                Is.True);
+                    .All(x => x.expected == x.actual)).IsTrue();
 
             // Complete subj[1], now 2,3 are live
             subjects[1].OnNext(42);
             subjects[1].OnCompleted();
 
-            Assert.That(
+            await Assert.That(
                 new[] { false, false, true, true, false, false, }
                     .Zip(
                         subjects,
                         (expected, subj) => new { expected, actual = subj.HasObservers, })
-                    .All(x => x.expected == x.actual),
-                Is.True);
+                    .All(x => x.expected == x.actual)).IsTrue();
         }
+    }
 
-        /// <summary>
-        /// Checks that equal priority across different keys can be randomized when enabled.
-        /// </summary>
-        [Test]
-        public void EqualPriorityAcrossDifferentKeysCanBeRandomized()
+    /// <summary>
+    /// Checks that equal priority across different keys can be randomized when enabled.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token for timeout.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    [Timeout(5000)]
+    public async Task EqualPriorityAcrossDifferentKeysCanBeRandomized(CancellationToken cancellationToken)
+    {
+        using (Assert.Multiple())
         {
-            using var scope = Assert.EnterMultipleScope();
-
             // Use deterministic seed to make test stable
             var queue = new OperationQueue(maximumConcurrent: 1, randomizeEqualPriority: true, seed: 123);
 
@@ -615,7 +661,7 @@ namespace Punchclock.Tests
                 b.OnCompleted();
             }
 
-            Assert.That(nextCountA + nextCountB, Is.EqualTo(2));
+            await Assert.That(nextCountA + nextCountB).IsEqualTo(2);
         }
     }
 }

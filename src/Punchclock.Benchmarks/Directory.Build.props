@@ -1,0 +1,8 @@
+<Project>
+  <!-- Disable code analysis for benchmarks -->
+  <PropertyGroup>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+    <AnalysisMode>None</AnalysisMode>
+  </PropertyGroup>
+</Project>
