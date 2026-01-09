@@ -282,14 +282,20 @@ internal class PriorityQueue<T>
                 var parent = (index - 1) / Arity;
                 if (parent >= 0 && _items[index].CompareTo(_items[parent]) < 0)
                 {
-                    // Item has higher priority than parent - percolate up and early exit
+                    // Item has higher priority than parent - percolate up
                     PriorityQueueHelper.Percolate(_items, index, Count);
-                    return;
+                }
+                else
+                {
+                    // Item doesn't need to move up, try moving down
+                    PriorityQueueHelper.Heapify(_items, index, Count);
                 }
             }
-
-            // Item doesn't need to move up, try moving down
-            PriorityQueueHelper.Heapify(_items, index, Count);
+            else
+            {
+                // Item is at root, can only move down
+                PriorityQueueHelper.Heapify(_items, index, Count);
+            }
         }
 
         // Shrink array if utilization drops below 25% and either single removal or below default capacity
