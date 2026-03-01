@@ -15,7 +15,7 @@
 		<PackageVersion Include="DynamicData" Version="9.4.1" />
 		<PackageVersion Include="PublicApiGenerator" Version="11.5.4" />
 		<PackageVersion Include="Verify.TUnit" Version="31.12.5" />
-		<PackageVersion Include="TUnit" Version="1.17.29" />
+		<PackageVersion Include="TUnit" Version="1.17.36" />
 		<PackageVersion Include="DiffEngine" Version="18.4.2" />
 		<PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
 	</ItemGroup>
