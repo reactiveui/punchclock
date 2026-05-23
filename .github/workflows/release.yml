@@ -22,7 +22,6 @@ jobs:
     uses: reactiveui/actions-common/.github/workflows/workflow-common-release.yml@main
     with:
       solutionFile: Punchclock.sln
-      versioningTool: minver
       minverMinimumMajorMinor: '6.1'
       bump: ${{ inputs.bump }}
     secrets:
