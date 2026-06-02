@@ -13,7 +13,10 @@ using System.Threading;
 using DynamicData;
 using DynamicData.Binding;
 using Microsoft.Reactive.Testing;
+using ReactiveUI.Primitives.Signals;
 using TUnit.Assertions.Enums;
+
+using RxVoid = ReactiveUI.Primitives.RxVoid;
 
 namespace Punchclock.Tests;
 
@@ -123,11 +126,11 @@ public class OperationQueueTests
 
             // subj1,2 are live, input1,2 are in queue
             fixture
-                .EnqueueObservableOperation(5, "key", System.Reactive.Linq.Observable.Never<Unit>(), () => input1)
+                .EnqueueObservableOperation(5, "key", Signal.Silent<RxVoid>(), () => input1)
                 .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
                 .Bind(out var out1).Subscribe();
             fixture
-                .EnqueueObservableOperation(5, "key", System.Reactive.Linq.Observable.Never<Unit>(), () => input2)
+                .EnqueueObservableOperation(5, "key", Signal.Silent<RxVoid>(), () => input2)
                 .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
                 .Bind(out var out2).Subscribe();
 
@@ -330,7 +333,7 @@ public class OperationQueueTests
                 fixture.EnqueueObservableOperation(5, () => v).Subscribe();
             }
 
-            var cancel1 = new Subject<Unit>();
+            var cancel1 = new Subject<RxVoid>();
             var item1 = new AsyncSubject<int>();
             new[]
             {
@@ -343,7 +346,7 @@ public class OperationQueueTests
             await Assert.That(output.Count).IsEqualTo(0);
 
             // Still blocked by subj1,2, only baz is in queue
-            cancel1.OnNext(Unit.Default);
+            cancel1.OnNext(RxVoid.Default);
             cancel1.OnCompleted();
             await Assert.That(output.Count).IsEqualTo(0);
 
@@ -386,7 +389,7 @@ public class OperationQueueTests
                 fixture.EnqueueObservableOperation(5, () => v).Subscribe();
             }
 
-            var cancel1 = new Subject<Unit>();
+            var cancel1 = new Subject<RxVoid>();
             var wasCalled = false;
             var item1 = new AsyncSubject<int>();
 
@@ -403,7 +406,7 @@ public class OperationQueueTests
             // Still blocked by subj1,2 - however, we've cancelled foo before
             // it even had a chance to run - if that's the case, we shouldn't
             // even call the evaluation func
-            cancel1.OnNext(Unit.Default);
+            cancel1.OnNext(RxVoid.Default);
             cancel1.OnCompleted();
             await Assert.That(output.Count).IsEqualTo(0);
             await Assert.That(wasCalled).IsFalse();
@@ -872,7 +875,7 @@ public class OperationQueueTests
 
             var completed = false;
 
-            // Enqueue without cancel signal - should use Observable.Empty<Unit>() at line 138
+            // Enqueue without cancel signal - should use an empty cancellation signal internally.
             queue.EnqueueObservableOperation(1, () => Observable.Return(42))
                 .Subscribe(_ => completed = true);
 

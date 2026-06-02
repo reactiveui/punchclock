@@ -9,6 +9,9 @@ using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using Microsoft.Reactive.Testing;
+using ReactiveUI.Primitives.SystemReactiveBridge;
+
+using RxVoid = ReactiveUI.Primitives.RxVoid;
 
 namespace Punchclock.Tests;
 
@@ -398,7 +401,7 @@ public class OperationQueueExtensionsTests
     {
         using (Assert.Multiple())
         {
-            using var queue = new OperationQueue(1, ImmediateScheduler.Instance);
+            using var queue = new OperationQueue(1, ImmediateScheduler.Instance.AsSequencer());
 
             // Block the queue
             var blocker = new Subject<int>();
@@ -436,7 +439,7 @@ public class OperationQueueExtensionsTests
             var observable = OperationQueueExtensions.ConvertTokenToObservable(token);
 
             var completed = false;
-            var receivedValues = new List<Unit>();
+            var receivedValues = new List<RxVoid>();
 
             using var subscription = observable.Subscribe(
                 v => receivedValues.Add(v),
@@ -477,7 +480,7 @@ public class OperationQueueExtensionsTests
 
     /// <summary>
     /// Covers the normal cancellation path - token registration and callback.
-    /// Verifies that cancelling a token after subscription emits Unit.Default and completes.
+    /// Verifies that cancelling a token after subscription emits <see cref="RxVoid.Default"/> and completes.
     /// </summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
@@ -489,7 +492,7 @@ public class OperationQueueExtensionsTests
 
             var observable = OperationQueueExtensions.ConvertTokenToObservable(cts.Token);
 
-            var receivedValues = new List<Unit>();
+            var receivedValues = new List<RxVoid>();
             var completed = false;
 
             using var subscription = observable.Subscribe(
@@ -497,7 +500,7 @@ public class OperationQueueExtensionsTests
                 ex => { },
                 () => completed = true);
 
-            // Cancel the token - should emit Unit.Default and complete synchronously
+            // Cancel the token - should emit RxVoid.Default and complete synchronously
             cts.Cancel();
 
             await Assert.That(receivedValues).Count().IsEqualTo(1);
@@ -515,7 +518,7 @@ public class OperationQueueExtensionsTests
     {
         using (Assert.Multiple())
         {
-            using var queue = new OperationQueue(2, ImmediateScheduler.Instance);
+            using var queue = new OperationQueue(2, ImmediateScheduler.Instance.AsSequencer());
             using var cts = new CancellationTokenSource();
 
             var executed = false;
@@ -546,7 +549,7 @@ public class OperationQueueExtensionsTests
     {
         using (Assert.Multiple())
         {
-            using var queue = new OperationQueue(2, ImmediateScheduler.Instance);
+            using var queue = new OperationQueue(2, ImmediateScheduler.Instance.AsSequencer());
             using var cts = new CancellationTokenSource();
 
             // Enqueue with cancellable token but don't cancel it (generic overload)
@@ -574,10 +577,10 @@ public class OperationQueueExtensionsTests
             // Schedule cancellation to happen during subscription
             testScheduler.Schedule(TimeSpan.FromTicks(5), () => cts.Cancel());
 
-            var observable = OperationQueueExtensions.ConvertTokenToObservable(testScheduler, cts.Token);
+            var observable = OperationQueueExtensions.ConvertTokenToObservable(testScheduler.AsSequencer(), cts.Token);
 
             Exception? caughtException = null;
-            var receivedValues = new List<Unit>();
+            var receivedValues = new List<RxVoid>();
 
             // Subscribe at time 0
             testScheduler.Schedule(TimeSpan.FromTicks(10), () =>
@@ -607,7 +610,7 @@ public class OperationQueueExtensionsTests
     {
         using (Assert.Multiple())
         {
-            using var queue = new OperationQueue(2, ImmediateScheduler.Instance);
+            using var queue = new OperationQueue(2, ImmediateScheduler.Instance.AsSequencer());
 
             // Test false branch (not cancelled) - lines 108-109
             using var cts1 = new CancellationTokenSource();

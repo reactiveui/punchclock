@@ -7,6 +7,8 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Reactive.Threading.Tasks;
 
+using RxVoid = ReactiveUI.Primitives.RxVoid;
+
 namespace Punchclock.Tests;
 
 /// <summary>
@@ -150,7 +152,7 @@ public class KeyedOperationTests
             var op = CreateOperation(priority: 1, key: "test");
             op.CancelledEarly = true;
 
-            var results = new List<System.Reactive.Unit>();
+            var results = new List<RxVoid>();
             op.EvaluateFunc().Subscribe(results.Add);
 
             await Assert.That(results).IsEmpty();
@@ -176,7 +178,7 @@ public class KeyedOperationTests
                     return Observable.Return(42);
                 });
 
-            var results = new List<System.Reactive.Unit>();
+            var results = new List<RxVoid>();
             op.EvaluateFunc().Subscribe(results.Add);
 
             await Assert.That(executed).IsTrue();
@@ -192,7 +194,7 @@ public class KeyedOperationTests
     {
         using (Assert.Multiple())
         {
-            var cancelSubject = new Subject<System.Reactive.Unit>();
+            var cancelSubject = new Subject<RxVoid>();
             var completed = false;
             var op = CreateOperation(
                 priority: 1,
@@ -202,7 +204,7 @@ public class KeyedOperationTests
 
             op.EvaluateFunc().Subscribe(_ => { }, () => completed = true);
 
-            cancelSubject.OnNext(System.Reactive.Unit.Default);
+            cancelSubject.OnNext(RxVoid.Default);
             cancelSubject.OnCompleted();
 
             // TakeUntil completes synchronously when cancel signal completes
@@ -267,7 +269,7 @@ public class KeyedOperationTests
             Func = null, // Null func - should hit line 190
         };
 
-        var results = new List<System.Reactive.Unit>();
+        var results = new List<RxVoid>();
         op.EvaluateFunc().Subscribe(results.Add);
 
         await Assert.That(results).IsEmpty();
@@ -283,7 +285,7 @@ public class KeyedOperationTests
         bool useRandom = false,
         int randomOrder = 0,
         Func<IObservable<int>>? func = null,
-        IObservable<System.Reactive.Unit>? cancelSignal = null)
+        IObservable<RxVoid>? cancelSignal = null)
     {
         return new KeyedOperation<int>
         {

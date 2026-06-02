@@ -4,14 +4,13 @@
 // See the LICENSE file in the project root for full license information.
 
 using System;
-using System.Reactive;
-using System.Reactive.Concurrency;
-using System.Reactive.Disposables;
-using System.Reactive.Linq;
-using System.Reactive.Threading.Tasks;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using ReactiveUI.Primitives;
+using ReactiveUI.Primitives.Concurrency;
+using ReactiveUI.Primitives.Disposables;
+using ReactiveUI.Primitives.Signals;
 
 namespace Punchclock;
 
@@ -62,7 +61,7 @@ public static class OperationQueueExtensions
             return Task.FromCanceled<T>(token);
         }
 
-        return operationQueue.EnqueueObservableOperation(priority, key, ConvertTokenToObservable(token), () => asyncOperation().ToObservable())
+        return operationQueue.EnqueueObservableOperation(priority, key, ConvertTokenToObservable(token), () => Signal.FromTask(asyncOperation()))
             .ToTask(token);
     }
 
@@ -106,7 +105,7 @@ public static class OperationQueueExtensions
             return Task.FromCanceled(token);
         }
 
-        return operationQueue.EnqueueObservableOperation(priority, key, ConvertTokenToObservable(token), () => asyncOperation().ToObservable())
+        return operationQueue.EnqueueObservableOperation(priority, key, ConvertTokenToObservable(token), () => Signal.FromTask(ToRxVoidTask(asyncOperation)))
             .ToTask(token);
     }
 
@@ -137,7 +136,7 @@ public static class OperationQueueExtensions
         }
 #endif
 
-        return operationQueue.EnqueueObservableOperation(priority, key, Observable.Never<Unit>(), () => asyncOperation().ToObservable())
+        return operationQueue.EnqueueObservableOperation(priority, key, Signal.Silent<RxVoid>(), () => Signal.FromTask(asyncOperation()))
             .ToTask();
     }
 
@@ -167,7 +166,7 @@ public static class OperationQueueExtensions
         }
 #endif
 
-        return operationQueue.EnqueueObservableOperation(priority, key, Observable.Never<Unit>(), () => asyncOperation().ToObservable())
+        return operationQueue.EnqueueObservableOperation(priority, key, Signal.Silent<RxVoid>(), () => Signal.FromTask(ToRxVoidTask(asyncOperation)))
             .ToTask();
     }
 
@@ -198,7 +197,7 @@ public static class OperationQueueExtensions
         }
 #endif
 
-        return operationQueue.EnqueueObservableOperation(priority, () => asyncOperation().ToObservable())
+        return operationQueue.EnqueueObservableOperation(priority, () => Signal.FromTask(asyncOperation()))
             .ToTask();
     }
 
@@ -228,7 +227,7 @@ public static class OperationQueueExtensions
         }
 #endif
 
-        return operationQueue.EnqueueObservableOperation(priority, () => asyncOperation().ToObservable())
+        return operationQueue.EnqueueObservableOperation(priority, () => Signal.FromTask(ToRxVoidTask(asyncOperation)))
             .ToTask();
     }
 
@@ -237,46 +236,46 @@ public static class OperationQueueExtensions
     /// </summary>
     /// <param name="token">The cancellation token to convert.</param>
     /// <returns>
-    /// An observable that emits <see cref="Unit.Default"/> when the token is cancelled.
+    /// An observable that emits <see cref="RxVoid.Default"/> when the token is cancelled.
     /// For non-cancellable tokens, returns an observable that never completes (fast path).
     /// </returns>
     /// <exception cref="OperationCanceledException">Thrown immediately if the token is already cancelled.</exception>
 #if NET8_0_OR_GREATER
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-    internal static IObservable<Unit> ConvertTokenToObservable(CancellationToken token) =>
+    internal static IObservable<RxVoid> ConvertTokenToObservable(CancellationToken token) =>
         ConvertTokenToObservable(null, token);
 
     /// <summary>
     /// Converts a <see cref="CancellationToken"/> to an observable that signals when cancellation is requested.
     /// This overload accepts a scheduler for testing purposes.
     /// </summary>
-    /// <param name="scheduler">Optional scheduler for subscription. Used for testing temporal behavior.</param>
+    /// <param name="scheduler">Optional sequencer for subscription. Used for testing temporal behavior.</param>
     /// <param name="token">The cancellation token to convert.</param>
     /// <returns>
-    /// An observable that emits <see cref="Unit.Default"/> when the token is cancelled.
+    /// An observable that emits <see cref="RxVoid.Default"/> when the token is cancelled.
     /// For non-cancellable tokens, returns an observable that never completes (fast path).
     /// </returns>
     /// <exception cref="OperationCanceledException">Thrown immediately if the token is already cancelled.</exception>
 #if NET8_0_OR_GREATER
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-    internal static IObservable<Unit> ConvertTokenToObservable(IScheduler? scheduler, CancellationToken token)
+    internal static IObservable<RxVoid> ConvertTokenToObservable(ISequencer? scheduler, CancellationToken token)
     {
         // Fast path: non-cancellable tokens never cancel, so return never-completing observable
         if (!token.CanBeCanceled)
         {
-            return Observable.Never<Unit>();
+            return Signal.Silent<RxVoid>();
         }
 
         // Fast path: already cancelled tokens throw immediately
         if (token.IsCancellationRequested)
         {
-            return Observable.Throw<Unit>(new OperationCanceledException(token));
+            return Signal.Fail<RxVoid>(new OperationCanceledException(token));
         }
 
         // Standard path: create observable that signals on cancellation
-        var obs = Observable.Create<Unit>(observer =>
+        var obs = Signal.Create<RxVoid>(observer =>
         {
             // Double-check cancellation after observable creation
             if (token.IsCancellationRequested)
@@ -287,11 +286,22 @@ public static class OperationQueueExtensions
 
             return token.Register(() =>
             {
-                observer.OnNext(Unit.Default);
+                observer.OnNext(RxVoid.Default);
                 observer.OnCompleted();
             });
         });
 
         return scheduler != null ? obs.SubscribeOn(scheduler) : obs;
+    }
+
+    /// <summary>
+    /// Converts a non-generic task operation into a task that emits <see cref="RxVoid"/>.
+    /// </summary>
+    /// <param name="asyncOperation">The async operation to execute.</param>
+    /// <returns>A task that produces <see cref="RxVoid.Default"/> after completion.</returns>
+    private static async Task<RxVoid> ToRxVoidTask(Func<Task> asyncOperation)
+    {
+        await asyncOperation().ConfigureAwait(false);
+        return RxVoid.Default;
     }
 }

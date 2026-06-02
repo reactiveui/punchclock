@@ -5,10 +5,8 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Reactive;
-using System.Reactive.Linq;
-using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
+using ReactiveUI.Primitives;
 
 namespace Punchclock;
 
@@ -60,7 +58,7 @@ internal abstract class KeyedOperation : IComparable<KeyedOperation>
     /// <value>
     /// An observable that emits when cancellation is requested, or null if no cancellation signal is provided.
     /// </value>
-    public IObservable<Unit>? CancelSignal { get; init; }
+    public IObservable<RxVoid>? CancelSignal { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether this operation uses the default (non-keyed) key.
@@ -80,7 +78,7 @@ internal abstract class KeyedOperation : IComparable<KeyedOperation>
     /// <value>
     /// A random integer used for shuffling equal-priority items across different keys.
     /// </value>
-    internal int RandomOrder { get; init; }
+    public int RandomOrder { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether random tie-breaking is enabled for this operation.
@@ -88,13 +86,18 @@ internal abstract class KeyedOperation : IComparable<KeyedOperation>
     /// <value>
     /// <c>true</c> if random tie-breaking should be used for equal priorities across different keys; otherwise, <c>false</c>.
     /// </value>
-    internal bool UseRandomTiebreak { get; init; }
+    public bool UseRandomTiebreak { get; init; }
+
+    /// <summary>
+    /// Gets or sets the subscription that watches the cancellation source before execution starts.
+    /// </summary>
+    public IDisposable? CancelSubscription { get; set; }
 
     /// <summary>
     /// Evaluates the operation function and returns an observable stream.
     /// </summary>
-    /// <returns>An observable of <see cref="Unit"/> that completes when the operation finishes.</returns>
-    public abstract IObservable<Unit> EvaluateFunc();
+    /// <returns>An observable of <see cref="RxVoid"/> that completes when the operation finishes.</returns>
+    public abstract IObservable<RxVoid> EvaluateFunc();
 
     /// <summary>
     /// Compares this operation to another for priority-based scheduling.

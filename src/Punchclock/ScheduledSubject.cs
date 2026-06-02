@@ -4,11 +4,11 @@
 // See the LICENSE file in the project root for full license information.
 
 using System;
-using System.Reactive.Concurrency;
-using System.Reactive.Disposables;
-using System.Reactive.Linq;
-using System.Reactive.Subjects;
 using System.Threading;
+using ReactiveUI.Primitives;
+using ReactiveUI.Primitives.Concurrency;
+using ReactiveUI.Primitives.Disposables;
+using ReactiveUI.Primitives.Signals;
 
 namespace Punchclock;
 
@@ -17,7 +17,7 @@ namespace Punchclock;
 /// Manages default observer fallback when no active subscribers exist.
 /// </summary>
 /// <typeparam name="T">The type of item to emit.</typeparam>
-internal class ScheduledSubject<T> : ISubject<T>, IDisposable
+internal class ScheduledSubject<T> : ISignal<T>, IDisposable
 {
     /// <summary>
     /// Synchronization primitive guarding mutations to subscription state.
@@ -37,14 +37,14 @@ internal class ScheduledSubject<T> : ISubject<T>, IDisposable
     private readonly IObserver<T>? _defaultObserver;
 
     /// <summary>
-    /// The scheduler used for emitting items to observers.
+    /// The sequencer used for emitting items to observers.
     /// </summary>
-    private readonly IScheduler _scheduler;
+    private readonly ISequencer _scheduler;
 
     /// <summary>
     /// The underlying subject that manages the observable stream.
     /// </summary>
-    private readonly Subject<T> _subject = new();
+    private readonly Signal<T> _subject = new();
 
     /// <summary>
     /// Reference count of active non-default observers.
@@ -64,9 +64,9 @@ internal class ScheduledSubject<T> : ISubject<T>, IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="ScheduledSubject{T}"/> class.
     /// </summary>
-    /// <param name="scheduler">The scheduler to emit items on.</param>
+    /// <param name="scheduler">The sequencer to emit items on.</param>
     /// <param name="defaultObserver">A default observer which will receive values when no other subscribers are active. Can be null.</param>
-    public ScheduledSubject(IScheduler scheduler, IObserver<T>? defaultObserver = null)
+    public ScheduledSubject(ISequencer scheduler, IObserver<T>? defaultObserver = null)
     {
 #if NET8_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(scheduler);
@@ -85,6 +85,12 @@ internal class ScheduledSubject<T> : ISubject<T>, IDisposable
             _defaultObserverSub = _subject.ObserveOn(_scheduler).Subscribe(defaultObserver);
         }
     }
+
+    /// <inheritdoc />
+    public bool HasObservers => _subject.HasObservers;
+
+    /// <inheritdoc />
+    public bool IsDisposed => _isDisposed || _subject.IsDisposed;
 
     /// <inheritdoc />
     public void OnCompleted() => _subject.OnCompleted();
@@ -124,7 +130,7 @@ internal class ScheduledSubject<T> : ISubject<T>, IDisposable
         // Dispose outside the lock
         defaultSubToDispose?.Dispose();
 
-        return new CompositeDisposable(
+        return MultipleDisposable.Create(
             _subject.ObserveOn(_scheduler).Subscribe(observer),
             Disposable.Create(() =>
             {

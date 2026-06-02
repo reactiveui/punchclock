@@ -8,12 +8,18 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="System.Reactive" />
+		<PackageReference Include="ReactiveUI.Primitives" ExcludeAssets="analyzers" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<InternalsVisibleTo Include="Punchclock.Tests" />
 		<InternalsVisibleTo Include="Punchclock.Benchmarks.New" />
 	</ItemGroup>
+
+	<Target Name="RemoveReactiveUIPrimitivesBridgeAnalyzers" BeforeTargets="CoreCompile">
+		<ItemGroup>
+			<Analyzer Remove="@(Analyzer)" Condition="'%(Filename)' == 'ReactiveUI.Primitives.R3Bridge.Generator' or '%(Filename)' == 'ReactiveUI.Primitives.SystemReactiveBridge.Generator'" />
+		</ItemGroup>
+	</Target>
 
 </Project>

@@ -18,6 +18,8 @@
     <ProjectReference Include="..\Punchclock\Punchclock.csproj" />
 
     <!-- BenchmarkDotNet - version from Directory.Packages.props -->
+    <PackageReference Include="ReactiveUI.Primitives" />
+    <PackageReference Include="System.Reactive" />
     <PackageReference Include="BenchmarkDotNet" />
   </ItemGroup>
 

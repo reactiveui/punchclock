@@ -4,6 +4,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="ReactiveUI.Primitives" />
+		<PackageReference Include="System.Reactive" />
 		<PackageReference Include="DynamicData" />
 		<PackageReference Include="PublicApiGenerator" />
 		<PackageReference Include="Verify.TUnit" />

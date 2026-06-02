@@ -4,9 +4,9 @@
 // See the LICENSE file in the project root for full license information.
 
 using System;
-using System.Reactive.Concurrency;
-using System.Reactive.Subjects;
 using System.Threading;
+using ReactiveUI.Primitives.Concurrency;
+using ReactiveUI.Primitives.Signals;
 
 namespace Punchclock;
 
@@ -15,13 +15,13 @@ namespace Punchclock;
 /// Items are queued when the semaphore is full and dequeued in priority order when capacity becomes available.
 /// </summary>
 /// <typeparam name="T">The type of item, which must be comparable for priority ordering.</typeparam>
-internal class PrioritySemaphoreSubject<T> : ISubject<T>
+internal class PrioritySemaphoreSubject<T> : ISignal<T>
     where T : IComparable<T>
 {
     /// <summary>
     /// The inner subject that receives items once they pass through the semaphore.
     /// </summary>
-    private readonly ISubject<T> _inner;
+    private readonly ISignal<T> _inner;
 
     /// <summary>
     /// Synchronization primitive guarding mutations to the priority queue.
@@ -55,12 +55,18 @@ internal class PrioritySemaphoreSubject<T> : ISubject<T>
     /// Initializes a new instance of the <see cref="PrioritySemaphoreSubject{T}"/> class.
     /// </summary>
     /// <param name="maxCount">The maximum number of items to allow through the semaphore concurrently.</param>
-    /// <param name="sched">The scheduler to use when emitting items to the inner subject. If null, uses immediate scheduling.</param>
-    public PrioritySemaphoreSubject(int maxCount, IScheduler? sched = null)
+    /// <param name="sched">The sequencer to use when emitting items to the inner subject. If null, uses immediate scheduling.</param>
+    public PrioritySemaphoreSubject(int maxCount, ISequencer? sched = null)
     {
-        _inner = sched != null ? new ScheduledSubject<T>(sched) : new Subject<T>();
+        _inner = sched != null ? new ScheduledSubject<T>(sched) : new Signal<T>();
         _maximumCount = maxCount;
     }
+
+    /// <inheritdoc />
+    public bool HasObservers => _inner.HasObservers;
+
+    /// <inheritdoc />
+    public bool IsDisposed => _inner.IsDisposed;
 
     /// <summary>
     /// Gets or sets the maximum count of items allowed through the semaphore concurrently.
@@ -170,6 +176,9 @@ internal class PrioritySemaphoreSubject<T> : ISubject<T>
 
     /// <inheritdoc />
     public IDisposable Subscribe(IObserver<T> observer) => _inner.Subscribe(observer);
+
+    /// <inheritdoc />
+    public void Dispose() => _inner.Dispose();
 
     /// <summary>
     /// Dequeues and yields items from the priority queue while count is below maximum.
