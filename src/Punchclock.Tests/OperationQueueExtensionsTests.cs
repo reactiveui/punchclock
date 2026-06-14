@@ -4,13 +4,9 @@
 // See the LICENSE file in the project root for full license information.
 
 using System.Diagnostics.CodeAnalysis;
-using System.Reactive;
-using System.Reactive.Concurrency;
-using System.Reactive.Linq;
-using System.Reactive.Subjects;
-using Microsoft.Reactive.Testing;
-using ReactiveUI.Primitives.SystemReactiveBridge;
-
+using ReactiveUI.Primitives;
+using ReactiveUI.Primitives.Concurrency;
+using ReactiveUI.Primitives.Signals;
 using RxVoid = ReactiveUI.Primitives.RxVoid;
 
 namespace Punchclock.Tests;
@@ -104,9 +100,9 @@ public class OperationQueueExtensionsTests
             using var q = new OperationQueue(1);
 
             // Block the queue with a subject that we complete later
-            var gate = new Subject<int>();
+            var gate = new Signal<int>();
             var hold = q.EnqueueObservableOperation(1, () => gate.AsObservable());
-            using var sub = hold.Subscribe(_ => { });
+            using var sub = System.ObservableExtensions.Subscribe(hold, _ => { });
 
             using var cts = new CancellationTokenSource();
             var started = false;
@@ -146,7 +142,8 @@ public class OperationQueueExtensionsTests
             var work = OperationQueueExtensions.Enqueue(q, 1, () => tcs.Task);
 
             var shutdownTcs = new TaskCompletionSource<bool>();
-            using var sub = q.ShutdownQueue().Subscribe(
+            using var sub = System.ObservableExtensions.Subscribe(
+                q.ShutdownQueue(),
                 _ => shutdownTcs.TrySetResult(true),
                 ex => shutdownTcs.TrySetException(ex),
                 () => shutdownTcs.TrySetResult(true));
@@ -176,13 +173,13 @@ public class OperationQueueExtensionsTests
             // Enqueue work while paused; nothing should run until both are disposed
             var ran = false;
             var obs = q.EnqueueObservableOperation(1, () =>
-                Observable.Defer(() =>
+                Signal.Defer(() =>
                 {
                     ran = true;
-                    return Observable.Return(1);
+                    return Signal.Emit(1);
                 }));
 
-            using var sub = obs.Subscribe(_ => { });
+            using var sub = System.ObservableExtensions.Subscribe(obs, _ => { });
             await Assert.That(ran).IsFalse();
 
             p1.Dispose();
@@ -332,9 +329,9 @@ public class OperationQueueExtensionsTests
             using var q = new OperationQueue(1);
 
             // Block the queue
-            var gate = new Subject<int>();
+            var gate = new Signal<int>();
             var hold = q.EnqueueObservableOperation(1, () => gate.AsObservable());
-            using var sub = hold.Subscribe(_ => { });
+            using var sub = System.ObservableExtensions.Subscribe(hold, _ => { });
 
             // Enqueue with CancellationToken.None
             var nonCancellable = OperationQueueExtensions.Enqueue(
@@ -401,11 +398,11 @@ public class OperationQueueExtensionsTests
     {
         using (Assert.Multiple())
         {
-            using var queue = new OperationQueue(1, ImmediateScheduler.Instance.AsSequencer());
+            using var queue = new OperationQueue(1, ImmediateSequencer.Instance);
 
             // Block the queue
-            var blocker = new Subject<int>();
-            queue.EnqueueObservableOperation(1, () => blocker).Subscribe();
+            var blocker = new Signal<int>();
+            System.ObservableExtensions.Subscribe(queue.EnqueueObservableOperation(1, () => blocker));
 
             using var cts = new CancellationTokenSource();
 
@@ -441,7 +438,8 @@ public class OperationQueueExtensionsTests
             var completed = false;
             var receivedValues = new List<RxVoid>();
 
-            using var subscription = observable.Subscribe(
+            using var subscription = System.ObservableExtensions.Subscribe(
+                observable,
                 v => receivedValues.Add(v),
                 ex => { },
                 () => completed = true);
@@ -468,7 +466,8 @@ public class OperationQueueExtensionsTests
             var observable = OperationQueueExtensions.ConvertTokenToObservable(cts.Token);
 
             Exception? caughtException = null;
-            observable.Subscribe(
+            System.ObservableExtensions.Subscribe(
+                observable,
                 v => { },
                 ex => caughtException = ex);
 
@@ -495,7 +494,8 @@ public class OperationQueueExtensionsTests
             var receivedValues = new List<RxVoid>();
             var completed = false;
 
-            using var subscription = observable.Subscribe(
+            using var subscription = System.ObservableExtensions.Subscribe(
+                observable,
                 v => receivedValues.Add(v),
                 ex => { },
                 () => completed = true);
@@ -518,7 +518,7 @@ public class OperationQueueExtensionsTests
     {
         using (Assert.Multiple())
         {
-            using var queue = new OperationQueue(2, ImmediateScheduler.Instance.AsSequencer());
+            using var queue = new OperationQueue(2, ImmediateSequencer.Instance);
             using var cts = new CancellationTokenSource();
 
             var executed = false;
@@ -549,7 +549,7 @@ public class OperationQueueExtensionsTests
     {
         using (Assert.Multiple())
         {
-            using var queue = new OperationQueue(2, ImmediateScheduler.Instance.AsSequencer());
+            using var queue = new OperationQueue(2, ImmediateSequencer.Instance);
             using var cts = new CancellationTokenSource();
 
             // Enqueue with cancellable token but don't cancel it (generic overload)
@@ -571,13 +571,13 @@ public class OperationQueueExtensionsTests
     {
         using (Assert.Multiple())
         {
-            var testScheduler = new TestScheduler();
+            var testScheduler = new TestClock();
             using var cts = new CancellationTokenSource();
 
             // Schedule cancellation to happen during subscription
             testScheduler.Schedule(TimeSpan.FromTicks(5), () => cts.Cancel());
 
-            var observable = OperationQueueExtensions.ConvertTokenToObservable(testScheduler.AsSequencer(), cts.Token);
+            var observable = OperationQueueExtensions.ConvertTokenToObservable(testScheduler, cts.Token);
 
             Exception? caughtException = null;
             var receivedValues = new List<RxVoid>();
@@ -585,13 +585,14 @@ public class OperationQueueExtensionsTests
             // Subscribe at time 0
             testScheduler.Schedule(TimeSpan.FromTicks(10), () =>
             {
-                observable.Subscribe(
+                System.ObservableExtensions.Subscribe(
+                    observable,
                     v => receivedValues.Add(v),
                     ex => caughtException = ex);
             });
 
             // Advance scheduler to trigger subscription and cancellation
-            testScheduler.AdvanceBy(TimeSpan.FromTicks(20).Ticks);
+            testScheduler.AdvanceBy(TimeSpan.FromTicks(20));
 
             // Should have caught the race condition and errored
             await Assert.That(caughtException).IsNotNull();
@@ -610,7 +611,7 @@ public class OperationQueueExtensionsTests
     {
         using (Assert.Multiple())
         {
-            using var queue = new OperationQueue(2, ImmediateScheduler.Instance.AsSequencer());
+            using var queue = new OperationQueue(2, ImmediateSequencer.Instance);
 
             // Test false branch (not cancelled) - lines 108-109
             using var cts1 = new CancellationTokenSource();

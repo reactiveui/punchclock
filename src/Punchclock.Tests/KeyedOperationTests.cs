@@ -3,10 +3,8 @@
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System.Reactive.Linq;
-using System.Reactive.Subjects;
-using System.Reactive.Threading.Tasks;
-
+using ReactiveUI.Primitives;
+using ReactiveUI.Primitives.Signals;
 using RxVoid = ReactiveUI.Primitives.RxVoid;
 
 namespace Punchclock.Tests;
@@ -153,7 +151,7 @@ public class KeyedOperationTests
             op.CancelledEarly = true;
 
             var results = new List<RxVoid>();
-            op.EvaluateFunc().Subscribe(results.Add);
+            System.ObservableExtensions.Subscribe(op.EvaluateFunc(), results.Add);
 
             await Assert.That(results).IsEmpty();
         }
@@ -175,11 +173,11 @@ public class KeyedOperationTests
                 func: () =>
                 {
                     executed = true;
-                    return Observable.Return(42);
+                    return Signal.Emit(42);
                 });
 
             var results = new List<RxVoid>();
-            op.EvaluateFunc().Subscribe(results.Add);
+            System.ObservableExtensions.Subscribe(op.EvaluateFunc(), results.Add);
 
             await Assert.That(executed).IsTrue();
         }
@@ -194,15 +192,15 @@ public class KeyedOperationTests
     {
         using (Assert.Multiple())
         {
-            var cancelSubject = new Subject<RxVoid>();
+            var cancelSubject = new Signal<RxVoid>();
             var completed = false;
             var op = CreateOperation(
                 priority: 1,
                 key: "test",
-                func: () => Observable.Never<int>(),
+                func: () => Signal.Silent<int>(),
                 cancelSignal: cancelSubject);
 
-            op.EvaluateFunc().Subscribe(_ => { }, () => completed = true);
+            System.ObservableExtensions.Subscribe(op.EvaluateFunc(), _ => { }, () => completed = true);
 
             cancelSubject.OnNext(RxVoid.Default);
             cancelSubject.OnCompleted();
@@ -237,7 +235,7 @@ public class KeyedOperationTests
             Priority = 1,
             Key = "custom-key",
             Id = 1,
-            Func = () => Observable.Return(1),
+            Func = () => Signal.Emit(1),
         };
 
         var nonKeyed = new KeyedOperation<int>
@@ -245,7 +243,7 @@ public class KeyedOperationTests
             Priority = 1,
             Key = OperationQueue.DefaultKey,
             Id = 2,
-            Func = () => Observable.Return(2),
+            Func = () => Signal.Emit(2),
         };
 
         // keyed.CompareTo(nonKeyed) should return 1 (line 127: return 1)
@@ -270,7 +268,7 @@ public class KeyedOperationTests
         };
 
         var results = new List<RxVoid>();
-        op.EvaluateFunc().Subscribe(results.Add);
+        System.ObservableExtensions.Subscribe(op.EvaluateFunc(), results.Add);
 
         await Assert.That(results).IsEmpty();
     }
@@ -294,7 +292,7 @@ public class KeyedOperationTests
             Id = id,
             UseRandomTiebreak = useRandom,
             RandomOrder = randomOrder,
-            Func = func ?? (() => Observable.Return(42)),
+            Func = func ?? (() => Signal.Emit(42)),
             CancelSignal = cancelSignal,
         };
     }

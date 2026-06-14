@@ -3,11 +3,7 @@
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using TUnit.Core;
 
 namespace Punchclock.Tests;
 
@@ -27,7 +23,7 @@ public class PriorityQueuePropertyTests
     [Repeat(100)]
     public async Task PropertyTest_HeapInvariantAlwaysHolds()
     {
-        var queue = new PriorityQueue<TestItem>();
+        var queue = new ReactiveUI.Primitives.Core.PriorityQueue<TestItem>();
         var operations = Random.Shared.Next(10, 50);
         var items = new List<TestItem>();
 
@@ -69,7 +65,7 @@ public class PriorityQueuePropertyTests
     [Repeat(100)]
     public async Task PropertyTest_DequeueOrderIsNonIncreasing()
     {
-        var queue = new PriorityQueue<TestItem>();
+        var queue = new ReactiveUI.Primitives.Core.PriorityQueue<TestItem>();
         var count = Random.Shared.Next(10, 50);
 
         // Enqueue random items
@@ -101,7 +97,7 @@ public class PriorityQueuePropertyTests
     [Repeat(100)]
     public async Task PropertyTest_FIFO_OrderMaintained()
     {
-        var queue = new PriorityQueue<TestItem>();
+        var queue = new ReactiveUI.Primitives.Core.PriorityQueue<TestItem>();
         var itemCount = Random.Shared.Next(10, 30);
         var priority = Random.Shared.Next(100); // All items have same priority
 

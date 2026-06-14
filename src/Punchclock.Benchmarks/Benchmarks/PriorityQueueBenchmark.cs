@@ -7,6 +7,7 @@ using System;
 using System.Linq;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
+using ReactiveUI.Primitives.Core;
 
 namespace Punchclock.Benchmarks;
 

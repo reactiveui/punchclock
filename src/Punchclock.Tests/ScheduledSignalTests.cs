@@ -3,49 +3,48 @@
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System.Reactive.Concurrency;
-using System.Reactive.Subjects;
-using ReactiveUI.Primitives.SystemReactiveBridge;
+using ReactiveUI.Primitives.Concurrency;
+using ReactiveUI.Primitives.Signals;
 
 namespace Punchclock.Tests;
 
 /// <summary>
-/// Tests for <see cref="ScheduledSubject{T}"/>.
+/// Tests for <see cref="ScheduledSignal{T}"/>.
 /// </summary>
-public class ScheduledSubjectTests
+public class ScheduledSignalTests
 {
     /// <summary>
     /// Verifies that the constructor throws <see cref="ArgumentNullException"/> when scheduler is null.
     /// </summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
-    public async Task Constructor_WithNullScheduler_ThrowsArgumentNullException()
+    public async Task Constructor_WithNullSequencer_ThrowsArgumentNullException()
     {
-        var ex = await Assert.That(() => new ScheduledSubject<int>(null!))
+        var ex = await Assert.That(() => new ScheduledSignal<int>(null!))
             .Throws<ArgumentNullException>();
         await Assert.That(ex!.ParamName).IsEqualTo("scheduler");
     }
 
     /// <summary>
-    /// Verifies that the constructor accepts a scheduler without default observer.
+    /// Verifies that the constructor accepts a sequencer without default observer.
     /// </summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
-    public async Task Constructor_WithSchedulerOnly_Succeeds()
+    public async Task Constructor_WithSequencerOnly_Succeeds()
     {
-        using var subject = new ScheduledSubject<int>(ImmediateScheduler.Instance.AsSequencer());
+        using var subject = new ScheduledSignal<int>(ImmediateSequencer.Instance);
         await Assert.That(subject).IsNotNull();
     }
 
     /// <summary>
-    /// Verifies that the constructor accepts a scheduler with default observer.
+    /// Verifies that the constructor accepts a sequencer with default observer.
     /// </summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
-    public async Task Constructor_WithSchedulerAndDefaultObserver_Succeeds()
+    public async Task Constructor_WithSequencerAndDefaultObserver_Succeeds()
     {
         var observer = new TestObserver<int>();
-        using var subject = new ScheduledSubject<int>(ImmediateScheduler.Instance.AsSequencer(), observer);
+        using var subject = new ScheduledSignal<int>(ImmediateSequencer.Instance, observer);
         await Assert.That(subject).IsNotNull();
     }
 
@@ -56,14 +55,14 @@ public class ScheduledSubjectTests
     [Test]
     public async Task Subscribe_WithNullObserver_ThrowsArgumentNullException()
     {
-        using var subject = new ScheduledSubject<int>(ImmediateScheduler.Instance.AsSequencer());
+        using var subject = new ScheduledSignal<int>(ImmediateSequencer.Instance);
         var ex = await Assert.That(() => subject.Subscribe(null!))
             .Throws<ArgumentNullException>();
         await Assert.That(ex!.ParamName).IsEqualTo("observer");
     }
 
     /// <summary>
-    /// Verifies that OnNext emits values to subscribers on the specified scheduler.
+    /// Verifies that OnNext emits values to subscribers on the specified sequencer.
     /// </summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
@@ -71,7 +70,7 @@ public class ScheduledSubjectTests
     {
         using (Assert.Multiple())
         {
-            using var subject = new ScheduledSubject<int>(ImmediateScheduler.Instance.AsSequencer());
+            using var subject = new ScheduledSignal<int>(ImmediateSequencer.Instance);
             var observer = new TestObserver<int>();
 
             using var subscription = subject.Subscribe(observer);
@@ -92,7 +91,7 @@ public class ScheduledSubjectTests
     {
         using (Assert.Multiple())
         {
-            using var subject = new ScheduledSubject<int>(ImmediateScheduler.Instance.AsSequencer());
+            using var subject = new ScheduledSignal<int>(ImmediateSequencer.Instance);
             var observer = new TestObserver<int>();
 
             using var subscription = subject.Subscribe(observer);
@@ -114,7 +113,7 @@ public class ScheduledSubjectTests
     {
         using (Assert.Multiple())
         {
-            using var subject = new ScheduledSubject<int>(ImmediateScheduler.Instance.AsSequencer());
+            using var subject = new ScheduledSignal<int>(ImmediateSequencer.Instance);
             var observer = new TestObserver<int>();
             var exception = new InvalidOperationException("test error");
 
@@ -138,7 +137,7 @@ public class ScheduledSubjectTests
         using (Assert.Multiple())
         {
             var defaultObserver = new TestObserver<int>();
-            using var subject = new ScheduledSubject<int>(ImmediateScheduler.Instance.AsSequencer(), defaultObserver);
+            using var subject = new ScheduledSignal<int>(ImmediateSequencer.Instance, defaultObserver);
 
             subject.OnNext(1);
             subject.OnNext(2);
@@ -157,7 +156,7 @@ public class ScheduledSubjectTests
         using (Assert.Multiple())
         {
             var defaultObserver = new TestObserver<int>();
-            using var subject = new ScheduledSubject<int>(ImmediateScheduler.Instance.AsSequencer(), defaultObserver);
+            using var subject = new ScheduledSignal<int>(ImmediateSequencer.Instance, defaultObserver);
             var subscriber = new TestObserver<int>();
 
             subject.OnNext(1);
@@ -181,7 +180,7 @@ public class ScheduledSubjectTests
         using (Assert.Multiple())
         {
             var defaultObserver = new TestObserver<int>();
-            using var subject = new ScheduledSubject<int>(ImmediateScheduler.Instance.AsSequencer(), defaultObserver);
+            using var subject = new ScheduledSignal<int>(ImmediateSequencer.Instance, defaultObserver);
             var subscriber = new TestObserver<int>();
 
             subject.OnNext(1);
@@ -207,7 +206,7 @@ public class ScheduledSubjectTests
     {
         using (Assert.Multiple())
         {
-            using var subject = new ScheduledSubject<int>(ImmediateScheduler.Instance.AsSequencer());
+            using var subject = new ScheduledSignal<int>(ImmediateSequencer.Instance);
             var observer1 = new TestObserver<int>();
             var observer2 = new TestObserver<int>();
 
@@ -231,7 +230,7 @@ public class ScheduledSubjectTests
         using (Assert.Multiple())
         {
             var defaultObserver = new TestObserver<int>();
-            using var subject = new ScheduledSubject<int>(ImmediateScheduler.Instance.AsSequencer(), defaultObserver);
+            using var subject = new ScheduledSignal<int>(ImmediateSequencer.Instance, defaultObserver);
 
             subject.OnNext(1);
             await Assert.That(defaultObserver.Values).IsEquivalentTo(new[] { 1 });
@@ -259,7 +258,7 @@ public class ScheduledSubjectTests
     [Test]
     public async Task Dispose_CalledMultipleTimes_DoesNotThrow()
     {
-        var subject = new ScheduledSubject<int>(ImmediateScheduler.Instance.AsSequencer());
+        var subject = new ScheduledSignal<int>(ImmediateSequencer.Instance);
         subject.Dispose();
         subject.Dispose(); // Should not throw
         await Task.CompletedTask;

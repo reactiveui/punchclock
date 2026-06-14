@@ -3,14 +3,14 @@
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System.Reactive.Concurrency;
 using System.Reactive.Linq;
-using ReactiveUI.Primitives.SystemReactiveBridge;
+using ReactiveUI.Primitives.Concurrency;
+using ReactiveUI.Primitives.Signals;
 
 namespace Punchclock.Tests;
 
 /// <summary>
-/// Tests for <see cref="PrioritySemaphoreSubject{T}"/>.
+/// Tests for <see cref="PrioritySemaphoreSignal{T}"/>.
 /// </summary>
 public class PrioritySemaphoreSubjectTests
 {
@@ -21,7 +21,7 @@ public class PrioritySemaphoreSubjectTests
     [Test]
     public async Task Constructor_WithMaxCount_Succeeds()
     {
-        var subject = new PrioritySemaphoreSubject<TestItem>(2);
+        var subject = new PrioritySemaphoreSignal<TestItem>(2);
         await Assert.That(subject.MaximumCount).IsEqualTo(2);
     }
 
@@ -32,7 +32,7 @@ public class PrioritySemaphoreSubjectTests
     [Test]
     public async Task Constructor_WithScheduler_Succeeds()
     {
-        var subject = new PrioritySemaphoreSubject<TestItem>(2, ImmediateScheduler.Instance.AsSequencer());
+        var subject = new PrioritySemaphoreSignal<TestItem>(2, ImmediateSequencer.Instance);
         await Assert.That(subject.MaximumCount).IsEqualTo(2);
     }
 
@@ -45,7 +45,7 @@ public class PrioritySemaphoreSubjectTests
     {
         using (Assert.Multiple())
         {
-            var subject = new PrioritySemaphoreSubject<TestItem>(1, ImmediateScheduler.Instance.AsSequencer());
+            var subject = new PrioritySemaphoreSignal<TestItem>(1, ImmediateSequencer.Instance);
             var received = new List<TestItem>();
 
             using var subscription = subject.Subscribe(item => received.Add(item));
@@ -77,7 +77,7 @@ public class PrioritySemaphoreSubjectTests
     {
         using (Assert.Multiple())
         {
-            var subject = new PrioritySemaphoreSubject<TestItem>(1, ImmediateScheduler.Instance.AsSequencer());
+            var subject = new PrioritySemaphoreSignal<TestItem>(1, ImmediateSequencer.Instance);
             var received = new List<TestItem>();
 
             using var subscription = subject.Subscribe(item => received.Add(item));
@@ -111,7 +111,7 @@ public class PrioritySemaphoreSubjectTests
     {
         using (Assert.Multiple())
         {
-            var subject = new PrioritySemaphoreSubject<TestItem>(1, ImmediateScheduler.Instance.AsSequencer());
+            var subject = new PrioritySemaphoreSignal<TestItem>(1, ImmediateSequencer.Instance);
             await Assert.That(subject.MaximumCount).IsEqualTo(1);
 
             subject.MaximumCount = 3;
@@ -128,7 +128,7 @@ public class PrioritySemaphoreSubjectTests
     {
         using (Assert.Multiple())
         {
-            var subject = new PrioritySemaphoreSubject<TestItem>(0, ImmediateScheduler.Instance.AsSequencer()); // Start paused
+            var subject = new PrioritySemaphoreSignal<TestItem>(0, ImmediateSequencer.Instance); // Start paused
             var received = new List<TestItem>();
 
             using var subscription = subject.Subscribe(item => received.Add(item));
@@ -155,7 +155,7 @@ public class PrioritySemaphoreSubjectTests
     {
         using (Assert.Multiple())
         {
-            var subject = new PrioritySemaphoreSubject<TestItem>(1, ImmediateScheduler.Instance.AsSequencer());
+            var subject = new PrioritySemaphoreSignal<TestItem>(1, ImmediateSequencer.Instance);
             var received = new List<TestItem>();
 
             using var subscription = subject.Subscribe(item => received.Add(item));
@@ -182,7 +182,7 @@ public class PrioritySemaphoreSubjectTests
     {
         using (Assert.Multiple())
         {
-            var subject = new PrioritySemaphoreSubject<TestItem>(1, ImmediateScheduler.Instance.AsSequencer());
+            var subject = new PrioritySemaphoreSignal<TestItem>(1, ImmediateSequencer.Instance);
             var received = new List<TestItem>();
             var completed = false;
 
@@ -211,7 +211,7 @@ public class PrioritySemaphoreSubjectTests
     {
         using (Assert.Multiple())
         {
-            var subject = new PrioritySemaphoreSubject<TestItem>(1, ImmediateScheduler.Instance.AsSequencer());
+            var subject = new PrioritySemaphoreSignal<TestItem>(1, ImmediateSequencer.Instance);
             var received = new List<TestItem>();
             Exception? error = null;
 
@@ -239,7 +239,7 @@ public class PrioritySemaphoreSubjectTests
     {
         using (Assert.Multiple())
         {
-            var subject = new PrioritySemaphoreSubject<TestItem>(2, ImmediateScheduler.Instance.AsSequencer());
+            var subject = new PrioritySemaphoreSignal<TestItem>(2, ImmediateSequencer.Instance);
             var received = new List<TestItem>();
 
             using var subscription = subject.Subscribe(item => received.Add(item));
@@ -266,7 +266,7 @@ public class PrioritySemaphoreSubjectTests
     {
         using (Assert.Multiple())
         {
-            var subject = new PrioritySemaphoreSubject<TestItem>(2, ImmediateScheduler.Instance.AsSequencer());
+            var subject = new PrioritySemaphoreSignal<TestItem>(2, ImmediateSequencer.Instance);
             var received = new List<TestItem>();
 
             using var subscription = subject.Subscribe(
@@ -293,7 +293,7 @@ public class PrioritySemaphoreSubjectTests
     [Test]
     public async Task OnCompleted_CalledTwice_DoesNotThrow()
     {
-        var subject = new PrioritySemaphoreSubject<TestItem>(1, ImmediateScheduler.Instance.AsSequencer());
+        var subject = new PrioritySemaphoreSignal<TestItem>(1, ImmediateSequencer.Instance);
         subject.OnCompleted();
         subject.OnCompleted(); // Should not throw
         await Task.CompletedTask;
@@ -309,7 +309,7 @@ public class PrioritySemaphoreSubjectTests
     {
         using (Assert.Multiple())
         {
-            var subject = new PrioritySemaphoreSubject<TestItem>(2, ImmediateScheduler.Instance.AsSequencer());
+            var subject = new PrioritySemaphoreSignal<TestItem>(2, ImmediateSequencer.Instance);
             var received = new List<TestItem>();
 
             subject.Subscribe(received.Add);

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFrameworks>$(PunchclockCoreTargets)</TargetFrameworks>
 		<PackageId>Punchclock</PackageId>
@@ -6,14 +6,43 @@
 	<PropertyGroup Condition="$(TargetFramework.StartsWith('net8.0')) or $(TargetFramework.StartsWith('net9.0')) or $(TargetFramework.StartsWith('net10.0'))">
 		<IsAotCompatible>true</IsAotCompatible>
 	</PropertyGroup>
+  <!-- Inject nullable-annotation attribute polyfills on frameworks that lack them. -->
+  <ItemGroup Condition="$(TargetFramework.StartsWith('net4'))">
+    <Compile Include="..\Polyfills\NotNullWhenAttribute.cs" Link="Polyfills\NotNullWhenAttribute.cs" />
+    <Compile Include="..\Polyfills\MemberNotNullWhenAttribute.cs" Link="Polyfills\MemberNotNullWhenAttribute.cs" />
+    <Compile Include="..\Polyfills\NotNullAttribute.cs" Link="Polyfills\NotNullAttribute.cs" />
+    <Compile Include="..\Polyfills\CallerArgumentExpressionAttribute.cs" Link="Polyfills\CallerArgumentExpressionAttribute.cs" />
+    <Compile Include="..\Polyfills\IsExternalInit.cs" Link="Polyfills\IsExternalInit.cs" />
+    <Compile Include="..\Polyfills\RequiredMemberAttribute.cs" Link="Polyfills\RequiredMemberAttribute.cs" />
+    <Compile Include="..\Polyfills\CompilerFeatureRequiredAttribute.cs" Link="Polyfills\CompilerFeatureRequiredAttribute.cs" />
+    <Compile Include="..\Polyfills\TaskCompletionSource.cs" Link="Polyfills\TaskCompletionSource.cs" />
+    <Compile Include="..\Polyfills\SetsRequiredMembersAttribute.cs" Link="Polyfills\SetsRequiredMembersAttribute.cs" />
+    <Compile Include="..\Polyfills\CancellationTokenSourcePolyfillExtensions.cs" Link="Polyfills\CancellationTokenSourcePolyfillExtensions.cs" />
+    <Compile Include="..\Polyfills\CancellationTokenPolyfillExtensions.cs" Link="Polyfills\CancellationTokenPolyfillExtensions.cs" />
+    <Compile Include="..\Polyfills\TaskPolyfillExtensions.cs" Link="Polyfills\TaskPolyfillExtensions.cs" />
+    <Compile Include="..\Polyfills\ArgumentExceptionHelper.cs" Link="Polyfills\ArgumentExceptionHelper.cs" />
+    <Compile Include="..\Polyfills\ArgumentOutOfRangeExceptionHelper.cs" Link="Polyfills\ArgumentOutOfRangeExceptionHelper.cs" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<PackageReference Include="ReactiveUI.Primitives" ExcludeAssets="analyzers" />
-	</ItemGroup>
+  <!-- ArgumentExceptionHelper is a polyfill for ArgumentNullException.ThrowIfNull: it is compiled only on
+       net462-net481 (above). On net8.0+ the BCL has the method, so alias the identifier straight to it. -->
+  <ItemGroup Condition="$(TargetFramework.StartsWith('net4'))">
+    <Using Include="ReactiveUI.Primitives.Internal.ArgumentExceptionHelper" Alias="ArgumentExceptionHelper" />
+    <Using Include="ReactiveUI.Primitives.Internal.ArgumentOutOfRangeExceptionHelper" Alias="ArgumentOutOfRangeExceptionHelper" />
+  </ItemGroup>
+  <ItemGroup Condition="!$(TargetFramework.StartsWith('net4'))">
+    <Using Include="System.ArgumentNullException" Alias="ArgumentExceptionHelper" />
+    <Using Include="System.ArgumentOutOfRangeException" Alias="ArgumentOutOfRangeExceptionHelper" />
+  </ItemGroup>
 
 	<ItemGroup>
 		<InternalsVisibleTo Include="Punchclock.Tests" />
-		<InternalsVisibleTo Include="Punchclock.Benchmarks.New" />
+		<InternalsVisibleTo Include="Punchclock.Benchmarks" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\..\Primitives\src\ReactiveUI.Disposables\ReactiveUI.Disposables.csproj" />
+	  <ProjectReference Include="..\..\..\Primitives\src\ReactiveUI.Primitives\ReactiveUI.Primitives.csproj" />
 	</ItemGroup>
 
 	<Target Name="RemoveReactiveUIPrimitivesBridgeAnalyzers" BeforeTargets="CoreCompile">

@@ -4,6 +4,7 @@
 // See the LICENSE file in the project root for full license information.
 
 using System.Diagnostics.CodeAnalysis;
+using ReactiveUI.Primitives.Core;
 
 namespace Punchclock.Tests;
 
@@ -647,7 +648,7 @@ public class PriorityQueueTests
     public async Task EnqueueRange_EmptySpan_NoChange()
     {
         var queue = new PriorityQueue<TestItem>();
-        queue.EnqueueRange(ReadOnlySpan<TestItem>.Empty);
+        queue.EnqueueRange([]);
 
         await Assert.That(queue.Count).IsEqualTo(0);
     }
@@ -725,7 +726,7 @@ public class PriorityQueueTests
         using (Assert.Multiple())
         {
             await Assert.That(result).IsTrue();
-            await Assert.That(item.Priority).IsEqualTo(expected.Priority);
+            await Assert.That(item!.Priority).IsEqualTo(expected.Priority);
             await Assert.That(queue.Count).IsEqualTo(1); // Peek doesn't remove
         }
     }
@@ -763,7 +764,7 @@ public class PriorityQueueTests
         using (Assert.Multiple())
         {
             await Assert.That(result).IsTrue();
-            await Assert.That(item.Priority).IsEqualTo(expected.Priority);
+            await Assert.That(item!.Priority).IsEqualTo(expected.Priority);
             await Assert.That(queue.Count).IsEqualTo(0); // Dequeue removes
         }
     }

@@ -3,10 +3,7 @@
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System;
 using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 using ReactiveUI.Primitives;
 using ReactiveUI.Primitives.Concurrency;
 using ReactiveUI.Primitives.Disposables;
@@ -34,20 +31,8 @@ public static class OperationQueueExtensions
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via <paramref name="token"/>.</exception>
     public static Task<T> Enqueue<T>(this OperationQueue operationQueue, int priority, string key, Func<Task<T>> asyncOperation, CancellationToken token)
     {
-#if NET8_0_OR_GREATER
-        ArgumentNullException.ThrowIfNull(operationQueue);
-        ArgumentNullException.ThrowIfNull(asyncOperation);
-#else
-        if (operationQueue is null)
-        {
-            throw new ArgumentNullException(nameof(operationQueue));
-        }
-
-        if (asyncOperation is null)
-        {
-            throw new ArgumentNullException(nameof(asyncOperation));
-        }
-#endif
+        ArgumentExceptionHelper.ThrowIfNull(operationQueue);
+        ArgumentExceptionHelper.ThrowIfNull(asyncOperation);
 
         // Fast path: if token can't be cancelled, use the no-token overload to avoid registration overhead
         if (!token.CanBeCanceled)
@@ -78,20 +63,8 @@ public static class OperationQueueExtensions
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via <paramref name="token"/>.</exception>
     public static Task Enqueue(this OperationQueue operationQueue, int priority, string key, Func<Task> asyncOperation, CancellationToken token)
     {
-#if NET8_0_OR_GREATER
-        ArgumentNullException.ThrowIfNull(operationQueue);
-        ArgumentNullException.ThrowIfNull(asyncOperation);
-#else
-        if (operationQueue is null)
-        {
-            throw new ArgumentNullException(nameof(operationQueue));
-        }
-
-        if (asyncOperation is null)
-        {
-            throw new ArgumentNullException(nameof(asyncOperation));
-        }
-#endif
+        ArgumentExceptionHelper.ThrowIfNull(operationQueue);
+        ArgumentExceptionHelper.ThrowIfNull(asyncOperation);
 
         // Fast path: if token can't be cancelled, use the no-token overload to avoid registration overhead
         if (!token.CanBeCanceled)
@@ -121,20 +94,8 @@ public static class OperationQueueExtensions
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
     public static Task<T> Enqueue<T>(this OperationQueue operationQueue, int priority, string key, Func<Task<T>> asyncOperation)
     {
-#if NET8_0_OR_GREATER
-        ArgumentNullException.ThrowIfNull(operationQueue);
-        ArgumentNullException.ThrowIfNull(asyncOperation);
-#else
-        if (operationQueue is null)
-        {
-            throw new ArgumentNullException(nameof(operationQueue));
-        }
-
-        if (asyncOperation is null)
-        {
-            throw new ArgumentNullException(nameof(asyncOperation));
-        }
-#endif
+        ArgumentExceptionHelper.ThrowIfNull(operationQueue);
+        ArgumentExceptionHelper.ThrowIfNull(asyncOperation);
 
         return operationQueue.EnqueueObservableOperation(priority, key, Signal.Silent<RxVoid>(), () => Signal.FromTask(asyncOperation()))
             .ToTask();
@@ -151,20 +112,8 @@ public static class OperationQueueExtensions
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
     public static Task Enqueue(this OperationQueue operationQueue, int priority, string key, Func<Task> asyncOperation)
     {
-#if NET8_0_OR_GREATER
-        ArgumentNullException.ThrowIfNull(operationQueue);
-        ArgumentNullException.ThrowIfNull(asyncOperation);
-#else
-        if (operationQueue is null)
-        {
-            throw new ArgumentNullException(nameof(operationQueue));
-        }
-
-        if (asyncOperation is null)
-        {
-            throw new ArgumentNullException(nameof(asyncOperation));
-        }
-#endif
+        ArgumentExceptionHelper.ThrowIfNull(operationQueue);
+        ArgumentExceptionHelper.ThrowIfNull(asyncOperation);
 
         return operationQueue.EnqueueObservableOperation(priority, key, Signal.Silent<RxVoid>(), () => Signal.FromTask(ToRxVoidTask(asyncOperation)))
             .ToTask();
@@ -182,20 +131,8 @@ public static class OperationQueueExtensions
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
     public static Task<T> Enqueue<T>(this OperationQueue operationQueue, int priority, Func<Task<T>> asyncOperation)
     {
-#if NET8_0_OR_GREATER
-        ArgumentNullException.ThrowIfNull(operationQueue);
-        ArgumentNullException.ThrowIfNull(asyncOperation);
-#else
-        if (operationQueue is null)
-        {
-            throw new ArgumentNullException(nameof(operationQueue));
-        }
-
-        if (asyncOperation is null)
-        {
-            throw new ArgumentNullException(nameof(asyncOperation));
-        }
-#endif
+        ArgumentExceptionHelper.ThrowIfNull(operationQueue);
+        ArgumentExceptionHelper.ThrowIfNull(asyncOperation);
 
         return operationQueue.EnqueueObservableOperation(priority, () => Signal.FromTask(asyncOperation()))
             .ToTask();
@@ -212,20 +149,8 @@ public static class OperationQueueExtensions
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
     public static Task Enqueue(this OperationQueue operationQueue, int priority, Func<Task> asyncOperation)
     {
-#if NET8_0_OR_GREATER
-        ArgumentNullException.ThrowIfNull(operationQueue);
-        ArgumentNullException.ThrowIfNull(asyncOperation);
-#else
-        if (operationQueue is null)
-        {
-            throw new ArgumentNullException(nameof(operationQueue));
-        }
-
-        if (asyncOperation is null)
-        {
-            throw new ArgumentNullException(nameof(asyncOperation));
-        }
-#endif
+        ArgumentExceptionHelper.ThrowIfNull(operationQueue);
+        ArgumentExceptionHelper.ThrowIfNull(asyncOperation);
 
         return operationQueue.EnqueueObservableOperation(priority, () => Signal.FromTask(ToRxVoidTask(asyncOperation)))
             .ToTask();
@@ -281,7 +206,7 @@ public static class OperationQueueExtensions
             if (token.IsCancellationRequested)
             {
                 observer.OnError(new OperationCanceledException(token));
-                return Disposable.Empty;
+                return Scope.Empty;
             }
 
             return token.Register(() =>

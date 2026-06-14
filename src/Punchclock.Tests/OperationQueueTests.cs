@@ -3,16 +3,8 @@
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System;
-using System.Linq;
-using System.Reactive;
-using System.Reactive.Concurrency;
-using System.Reactive.Linq;
-using System.Reactive.Subjects;
-using System.Threading;
 using DynamicData;
 using DynamicData.Binding;
-using Microsoft.Reactive.Testing;
 using ReactiveUI.Primitives.Signals;
 using TUnit.Assertions.Enums;
 
@@ -36,7 +28,7 @@ public class OperationQueueTests
     {
         using (Assert.Multiple())
         {
-            var subjects = Enumerable.Range(0, 5).Select(x => new AsyncSubject<int>()).ToArray();
+            var subjects = Enumerable.Range(0, 5).Select(x => new AsyncSignal<int>()).ToArray();
             var priorities = new[] { 5, 5, 5, 10, 1, };
             var fixture = new OperationQueue(2);
 
@@ -48,7 +40,7 @@ public class OperationQueueTests
                 {
                     fixture
                         .EnqueueObservableOperation(pri, () => inp)
-                        .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
+                        .ToObservableChangeSet(scheduler: System.Reactive.Concurrency.ImmediateScheduler.Instance)
                         .Bind(out var y).Subscribe();
                     return y;
                 }).ToArray();
@@ -98,19 +90,19 @@ public class OperationQueueTests
     {
         using (Assert.Multiple())
         {
-            var subj1 = new AsyncSubject<int>();
-            var subj2 = new AsyncSubject<int>();
+            var subj1 = new AsyncSignal<int>();
+            var subj2 = new AsyncSignal<int>();
 
             var subscribeCount1 = 0;
-            var input1Subj = new AsyncSubject<int>();
-            var input1 = System.Reactive.Linq.Observable.Defer(() =>
+            var input1Subj = new AsyncSignal<int>();
+            var input1 = Signal.Defer(() =>
             {
                 subscribeCount1++;
                 return input1Subj;
             });
             var subscribeCount2 = 0;
-            var input2Subj = new AsyncSubject<int>();
-            var input2 = System.Reactive.Linq.Observable.Defer(() =>
+            var input2Subj = new AsyncSignal<int>();
+            var input2 = Signal.Defer(() =>
             {
                 subscribeCount2++;
                 return input2Subj;
@@ -127,11 +119,11 @@ public class OperationQueueTests
             // subj1,2 are live, input1,2 are in queue
             fixture
                 .EnqueueObservableOperation(5, "key", Signal.Silent<RxVoid>(), () => input1)
-                .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
+                .ToObservableChangeSet(scheduler: System.Reactive.Concurrency.ImmediateScheduler.Instance)
                 .Bind(out var out1).Subscribe();
             fixture
                 .EnqueueObservableOperation(5, "key", Signal.Silent<RxVoid>(), () => input2)
-                .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
+                .ToObservableChangeSet(scheduler: System.Reactive.Concurrency.ImmediateScheduler.Instance)
                 .Bind(out var out2).Subscribe();
 
             await Assert.That(subscribeCount1).IsZero();
@@ -180,17 +172,17 @@ public class OperationQueueTests
     {
         using (Assert.Multiple())
         {
-            var unkeyed1Subj = new AsyncSubject<int>();
+            var unkeyed1Subj = new AsyncSignal<int>();
             var unkeyed1SubCount = 0;
-            var unkeyed1 = System.Reactive.Linq.Observable.Defer(() =>
+            var unkeyed1 = Signal.Defer(() =>
             {
                 unkeyed1SubCount++;
                 return unkeyed1Subj;
             });
 
-            var unkeyed2Subj = new AsyncSubject<int>();
+            var unkeyed2Subj = new AsyncSignal<int>();
             var unkeyed2SubCount = 0;
-            var unkeyed2 = System.Reactive.Linq.Observable.Defer(() =>
+            var unkeyed2 = Signal.Defer(() =>
             {
                 unkeyed2SubCount++;
                 return unkeyed2Subj;
@@ -220,7 +212,7 @@ public class OperationQueueTests
     {
         using (Assert.Multiple())
         {
-            var subjects = Enumerable.Range(0, 5).Select(x => new AsyncSubject<int>()).ToArray();
+            var subjects = Enumerable.Range(0, 5).Select(x => new AsyncSignal<int>()).ToArray();
             var priorities = new[] { 5, 5, 5, 10, 1, };
             var fixture = new OperationQueue(2);
 
@@ -232,14 +224,14 @@ public class OperationQueueTests
                 {
                     fixture
                         .EnqueueObservableOperation(pri, () => inp)
-                        .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
+                        .ToObservableChangeSet(scheduler: System.Reactive.Concurrency.ImmediateScheduler.Instance)
                         .Bind(out var output).Subscribe();
                     return output;
                 }).ToArray();
 
             fixture
                 .ShutdownQueue()
-                .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
+                .ToObservableChangeSet(scheduler: System.Reactive.Concurrency.ImmediateScheduler.Instance)
                 .Bind(out var shutdown).Subscribe();
 
             await Assert.That(outputs.All(x => x.Count == 0)).IsTrue();
@@ -273,15 +265,15 @@ public class OperationQueueTests
     {
         using (Assert.Multiple())
         {
-            var item = System.Reactive.Linq.Observable.Return(42);
+            var item = Signal.Emit(42);
 
             var fixture = new OperationQueue(2);
-            new[]
+            ReactiveUI.Primitives.LinqExtensions.Blend(new[]
             {
                 fixture.EnqueueObservableOperation(4, () => item),
                 fixture.EnqueueObservableOperation(4, () => item),
-            }.Merge()
-             .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
+            })
+             .ToObservableChangeSet(scheduler: System.Reactive.Concurrency.ImmediateScheduler.Instance)
              .Bind(out var prePauseOutput).Subscribe();
 
             await Assert.That(prePauseOutput.Count).IsEqualTo(2);
@@ -290,12 +282,12 @@ public class OperationQueueTests
 
             // The queue is halted, but we should still eventually process these
             // once it's no longer halted
-            new[]
+            ReactiveUI.Primitives.LinqExtensions.Blend(new[]
             {
                 fixture.EnqueueObservableOperation(4, () => item),
                 fixture.EnqueueObservableOperation(4, () => item),
-            }.Merge()
-             .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
+            })
+             .ToObservableChangeSet(scheduler: System.Reactive.Concurrency.ImmediateScheduler.Instance)
              .Bind(out var pauseOutput).Subscribe();
 
             await Assert.That(pauseOutput.Count).IsEqualTo(0);
@@ -322,8 +314,8 @@ public class OperationQueueTests
     {
         using (Assert.Multiple())
         {
-            var subj1 = new AsyncSubject<int>();
-            var subj2 = new AsyncSubject<int>();
+            var subj1 = new AsyncSignal<int>();
+            var subj2 = new AsyncSignal<int>();
 
             var fixture = new OperationQueue(2);
 
@@ -333,14 +325,14 @@ public class OperationQueueTests
                 fixture.EnqueueObservableOperation(5, () => v).Subscribe();
             }
 
-            var cancel1 = new Subject<RxVoid>();
-            var item1 = new AsyncSubject<int>();
-            new[]
+            var cancel1 = new Signal<RxVoid>();
+            var item1 = new AsyncSignal<int>();
+            ReactiveUI.Primitives.LinqExtensions.Blend(new[]
             {
                 fixture.EnqueueObservableOperation(5, "foo", cancel1, () => item1),
-                fixture.EnqueueObservableOperation(5, "baz", () => System.Reactive.Linq.Observable.Return(42)),
-            }.Merge()
-             .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
+                fixture.EnqueueObservableOperation(5, "baz", () => Signal.Emit(42)),
+            })
+             .ToObservableChangeSet(scheduler: System.Reactive.Concurrency.ImmediateScheduler.Instance)
              .Bind(out var output).Subscribe();
 
             await Assert.That(output.Count).IsEqualTo(0);
@@ -378,8 +370,8 @@ public class OperationQueueTests
     {
         using (Assert.Multiple())
         {
-            var subj1 = new AsyncSubject<int>();
-            var subj2 = new AsyncSubject<int>();
+            var subj1 = new AsyncSignal<int>();
+            var subj2 = new AsyncSignal<int>();
 
             var fixture = new OperationQueue(2);
 
@@ -389,15 +381,15 @@ public class OperationQueueTests
                 fixture.EnqueueObservableOperation(5, () => v).Subscribe();
             }
 
-            var cancel1 = new Subject<RxVoid>();
+            var cancel1 = new Signal<RxVoid>();
             var wasCalled = false;
-            var item1 = new AsyncSubject<int>();
+            var item1 = new AsyncSignal<int>();
 
             fixture.EnqueueObservableOperation(5, "foo", cancel1, () =>
             {
                 wasCalled = true;
                 return item1;
-            }).ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
+            }).ToObservableChangeSet(scheduler: System.Reactive.Concurrency.ImmediateScheduler.Instance)
               .Bind(out var output).Subscribe();
 
             await Assert.That(output.Count).IsEqualTo(0);
@@ -435,25 +427,25 @@ public class OperationQueueTests
     {
         using (Assert.Multiple())
         {
-            var unkeyed1Subj = new AsyncSubject<int>();
+            var unkeyed1Subj = new AsyncSignal<int>();
             var unkeyed1SubCount = 0;
-            var unkeyed1 = System.Reactive.Linq.Observable.Defer(() =>
+            var unkeyed1 = Signal.Defer(() =>
             {
                 unkeyed1SubCount++;
                 return unkeyed1Subj;
             });
 
-            var unkeyed2Subj = new AsyncSubject<int>();
+            var unkeyed2Subj = new AsyncSignal<int>();
             var unkeyed2SubCount = 0;
-            var unkeyed2 = System.Reactive.Linq.Observable.Defer(() =>
+            var unkeyed2 = Signal.Defer(() =>
             {
                 unkeyed2SubCount++;
                 return unkeyed2Subj;
             });
 
-            var unkeyed3Subj = new AsyncSubject<int>();
+            var unkeyed3Subj = new AsyncSignal<int>();
             var unkeyed3SubCount = 0;
-            var unkeyed3 = System.Reactive.Linq.Observable.Defer(() =>
+            var unkeyed3 = Signal.Defer(() =>
             {
                 unkeyed3SubCount++;
                 return unkeyed3Subj;
@@ -486,33 +478,33 @@ public class OperationQueueTests
     {
         using (Assert.Multiple())
         {
-            var unkeyed1Subj = new AsyncSubject<int>();
+            var unkeyed1Subj = new AsyncSignal<int>();
             var unkeyed1SubCount = 0;
-            var unkeyed1 = System.Reactive.Linq.Observable.Defer(() =>
+            var unkeyed1 = Signal.Defer(() =>
             {
                 unkeyed1SubCount++;
                 return unkeyed1Subj;
             });
 
-            var unkeyed2Subj = new AsyncSubject<int>();
+            var unkeyed2Subj = new AsyncSignal<int>();
             var unkeyed2SubCount = 0;
-            var unkeyed2 = System.Reactive.Linq.Observable.Defer(() =>
+            var unkeyed2 = Signal.Defer(() =>
             {
                 unkeyed2SubCount++;
                 return unkeyed2Subj;
             });
 
-            var unkeyed3Subj = new AsyncSubject<int>();
+            var unkeyed3Subj = new AsyncSignal<int>();
             var unkeyed3SubCount = 0;
-            var unkeyed3 = System.Reactive.Linq.Observable.Defer(() =>
+            var unkeyed3 = Signal.Defer(() =>
             {
                 unkeyed3SubCount++;
                 return unkeyed3Subj;
             });
 
-            var unkeyed4Subj = new AsyncSubject<int>();
+            var unkeyed4Subj = new AsyncSignal<int>();
             var unkeyed4SubCount = 0;
-            var unkeyed4 = System.Reactive.Linq.Observable.Defer(() =>
+            var unkeyed4 = Signal.Defer(() =>
             {
                 unkeyed4SubCount++;
                 return unkeyed4Subj;
@@ -555,7 +547,7 @@ public class OperationQueueTests
     {
         using (Assert.Multiple())
         {
-            var subjects = Enumerable.Range(0, 6).Select(x => new AsyncSubject<int>()).ToArray();
+            var subjects = Enumerable.Range(0, 6).Select(x => new AsyncSignal<int>()).ToArray();
             var fixture = new OperationQueue(3);
 
             // The three at the front are solely to stop up the queue, they get subscribed
@@ -565,7 +557,7 @@ public class OperationQueueTests
                 {
                     fixture
                         .EnqueueObservableOperation(5, () => inp)
-                        .ToObservableChangeSet(scheduler: ImmediateScheduler.Instance)
+                        .ToObservableChangeSet(scheduler: System.Reactive.Concurrency.ImmediateScheduler.Instance)
                         .Bind(out var output).Subscribe();
                     return output;
                 }).ToArray();
@@ -619,11 +611,11 @@ public class OperationQueueTests
             var queue = new OperationQueue(maximumConcurrent: 1, randomizeEqualPriority: true, seed: 123);
 
             // Block the queue initially
-            var blocker = new AsyncSubject<int>();
+            var blocker = new AsyncSignal<int>();
             queue.EnqueueObservableOperation(5, () => blocker).Subscribe();
 
-            var a = new AsyncSubject<int>();
-            var b = new AsyncSubject<int>();
+            var a = new AsyncSignal<int>();
+            var b = new AsyncSignal<int>();
 
             var nextCountA = 0;
             var nextCountB = 0;
@@ -767,10 +759,10 @@ public class OperationQueueTests
             var completed2 = false;
 
             // Empty string should be treated as DefaultKey (non-keyed, concurrent)
-            queue.EnqueueObservableOperation(1, string.Empty, () => Observable.Return(1))
+            queue.EnqueueObservableOperation(1, string.Empty, () => Signal.Emit(1))
                 .Subscribe(_ => completed1 = true);
 
-            queue.EnqueueObservableOperation(1, string.Empty, () => Observable.Return(2))
+            queue.EnqueueObservableOperation(1, string.Empty, () => Signal.Emit(2))
                 .Subscribe(_ => completed2 = true);
 
             // Both should complete concurrently since they're treated as DefaultKey
@@ -793,10 +785,10 @@ public class OperationQueueTests
             var completed1 = false;
             var completed2 = false;
 
-            queue.EnqueueObservableOperation(1, null!, () => Observable.Return(1))
+            queue.EnqueueObservableOperation(1, null!, () => Signal.Emit(1))
                 .Subscribe(_ => completed1 = true);
 
-            queue.EnqueueObservableOperation(1, null!, () => Observable.Return(2))
+            queue.EnqueueObservableOperation(1, null!, () => Signal.Emit(2))
                 .Subscribe(_ => completed2 = true);
 
             // Operations complete without delay
@@ -853,8 +845,8 @@ public class OperationQueueTests
             using var queue = new OperationQueue(maximumConcurrent: 2, randomizeEqualPriority: true, seed: null);
 
             var completed = 0;
-            queue.EnqueueObservableOperation(1, "a", () => Observable.Return(1)).Subscribe(_ => completed++);
-            queue.EnqueueObservableOperation(1, "b", () => Observable.Return(2)).Subscribe(_ => completed++);
+            queue.EnqueueObservableOperation(1, "a", () => Signal.Emit(1)).Subscribe(_ => completed++);
+            queue.EnqueueObservableOperation(1, "b", () => Signal.Emit(2)).Subscribe(_ => completed++);
 
             // ImmediateScheduler executes synchronously
             await Assert.That(completed).IsEqualTo(2);
@@ -876,7 +868,7 @@ public class OperationQueueTests
             var completed = false;
 
             // Enqueue without cancel signal - should use an empty cancellation signal internally.
-            queue.EnqueueObservableOperation(1, () => Observable.Return(42))
+            queue.EnqueueObservableOperation(1, () => Signal.Emit(42))
                 .Subscribe(_ => completed = true);
 
             // Operations complete synchronously

@@ -3,11 +3,11 @@
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System.Reactive.Linq;
-using System.Reactive.Threading.Tasks;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
+using ReactiveUI.Primitives;
+using ReactiveUI.Primitives.Signals;
 
 namespace Punchclock.Benchmarks;
 
@@ -120,7 +120,7 @@ public class OperationQueueBenchmarks
             var capturedI = i;
             var obs = _queue!.EnqueueObservableOperation(
                 priority: 1,
-                asyncCalculationFunc: () => Observable.Return(capturedI));
+                asyncCalculationFunc: () => Signal.Emit(capturedI));
             tasks[i] = obs.ToTask();
         }
 

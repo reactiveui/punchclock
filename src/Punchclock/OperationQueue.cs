@@ -3,14 +3,11 @@
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Threading;
 using ReactiveUI.Primitives;
 using ReactiveUI.Primitives.Concurrency;
-using ReactiveUI.Primitives.Disposables;
+using ReactiveUI.Primitives.Core;
 using ReactiveUI.Primitives.Signals;
 
 namespace Punchclock;
@@ -49,11 +46,7 @@ public class OperationQueue : IDisposable
     /// <remarks>
     /// Protects access to <see cref="_shutdownObs"/>, <see cref="_maximumConcurrent"/>, and queue operations.
     /// </remarks>
-#if NET9_0_OR_GREATER
     private readonly Lock _gate = new();
-#else
-    private readonly object _gate = new();
-#endif
 
     /// <summary>
     /// Pending operations ordered by priority.
@@ -180,20 +173,8 @@ public class OperationQueue : IDisposable
     /// <returns>An observable that produces the result of the async calculation.</returns>
     public IObservable<T> EnqueueObservableOperation<T, TDontCare>(int priority, string key, IObservable<TDontCare> cancel, Func<IObservable<T>> asyncCalculationFunc)
     {
-#if NET8_0_OR_GREATER
-        ArgumentNullException.ThrowIfNull(cancel);
-        ArgumentNullException.ThrowIfNull(asyncCalculationFunc);
-#else
-        if (cancel is null)
-        {
-            throw new ArgumentNullException(nameof(cancel));
-        }
-
-        if (asyncCalculationFunc is null)
-        {
-            throw new ArgumentNullException(nameof(asyncCalculationFunc));
-        }
-#endif
+        ArgumentExceptionHelper.ThrowIfNull(cancel);
+        ArgumentExceptionHelper.ThrowIfNull(asyncCalculationFunc);
 
         var id = Interlocked.Increment(ref sequenceNumber);
         var cancelReplay = new ReplaySignal<TDontCare>();
@@ -272,7 +253,7 @@ public class OperationQueue : IDisposable
             ScheduleOperations();
         }
 
-        return Disposable.Create(() =>
+        return ReactiveUI.Primitives.Disposables.Scope.Create(() =>
         {
             if (Interlocked.Decrement(ref _pauseRefCount) > 0)
             {
