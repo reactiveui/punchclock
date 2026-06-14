@@ -3,7 +3,6 @@
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System.Runtime.CompilerServices;
 using ReactiveUI.Primitives;
 using ReactiveUI.Primitives.Concurrency;
 using ReactiveUI.Primitives.Disposables;
@@ -166,7 +165,7 @@ public static class OperationQueueExtensions
     /// </returns>
     /// <exception cref="OperationCanceledException">Thrown immediately if the token is already cancelled.</exception>
 #if NET8_0_OR_GREATER
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
 #endif
     internal static IObservable<RxVoid> ConvertTokenToObservable(CancellationToken token) =>
         ConvertTokenToObservable(null, token);
@@ -183,7 +182,7 @@ public static class OperationQueueExtensions
     /// </returns>
     /// <exception cref="OperationCanceledException">Thrown immediately if the token is already cancelled.</exception>
 #if NET8_0_OR_GREATER
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
 #endif
     internal static IObservable<RxVoid> ConvertTokenToObservable(ISequencer? scheduler, CancellationToken token)
     {
