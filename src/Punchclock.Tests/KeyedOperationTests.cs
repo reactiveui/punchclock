@@ -3,7 +3,6 @@
 // ReactiveUI and Contributors licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using ReactiveUI.Primitives;
 using ReactiveUI.Primitives.Signals;
 using RxVoid = ReactiveUI.Primitives.RxVoid;
 
@@ -151,7 +150,7 @@ public class KeyedOperationTests
             op.CancelledEarly = true;
 
             var results = new List<RxVoid>();
-            System.ObservableExtensions.Subscribe(op.EvaluateFunc(), results.Add);
+            op.EvaluateFunc().Subscribe(results.Add);
 
             await Assert.That(results).IsEmpty();
         }
@@ -177,7 +176,7 @@ public class KeyedOperationTests
                 });
 
             var results = new List<RxVoid>();
-            System.ObservableExtensions.Subscribe(op.EvaluateFunc(), results.Add);
+            op.EvaluateFunc().Subscribe(results.Add);
 
             await Assert.That(executed).IsTrue();
         }
@@ -200,7 +199,7 @@ public class KeyedOperationTests
                 func: () => Signal.Silent<int>(),
                 cancelSignal: cancelSubject);
 
-            System.ObservableExtensions.Subscribe(op.EvaluateFunc(), _ => { }, () => completed = true);
+            op.EvaluateFunc().Subscribe(_ => { }, () => completed = true);
 
             cancelSubject.OnNext(RxVoid.Default);
             cancelSubject.OnCompleted();
@@ -268,7 +267,7 @@ public class KeyedOperationTests
         };
 
         var results = new List<RxVoid>();
-        System.ObservableExtensions.Subscribe(op.EvaluateFunc(), results.Add);
+        op.EvaluateFunc().Subscribe(results.Add);
 
         await Assert.That(results).IsEmpty();
     }
@@ -283,9 +282,7 @@ public class KeyedOperationTests
         bool useRandom = false,
         int randomOrder = 0,
         Func<IObservable<int>>? func = null,
-        IObservable<RxVoid>? cancelSignal = null)
-    {
-        return new KeyedOperation<int>
+        IObservable<RxVoid>? cancelSignal = null) => new()
         {
             Priority = priority,
             Key = key,
@@ -295,5 +292,4 @@ public class KeyedOperationTests
             Func = func ?? (() => Signal.Emit(42)),
             CancelSignal = cancelSignal,
         };
-    }
 }

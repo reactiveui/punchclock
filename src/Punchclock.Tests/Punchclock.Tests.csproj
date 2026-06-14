@@ -1,21 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-		<TargetFrameworks>$(PunchclockModernTargets)</TargetFrameworks>
-	</PropertyGroup>
+  <PropertyGroup>
+    <TargetFrameworks>$(PunchclockModernTargets)</TargetFrameworks>
+  </PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="ReactiveUI.Primitives" />
-		<PackageReference Include="System.Reactive" />
-		<PackageReference Include="DynamicData" />
-		<PackageReference Include="PublicApiGenerator" />
-		<PackageReference Include="Verify.TUnit" />
-		<PackageReference Include="TUnit" />
-		<PackageReference Include="DiffEngine" />
-		<PackageReference Include="Microsoft.Reactive.Testing" />
-		<PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
-	</ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="ReactiveUI.Primitives" />
+    <PackageReference Include="DynamicData" />
+    <PackageReference Include="PublicApiGenerator" />
+    <PackageReference Include="Verify.TUnit" />
+    <PackageReference Include="TUnit" />
+    <PackageReference Include="DiffEngine" />
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="../Punchclock/Punchclock.csproj" />
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Punchclock/Punchclock.csproj" />
+  </ItemGroup>
 </Project>

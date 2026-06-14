@@ -4,7 +4,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<!--<PackageVersion Include="ReactiveUI.Primitives" Version="3.0.0" />-->
+		<PackageVersion Include="ReactiveUI.Primitives" Version="4.0.0" />
     <PackageVersion Include="DynamicData" Version="9.4.31" />
 		<PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.300" />
 		<PackageVersion Include="MinVer" Version="7.0.0" />

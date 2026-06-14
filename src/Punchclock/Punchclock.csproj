@@ -41,8 +41,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\..\..\Primitives\src\ReactiveUI.Disposables\ReactiveUI.Disposables.csproj" />
-	  <ProjectReference Include="..\..\..\Primitives\src\ReactiveUI.Primitives\ReactiveUI.Primitives.csproj" />
+    <PackageReference Include="ReactiveUI.Primitives" ExcludeAssets="analyzers" />
 	</ItemGroup>
 
 	<Target Name="RemoveReactiveUIPrimitivesBridgeAnalyzers" BeforeTargets="CoreCompile">

@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.0.11205.157 d18.0
+VisualStudioVersion = 18.0.11205.157
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Punchclock", "Punchclock\Punchclock.csproj", "{D3D5E08E-2DAA-4C14-BDF1-C15BD81247F5}"
 EndProject
@@ -20,6 +20,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Items", "Items", "{E035091F
 		..\version.json = ..\version.json
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Punchclock.Benchmarks", "Punchclock.Benchmarks\Punchclock.Benchmarks.csproj", "{D7F75B69-66F1-3CE3-E266-B56CA227840F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -34,6 +36,10 @@ Global
 		{1966B9AC-F962-4AAD-9B17-E581D12619A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1966B9AC-F962-4AAD-9B17-E581D12619A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1966B9AC-F962-4AAD-9B17-E581D12619A1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D7F75B69-66F1-3CE3-E266-B56CA227840F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D7F75B69-66F1-3CE3-E266-B56CA227840F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D7F75B69-66F1-3CE3-E266-B56CA227840F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D7F75B69-66F1-3CE3-E266-B56CA227840F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

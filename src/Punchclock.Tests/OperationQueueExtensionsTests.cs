@@ -56,12 +56,12 @@ public class OperationQueueExtensionsTests
         {
             using var q = new OperationQueue(2);
 
-            await OperationQueueExtensions.Enqueue(q, 5, () => Task.CompletedTask);
-            var r1 = await OperationQueueExtensions.Enqueue(q, 5, () => Task.FromResult(123));
+            await q.Enqueue(5, () => Task.CompletedTask);
+            var r1 = await q.Enqueue(5, () => Task.FromResult(123));
             await Assert.That(r1).IsEqualTo(123);
 
-            await OperationQueueExtensions.Enqueue(q, 5, "key", () => Task.CompletedTask);
-            var r2 = await OperationQueueExtensions.Enqueue(q, 5, "key", () => Task.FromResult("hi"));
+            await q.Enqueue(5, "key", () => Task.CompletedTask);
+            var r2 = await q.Enqueue(5, "key", () => Task.FromResult("hi"));
             await Assert.That(r2).IsEqualTo("hi");
         }
     }
@@ -80,10 +80,10 @@ public class OperationQueueExtensionsTests
             cts.Cancel();
 
             // Task-returning overload
-            var t1 = OperationQueueExtensions.Enqueue(q, 1, "k", () => Task.FromResult(1), cts.Token);
+            var t1 = q.Enqueue(1, "k", () => Task.FromResult(1), cts.Token);
             await Assert.That(() => t1.GetAwaiter().GetResult()).Throws<TaskCanceledException>();
 
-            var t2 = OperationQueueExtensions.Enqueue(q, 1, "k", () => Task.CompletedTask, cts.Token);
+            var t2 = q.Enqueue(1, "k", () => Task.CompletedTask, cts.Token);
             await Assert.That(() => t2.GetAwaiter().GetResult()).Throws<TaskCanceledException>();
         }
     }
@@ -106,8 +106,7 @@ public class OperationQueueExtensionsTests
 
             using var cts = new CancellationTokenSource();
             var started = false;
-            var pending = OperationQueueExtensions.Enqueue(
-                q,
+            var pending = q.Enqueue(
                 1,
                 "foo",
                 () =>
@@ -139,7 +138,7 @@ public class OperationQueueExtensionsTests
         {
             using var q = new OperationQueue(1);
             var tcs = new TaskCompletionSource<int>();
-            var work = OperationQueueExtensions.Enqueue(q, 1, () => tcs.Task);
+            var work = q.Enqueue(1, () => tcs.Task);
 
             var shutdownTcs = new TaskCompletionSource<bool>();
             using var sub = System.ObservableExtensions.Subscribe(
@@ -203,8 +202,7 @@ public class OperationQueueExtensionsTests
             using var q = new OperationQueue(2);
 
             // CancellationToken.None should take fast path
-            var result1 = await OperationQueueExtensions.Enqueue(
-                q,
+            var result1 = await q.Enqueue(
                 1,
                 "key",
                 () => Task.FromResult(42),
@@ -214,8 +212,7 @@ public class OperationQueueExtensionsTests
 
             // Non-generic overload with CancellationToken.None
             var executed = false;
-            await OperationQueueExtensions.Enqueue(
-                q,
+            await q.Enqueue(
                 1,
                 "key",
                 () =>
@@ -245,8 +242,7 @@ public class OperationQueueExtensionsTests
             using var cts = new CancellationTokenSource();
             var token = cts.Token;
 
-            var result = await OperationQueueExtensions.Enqueue(
-                q,
+            var result = await q.Enqueue(
                 1,
                 "key",
                 () => Task.FromResult(123),
@@ -272,8 +268,7 @@ public class OperationQueueExtensionsTests
             cts.Cancel();
 
             // Should throw OperationCanceledException, not ArgumentException
-            var task = OperationQueueExtensions.Enqueue(
-                q,
+            var task = q.Enqueue(
                 1,
                 "key",
                 () => Task.FromResult(42),
@@ -298,8 +293,7 @@ public class OperationQueueExtensionsTests
 
             // Queue multiple operations with CancellationToken.None
             var tasks = Enumerable.Range(0, 10)
-                .Select(i => OperationQueueExtensions.Enqueue(
-                    q,
+                .Select(i => q.Enqueue(
                     1,
                     $"key{i}",
                     () => Task.FromResult(i * 2),
@@ -331,11 +325,10 @@ public class OperationQueueExtensionsTests
             // Block the queue
             var gate = new Signal<int>();
             var hold = q.EnqueueObservableOperation(1, () => gate.AsObservable());
-            using var sub = System.ObservableExtensions.Subscribe(hold, _ => { });
+            using var sub = ObservableExtensions.Subscribe(hold, _ => { });
 
             // Enqueue with CancellationToken.None
-            var nonCancellable = OperationQueueExtensions.Enqueue(
-                q,
+            var nonCancellable = q.Enqueue(
                 1,
                 "noncancellable",
                 () => Task.FromResult(1),
@@ -343,8 +336,7 @@ public class OperationQueueExtensionsTests
 
             // Enqueue with cancellable token
             using var cts = new CancellationTokenSource();
-            var cancellable = OperationQueueExtensions.Enqueue(
-                q,
+            var cancellable = q.Enqueue(
                 1,
                 "cancellable",
                 () => Task.FromResult(2),
@@ -402,7 +394,7 @@ public class OperationQueueExtensionsTests
 
             // Block the queue
             var blocker = new Signal<int>();
-            System.ObservableExtensions.Subscribe(queue.EnqueueObservableOperation(1, () => blocker));
+            ObservableExtensions.Subscribe(queue.EnqueueObservableOperation(1, () => blocker));
 
             using var cts = new CancellationTokenSource();
 
@@ -438,7 +430,7 @@ public class OperationQueueExtensionsTests
             var completed = false;
             var receivedValues = new List<RxVoid>();
 
-            using var subscription = System.ObservableExtensions.Subscribe(
+            using var subscription = ObservableExtensions.Subscribe(
                 observable,
                 v => receivedValues.Add(v),
                 ex => { },
@@ -585,7 +577,7 @@ public class OperationQueueExtensionsTests
             // Subscribe at time 0
             testScheduler.Schedule(TimeSpan.FromTicks(10), () =>
             {
-                System.ObservableExtensions.Subscribe(
+                ObservableExtensions.Subscribe(
                     observable,
                     v => receivedValues.Add(v),
                     ex => caughtException = ex);
