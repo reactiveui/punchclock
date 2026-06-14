@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>$(PunchclockCoreTargets)</TargetFrameworks>
+		<TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
 		<PackageId>Punchclock</PackageId>
 	</PropertyGroup>
   <!-- Inject nullable-annotation attribute polyfills on frameworks that lack them. -->

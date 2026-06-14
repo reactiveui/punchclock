@@ -48,12 +48,9 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <PunchclockModernTargets>net8.0;net9.0;net10.0;net11.0</PunchclockModernTargets>
-
-    <PunchclockLegacyTargets Condition="$([MSBuild]::IsOsPlatform('Windows'))">net462;net472;net481</PunchclockLegacyTargets>
-
-    <PunchclockCoreTargets>$(PunchclockModernTargets)</PunchclockCoreTargets>
-    <PunchclockCoreTargets Condition=" '$(PunchclockLegacyTargets)' != '' ">$(PunchclockCoreTargets);$(PunchclockLegacyTargets)</PunchclockCoreTargets>
+    <NetTargetFrameworks>net8.0;net9.0;net10.0;net11.0</NetTargetFrameworks>
+    <NetFrameworkTargetFrameworks>net462;net472;net48;net481</NetFrameworkTargetFrameworks>
+    <LibraryTargetFrameworks>$(NetTargetFrameworks);$(NetFrameworkTargetFrameworks)</LibraryTargetFrameworks>
   </PropertyGroup>
 
   <!-- AOT/trim analyzers on net8.0+ (netfx doesn't support them). -->

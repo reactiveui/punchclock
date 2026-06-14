@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>$(PunchclockModernTargets)</TargetFrameworks>
+    <TargetFrameworks>$(NetTargetFrameworks)</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>
