@@ -23,18 +23,14 @@ public class CancellationTokenBenchmarks
 {
     private OperationQueue? _queue;
 
-    /// <summary>
-    /// Setup method called before each benchmark.
-    /// </summary>
+    /// <summary>Setup method called before each benchmark.</summary>
     [GlobalSetup]
     public void Setup()
     {
         _queue = new OperationQueue(maximumConcurrent: 4);
     }
 
-    /// <summary>
-    /// Cleanup method called after each benchmark.
-    /// </summary>
+    /// <summary>Cleanup method called after each benchmark.</summary>
     [GlobalCleanup]
     public void Cleanup()
     {
@@ -47,9 +43,9 @@ public class CancellationTokenBenchmarks
     /// </summary>
     /// <returns>Task for async operation.</returns>
     [Benchmark(Description = "Enqueue with CancellationToken.None")]
-    public async Task EnqueueWithTokenNone()
+    public async Task EnqueueWithTokenNoneAsync()
     {
-        var result = await _queue!.Enqueue(
+        await _queue!.Enqueue(
             priority: 1,
             key: "bench",
             asyncOperation: () => Task.FromResult(42),
@@ -62,37 +58,31 @@ public class CancellationTokenBenchmarks
     /// </summary>
     /// <returns>Task for async operation.</returns>
     [Benchmark(Description = "Enqueue with cancellable token")]
-    public async Task EnqueueWithCancellableToken()
+    public async Task EnqueueWithCancellableTokenAsync()
     {
         using var cts = new CancellationTokenSource();
-        var result = await _queue!.Enqueue(
+        await _queue!.Enqueue(
             priority: 1,
             key: "bench",
             asyncOperation: () => Task.FromResult(42),
             token: cts.Token);
     }
 
-    /// <summary>
-    /// Benchmark: Enqueue without any token (no cancellation support).
-    /// Baseline for comparison.
-    /// </summary>
+    /// <summary>Benchmark: Enqueue without any token (no cancellation support). Baseline for comparison.</summary>
     /// <returns>Task for async operation.</returns>
     [Benchmark(Baseline = true, Description = "Enqueue without token (baseline)")]
-    public async Task EnqueueWithoutToken()
+    public async Task EnqueueWithoutTokenAsync()
     {
-        var result = await _queue!.Enqueue(
+        await _queue!.Enqueue(
             priority: 1,
             key: "bench",
             asyncOperation: () => Task.FromResult(42));
     }
 
-    /// <summary>
-    /// Benchmark: Batch enqueue 100 operations with CancellationToken.None.
-    /// Tests fast path scaling.
-    /// </summary>
+    /// <summary>Benchmark: Batch enqueue 100 operations with CancellationToken.None. Tests fast path scaling.</summary>
     /// <returns>Task for async operation.</returns>
     [Benchmark(Description = "Batch 100 operations with CancellationToken.None")]
-    public async Task BatchEnqueueWithTokenNone()
+    public async Task BatchEnqueueWithTokenNoneAsync()
     {
         var tasks = new Task<int>[100];
         for (var i = 0; i < 100; i++)

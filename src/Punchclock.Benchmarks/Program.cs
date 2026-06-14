@@ -6,14 +6,11 @@ using BenchmarkDotNet.Running;
 
 namespace Punchclock.Benchmarks;
 
-/// <summary>
-/// Entry point for BenchmarkDotNet runner.
-/// </summary>
-internal class Program
+/// <summary>Entry point for BenchmarkDotNet runner.</summary>
+internal static class Program
 {
     private static void Main(string[] args)
     {
-        // Run all benchmarks in this assembly
         BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
     }
 }
