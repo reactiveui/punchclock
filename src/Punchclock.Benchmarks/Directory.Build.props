@@ -1,4 +1,6 @@
 <Project>
+  <Import Project="$(MSBuildThisFileDirectory)../Directory.Build.props" />
+
   <!-- Disable code analysis for benchmarks -->
   <PropertyGroup>
     <EnableNETAnalyzers>false</EnableNETAnalyzers>

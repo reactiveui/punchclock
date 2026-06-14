@@ -12,7 +12,7 @@ namespace Punchclock
         public System.IObservable<T> EnqueueObservableOperation<T, TDontCare>(int priority, string key, System.IObservable<TDontCare> cancel, System.Func<System.IObservable<T>> asyncCalculationFunc) { }
         public System.IDisposable PauseQueue() { }
         public void SetMaximumConcurrent(int maximumConcurrent) { }
-        public System.IObservable<System.Reactive.Unit> ShutdownQueue() { }
+        public System.IObservable<ReactiveUI.Primitives.RxVoid> ShutdownQueue() { }
     }
     public static class OperationQueueExtensions
     {

@@ -1,4 +1,4 @@
-# GitHub Copilot Instructions for Punchclock
+# AGENTS.md
 
 Compatibility entrypoint only.
 

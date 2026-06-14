@@ -1,6 +1,5 @@
-﻿// Copyright (c) 2025 ReactiveUI and Contributors. All rights reserved.
-// Licensed to the ReactiveUI and Contributors under one or more agreements.
-// ReactiveUI and Contributors licenses this file to you under the MIT license.
+// Copyright (c) 2019-2026 ReactiveUI Association Incorporated. All rights reserved.
+// ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
 using System.Reflection;
@@ -10,31 +9,31 @@ using VerifyTUnit;
 
 namespace Punchclock.APITests;
 
-/// <summary>
-/// A helper for doing API approvals.
-/// </summary>
+/// <summary>A helper for doing API approvals.</summary>
 public static class ApiExtensions
 {
-    /// <summary>
-    /// Checks to make sure the API is approved.
-    /// </summary>
+    /// <summary>API approval members for assemblies.</summary>
     /// <param name="assembly">The assembly that is being checked.</param>
-    /// <param name="namespaces">The namespaces.</param>
-    /// <param name="filePath">The caller file path.</param>
-    /// <returns>
-    /// A Task.
-    /// </returns>
-    public static async Task CheckApproval(this Assembly assembly, string[] namespaces, [CallerFilePath] string filePath = "")
+    extension(Assembly assembly)
     {
-        var generatorOptions = new ApiGeneratorOptions { AllowNamespacePrefixes = namespaces };
-        var apiText = assembly.GeneratePublicApi(generatorOptions);
-        var result = await Verifier.Verify(apiText, null, filePath)
-            .UniqueForRuntimeAndVersion()
-            .ScrubEmptyLines()
-            .ScrubLines(l =>
-                l.StartsWith("[assembly: AssemblyVersion(", StringComparison.InvariantCulture) ||
-                l.StartsWith("[assembly: AssemblyFileVersion(", StringComparison.InvariantCulture) ||
-                l.StartsWith("[assembly: AssemblyInformationalVersion(", StringComparison.InvariantCulture) ||
-                l.StartsWith("[assembly: System.Reflection.AssemblyMetadata(", StringComparison.InvariantCulture));
+        /// <summary>Checks to make sure the API is approved.</summary>
+        /// <param name="namespaces">The namespaces.</param>
+        /// <param name="filePath">The caller file path.</param>
+        /// <returns>
+        /// A Task.
+        /// </returns>
+        public async Task CheckApproval(string[] namespaces, [CallerFilePath] string filePath = "")
+        {
+            var generatorOptions = new ApiGeneratorOptions { AllowNamespacePrefixes = namespaces };
+            var apiText = assembly.GeneratePublicApi(generatorOptions);
+            await Verifier.Verify(apiText, null, filePath)
+                .UniqueForRuntimeAndVersion()
+                .ScrubEmptyLines()
+                .ScrubLines(l =>
+                    l.StartsWith("[assembly: AssemblyVersion(", StringComparison.InvariantCulture) ||
+                    l.StartsWith("[assembly: AssemblyFileVersion(", StringComparison.InvariantCulture) ||
+                    l.StartsWith("[assembly: AssemblyInformationalVersion(", StringComparison.InvariantCulture) ||
+                    l.StartsWith("[assembly: System.Reflection.AssemblyMetadata(", StringComparison.InvariantCulture));
+        }
     }
 }

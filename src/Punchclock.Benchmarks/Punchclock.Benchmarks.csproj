@@ -1,23 +1,20 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net462;net8.0;net9.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>$(NetTargetFrameworks)</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <RootNamespace>Punchclock.Benchmarks</RootNamespace>
-    <AssemblyName>Punchclock.Benchmarks.New</AssemblyName>
-
-    <!-- Enable AOT analysis for net10.0 -->
-    <IsAotCompatible Condition="'$(TargetFramework)' == 'net10.0'">true</IsAotCompatible>
+    <AssemblyName>Punchclock.Benchmarks</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Reference NEW version via project reference -->
     <ProjectReference Include="..\Punchclock\Punchclock.csproj" />
 
     <!-- BenchmarkDotNet - version from Directory.Packages.props -->
+    <PackageReference Include="ReactiveUI.Primitives" />
     <PackageReference Include="BenchmarkDotNet" />
   </ItemGroup>
 

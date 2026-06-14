@@ -1,17 +1,13 @@
-// Copyright (c) 2025 ReactiveUI and Contributors. All rights reserved.
-// Licensed to the ReactiveUI and Contributors under one or more agreements.
-// ReactiveUI and Contributors licenses this file to you under the MIT license.
+// Copyright (c) 2019-2026 ReactiveUI Association Incorporated. All rights reserved.
+// ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Reactive;
-using System.Reactive.Concurrency;
-using System.Reactive.Disposables;
-using System.Reactive.Linq;
-using System.Reactive.Subjects;
-using System.Threading;
+using ReactiveUI.Primitives;
+using ReactiveUI.Primitives.Concurrency;
+using ReactiveUI.Primitives.Core;
+using ReactiveUI.Primitives.Signals;
 
 namespace Punchclock;
 
@@ -34,95 +30,78 @@ namespace Punchclock;
 /// item can run at the same time as a "foo" item.
 /// </para>
 /// </summary>
-[SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Random is used for non-security purposes (priority queue tiebreaking) and supports deterministic seeding for tests")]
+[SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Random - used for non-security purposes (priority queue tiebreaking), supports deterministic seeding for tests")]
 public class OperationQueue : IDisposable
 {
+    private const int MaximumConcurrent = 4;
+
     /// <summary>
     /// Global sequence number for operation IDs across all OperationQueue instances.
     /// Ensures globally unique and monotonically increasing IDs for debugging and ordering.
     /// </summary>
-    private static int sequenceNumber;
+    private static int _sequenceNumber;
 
-    /// <summary>
-    /// Synchronization primitive guarding mutations to queue state.
-    /// </summary>
+    /// <summary>Synchronization primitive guarding mutations to queue state.</summary>
     /// <remarks>
     /// Protects access to <see cref="_shutdownObs"/>, <see cref="_maximumConcurrent"/>, and queue operations.
     /// </remarks>
-#if NET9_0_OR_GREATER
     private readonly Lock _gate = new();
-#else
-    private readonly object _gate = new();
-#endif
 
-    /// <summary>
-    /// Subject that receives enqueued operations from user code.
-    /// </summary>
-    private readonly Subject<KeyedOperation> _queuedOps = new();
+    /// <summary>Pending operations ordered by priority.</summary>
+    private readonly PriorityQueue<KeyedOperation> _pendingOperations = new();
 
-    /// <summary>
-    /// The connected observable that processes and executes queued operations.
-    /// </summary>
-    private readonly IConnectableObservable<KeyedOperation> _resultObs;
+    /// <summary>Keys that currently have an active operation.</summary>
+    private readonly HashSet<string> _activeKeys = [];
 
-    /// <summary>
-    /// The semaphore gate that controls concurrent execution based on priority.
-    /// </summary>
-    private readonly PrioritySemaphoreSubject<KeyedOperation> _scheduledGate;
+    /// <summary>Sequencer used to start scheduled operations.</summary>
+    private readonly ISequencer _sequencer;
 
-    /// <summary>
-    /// Whether to randomize execution order among equal-priority items across different keys.
-    /// </summary>
+    /// <summary>Whether to randomize execution order among equal-priority items across different keys.</summary>
     private readonly bool _randomizeEqualPriority;
 
-    /// <summary>
-    /// Random number generator for tie-breaking when <see cref="_randomizeEqualPriority"/> is enabled.
-    /// Null when randomization is disabled.
-    /// </summary>
+    /// <summary>Random number generator for tie-breaking when <see cref="_randomizeEqualPriority"/> is enabled. Null when randomization is disabled.</summary>
     private readonly Random? _random;
 
-    /// <summary>
-    /// Maximum number of concurrent operations allowed. Modified under lock via <see cref="SetMaximumConcurrent"/>.
-    /// </summary>
+    /// <summary>Maximum number of concurrent operations allowed. Modified under lock via <see cref="SetMaximumConcurrent"/>.</summary>
     private int _maximumConcurrent;
 
-    /// <summary>
-    /// Reference count for pause operations. When greater than zero, the queue is paused.
-    /// </summary>
+    /// <summary>Reference count for pause operations. When greater than zero, the queue is paused.</summary>
     private int _pauseRefCount;
 
-    /// <summary>
-    /// Tracks whether this instance has been disposed.
-    /// </summary>
+    /// <summary>Number of currently active operations.</summary>
+    private int _activeCount;
+
+    /// <summary>Tracks whether this instance has been disposed.</summary>
     private bool _isDisposed;
 
-    /// <summary>
-    /// Observable that signals when shutdown is complete. Null until <see cref="ShutdownQueue"/> is called.
-    /// </summary>
-    private AsyncSubject<Unit>? _shutdownObs;
+    /// <summary>Observable that signals when shutdown is complete. Null until <see cref="ShutdownQueue"/> is called.</summary>
+    private ReplaySignal<RxVoid>? _shutdownObs;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="OperationQueue"/> class.
-    /// </summary>
+    /// <summary>Tracks whether shutdown has already been signalled.</summary>
+    private bool _shutdownCompleted;
+
+    /// <summary>Initializes a new instance of the <see cref="OperationQueue"/> class.</summary>
+    public OperationQueue()
+        : this(MaximumConcurrent)
+    {
+    }
+
+    /// <summary>Initializes a new instance of the <see cref="OperationQueue"/> class.</summary>
     /// <param name="maximumConcurrent">The maximum number of concurrent operations. Must be positive.</param>
-    public OperationQueue(int maximumConcurrent = 4)
+    public OperationQueue(int maximumConcurrent)
         : this(maximumConcurrent, randomizeEqualPriority: false, seed: null, scheduler: null)
     {
     }
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="OperationQueue"/> class with a scheduler.
-    /// </summary>
+    /// <summary>Initializes a new instance of the <see cref="OperationQueue"/> class with a scheduler.</summary>
     /// <param name="maximumConcurrent">The maximum number of concurrent operations. Must be positive.</param>
-    /// <param name="scheduler">Scheduler for controlling execution timing. Useful for testing.</param>
-    public OperationQueue(int maximumConcurrent, IScheduler scheduler)
+    /// <param name="scheduler">Sequencer for controlling execution timing. Useful for testing.</param>
+    public OperationQueue(int maximumConcurrent, ISequencer scheduler)
         : this(maximumConcurrent, randomizeEqualPriority: false, seed: null, scheduler: scheduler)
     {
     }
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="OperationQueue"/> class with optional randomness support.
-    /// </summary>
+    /// <summary>Initializes a new instance of the <see cref="OperationQueue"/> class with optional randomness support.</summary>
     /// <param name="maximumConcurrent">The maximum number of concurrent operations. Must be positive.</param>
     /// <param name="randomizeEqualPriority">If true, randomizes execution order among equal-priority items across different keys.</param>
     /// <param name="seed">Optional seed to make randomization deterministic for tests.</param>
@@ -131,46 +110,29 @@ public class OperationQueue : IDisposable
     {
     }
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="OperationQueue"/> class with optional randomness support and scheduler.
-    /// </summary>
+    /// <summary>Initializes a new instance of the <see cref="OperationQueue"/> class with optional randomness support and scheduler.</summary>
     /// <param name="maximumConcurrent">The maximum number of concurrent operations. Must be positive.</param>
     /// <param name="randomizeEqualPriority">If true, randomizes execution order among equal-priority items across different keys.</param>
     /// <param name="seed">Optional seed to make randomization deterministic for tests.</param>
-    /// <param name="scheduler">Scheduler for controlling execution timing. Useful for testing.</param>
-    public OperationQueue(int maximumConcurrent, bool randomizeEqualPriority, int? seed, IScheduler? scheduler)
+    /// <param name="scheduler">Sequencer for controlling execution timing. Useful for testing.</param>
+    public OperationQueue(int maximumConcurrent, bool randomizeEqualPriority, int? seed, ISequencer? scheduler)
     {
-        if (maximumConcurrent <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(maximumConcurrent), "Maximum concurrent operations must be positive.");
-        }
+        ArgumentOutOfRangeExceptionHelper.ThrowIfNegativeOrZero(maximumConcurrent);
 
         _maximumConcurrent = maximumConcurrent;
-        _scheduledGate = new(maximumConcurrent, scheduler);
+        _sequencer = scheduler ?? Sequencer.Immediate;
         _randomizeEqualPriority = randomizeEqualPriority;
-        _random = randomizeEqualPriority ? (seed.HasValue ? new Random(seed.Value) : new Random()) : null;
-
-        _resultObs = _queuedOps
-            .Multicast(_scheduledGate).RefCount()
-            .GroupBy(x => x.Key)
-            .Select(x =>
-            {
-                var ret = x.Select(
-                    y => ProcessOperation(y)
-                        .TakeUntil(y.CancelSignal ?? Observable.Empty<Unit>())
-                        .Finally(() => _scheduledGate.Release()));
-                return x.Key == DefaultKey ? ret.Merge() : ret.Concat();
-            })
-            .Merge()
-            .Multicast(new Subject<KeyedOperation>());
-
-        _resultObs.Connect();
+        if (randomizeEqualPriority)
+        {
+            _random = seed.HasValue ? new Random(seed.Value) : new Random();
+        }
+        else
+        {
+            _random = null;
+        }
     }
 
-    /// <summary>
-    /// Gets the default key used for non-keyed operations.
-    /// Operations with this key run concurrently with each other.
-    /// </summary>
+    /// <summary>Gets the default key used for non-keyed operations. Operations with this key run concurrently with each other.</summary>
     internal static string DefaultKey { get; } = "__NONE__";
 
     /// <summary>
@@ -186,49 +148,47 @@ public class OperationQueue : IDisposable
     /// <returns>An observable that produces the result of the async calculation.</returns>
     public IObservable<T> EnqueueObservableOperation<T, TDontCare>(int priority, string key, IObservable<TDontCare> cancel, Func<IObservable<T>> asyncCalculationFunc)
     {
-#if NET8_0_OR_GREATER
-        ArgumentNullException.ThrowIfNull(cancel);
-        ArgumentNullException.ThrowIfNull(asyncCalculationFunc);
-#else
-        if (cancel is null)
-        {
-            throw new ArgumentNullException(nameof(cancel));
-        }
+        ArgumentExceptionHelper.ThrowIfNull(cancel);
+        ArgumentExceptionHelper.ThrowIfNull(asyncCalculationFunc);
 
-        if (asyncCalculationFunc is null)
-        {
-            throw new ArgumentNullException(nameof(asyncCalculationFunc));
-        }
-#endif
-
-        var id = Interlocked.Increment(ref sequenceNumber);
-        var cancelReplay = new ReplaySubject<TDontCare>();
+        var id = Interlocked.Increment(ref _sequenceNumber);
+        var cancelReplay = new ReplaySignal<TDontCare>();
 
         var item = new KeyedOperation<T>
         {
             Key = string.IsNullOrEmpty(key) ? DefaultKey : key,
             Id = id,
             Priority = priority,
-            CancelSignal = cancelReplay.Select(_ => Unit.Default),
+            CancelSignal = cancelReplay.Map(_ => RxVoid.Default),
             Func = asyncCalculationFunc,
             UseRandomTiebreak = _randomizeEqualPriority,
             RandomOrder = _randomizeEqualPriority ? _random!.Next() : 0,
         };
 
-        cancel
-            .Do(_ =>
+        item.CancelSubscription = cancel.Subscribe(
+            value =>
             {
                 Debug.WriteLine("Cancelling {0}", id);
                 item.CancelledEarly = true;
-            })
-            .Multicast(cancelReplay).Connect();
+                cancelReplay.OnNext(value);
+                ScheduleOperations();
+            },
+            cancelReplay.OnError,
+            cancelReplay.OnCompleted);
 
         lock (_gate)
         {
+            if (_shutdownObs is not null)
+            {
+                item.CancelSubscription.Dispose();
+                throw new InvalidOperationException("Cannot enqueue operations after shutdown has started.");
+            }
+
             Debug.WriteLine("Queued item {0}, priority {1}", item.Id, item.Priority);
-            _queuedOps.OnNext(item);
+            _pendingOperations.Enqueue(item);
         }
 
+        ScheduleOperations();
         return item.Result;
     }
 
@@ -242,18 +202,15 @@ public class OperationQueue : IDisposable
     /// <param name="asyncCalculationFunc">The async method to execute when scheduled.</param>
     /// <returns>An observable that produces the result of the async calculation.</returns>
     public IObservable<T> EnqueueObservableOperation<T>(int priority, string key, Func<IObservable<T>> asyncCalculationFunc) =>
-        EnqueueObservableOperation(priority, key, Observable.Never<Unit>(), asyncCalculationFunc);
+        EnqueueObservableOperation(priority, key, Signal.Silent<RxVoid>(), asyncCalculationFunc);
 
-    /// <summary>
-    /// This method enqueues an action to be run at a later time, according
-    /// to the scheduling policies (i.e. via priority).
-    /// </summary>
+    /// <summary>This method enqueues an action to be run at a later time, according to the scheduling policies (i.e. via priority).</summary>
     /// <typeparam name="T">The type of item for the observable.</typeparam>
     /// <param name="priority">Higher priorities run before lower ones.</param>
     /// <param name="asyncCalculationFunc">The async method to execute when scheduled.</param>
     /// <returns>An observable that produces the result of the async calculation.</returns>
     public IObservable<T> EnqueueObservableOperation<T>(int priority, Func<IObservable<T>> asyncCalculationFunc) =>
-        EnqueueObservableOperation(priority, DefaultKey, Observable.Never<Unit>(), asyncCalculationFunc);
+        EnqueueObservableOperation(priority, DefaultKey, Signal.Silent<RxVoid>(), asyncCalculationFunc);
 
     /// <summary>
     /// This method pauses the dispatch queue. Inflight operations will not
@@ -265,10 +222,10 @@ public class OperationQueue : IDisposable
     {
         if (Interlocked.Increment(ref _pauseRefCount) == 1)
         {
-            _scheduledGate.MaximumCount = 0;
+            ScheduleOperations();
         }
 
-        return Disposable.Create(() =>
+        return ReactiveUI.Primitives.Disposables.Scope.Create(() =>
         {
             if (Interlocked.Decrement(ref _pauseRefCount) > 0)
             {
@@ -276,15 +233,12 @@ public class OperationQueue : IDisposable
             }
 
             // Don't resume if we've been shut down (no lock needed for this check)
-            if (Volatile.Read(ref _shutdownObs) != null)
+            if (Volatile.Read(ref _shutdownObs) is not null)
             {
                 return;
             }
 
-            // Resume the queue - MaximumCount setter is thread-safe
-            // Reading _maximumConcurrent without lock is safe because SetMaximumConcurrent
-            // uses PauseQueue(), so when _pauseRefCount reaches 0, the value is stable
-            _scheduledGate.MaximumCount = Volatile.Read(ref _maximumConcurrent);
+            ScheduleOperations();
         });
     }
 
@@ -295,10 +249,7 @@ public class OperationQueue : IDisposable
     /// <param name="maximumConcurrent">The maximum amount of concurrency. Must be positive.</param>
     public void SetMaximumConcurrent(int maximumConcurrent)
     {
-        if (maximumConcurrent <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(maximumConcurrent), "Maximum concurrent operations must be positive.");
-        }
+        ArgumentOutOfRangeExceptionHelper.ThrowIfNegativeOrZero(maximumConcurrent);
 
         using (PauseQueue())
         {
@@ -307,6 +258,8 @@ public class OperationQueue : IDisposable
                 _maximumConcurrent = maximumConcurrent;
             }
         }
+
+        ScheduleOperations();
     }
 
     /// <summary>
@@ -315,33 +268,23 @@ public class OperationQueue : IDisposable
     /// </summary>
     /// <returns>An Observable that will signal when all items are complete,
     /// or an error if any operations failed during shutdown.</returns>
-    public IObservable<Unit> ShutdownQueue()
+    public IObservable<RxVoid> ShutdownQueue()
     {
+        ReplaySignal<RxVoid> shutdown;
         lock (_gate)
         {
-            if (_shutdownObs != null)
+            if (_shutdownObs is not null)
             {
                 return _shutdownObs;
             }
 
-            _shutdownObs = new AsyncSubject<Unit>();
-
-            // Disregard paused queue - force resume to drain
-            _scheduledGate.MaximumCount = _maximumConcurrent;
-
-            _queuedOps.OnCompleted();
-
-            _resultObs.Materialize()
-                .Where(x => x.Kind != NotificationKind.OnNext)
-                .SelectMany(x =>
-                    x.Kind == NotificationKind.OnError ?
-                        Observable.Throw<Unit>(x.Exception!) :
-                        Observable.Return(Unit.Default))
-                .Multicast(_shutdownObs)
-                .Connect();
-
-            return _shutdownObs;
+            shutdown = new ReplaySignal<RxVoid>();
+            _shutdownObs = shutdown;
         }
+
+        ScheduleOperations();
+        CompleteShutdownIfReady();
+        return shutdown;
     }
 
     /// <inheritdoc />
@@ -351,9 +294,7 @@ public class OperationQueue : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    /// <summary>
-    /// Disposes managed resources that are disposable and handles cleanup of unmanaged items.
-    /// </summary>
+    /// <summary>Disposes managed resources that are disposable and handles cleanup of unmanaged items.</summary>
     /// <param name="isDisposing">If we are disposing managed resources.</param>
     protected virtual void Dispose(bool isDisposing)
     {
@@ -364,24 +305,208 @@ public class OperationQueue : IDisposable
 
         if (isDisposing)
         {
-            _queuedOps.Dispose();
+            KeyedOperation[] pending;
+            lock (_gate)
+            {
+                pending = _pendingOperations.DequeueAll();
+            }
+
+            foreach (var operation in pending)
+            {
+                operation.CancelSubscription!.Dispose();
+            }
+
             _shutdownObs?.Dispose();
         }
 
         _isDisposed = true;
     }
 
-    /// <summary>
-    /// Processes a single operation by evaluating its function.
-    /// Catches exceptions and returns the operation regardless of success or failure.
-    /// </summary>
-    /// <param name="operation">The operation to process.</param>
-    /// <returns>An observable that emits the operation when complete.</returns>
-    private static IObservable<KeyedOperation> ProcessOperation(KeyedOperation operation)
+    /// <summary>Schedules pending operations that have capacity to run.</summary>
+    private void ScheduleOperations()
+    {
+        var operationsToStart = new List<KeyedOperation>();
+
+        lock (_gate)
+        {
+            DrainPendingOperations(operationsToStart);
+        }
+
+        for (var i = 0; i < operationsToStart.Count; i++)
+        {
+            var operation = operationsToStart[i];
+            _sequencer.Schedule((Queue: this, Operation: operation), static state => state.Queue.StartOperation(state.Operation));
+        }
+    }
+
+    /// <summary>Moves eligible pending operations to the active set.</summary>
+    /// <param name="operationsToStart">The operations to start after leaving the queue lock.</param>
+    private void DrainPendingOperations(List<KeyedOperation> operationsToStart)
+    {
+        if (SchedulingIsPaused())
+        {
+            return;
+        }
+
+        var deferred = new List<KeyedOperation>();
+        try
+        {
+            while (_activeCount < _maximumConcurrent && _pendingOperations.Count > 0)
+            {
+                var operation = _pendingOperations.Dequeue();
+                AddReadyOperation(operation, deferred, operationsToStart);
+            }
+        }
+        finally
+        {
+            for (var i = 0; i < deferred.Count; i++)
+            {
+                _pendingOperations.Enqueue(deferred[i]);
+            }
+        }
+    }
+
+    /// <summary>Determines whether scheduling should pause before shutdown starts.</summary>
+    /// <returns>True when normal scheduling is paused; otherwise false.</returns>
+    private bool SchedulingIsPaused() => _shutdownObs is null && Volatile.Read(ref _pauseRefCount) > 0;
+
+    /// <summary>Adds the operation to the start list, defers it, or disposes an early-cancelled registration.</summary>
+    /// <param name="operation">The operation being considered for execution.</param>
+    /// <param name="deferred">The operations blocked by active keyed work.</param>
+    /// <param name="operationsToStart">The operations ready to start after leaving the queue lock.</param>
+    private void AddReadyOperation(
+        KeyedOperation operation,
+        List<KeyedOperation> deferred,
+        List<KeyedOperation> operationsToStart)
+    {
+        if (operation.CancelledEarly)
+        {
+            operation.CancelSubscription!.Dispose();
+            return;
+        }
+
+        if (IsBlockedByActiveKey(operation))
+        {
+            deferred.Add(operation);
+            return;
+        }
+
+        MarkOperationActive(operation);
+        operationsToStart.Add(operation);
+    }
+
+    /// <summary>Determines whether a keyed operation is blocked by another active operation with the same key.</summary>
+    /// <param name="operation">The operation to check.</param>
+    /// <returns>True if the operation must wait for an active operation with the same key; otherwise false.</returns>
+    private bool IsBlockedByActiveKey(KeyedOperation operation) =>
+        !operation.KeyIsDefault && operation.Key is { } key && _activeKeys.Contains(key);
+
+    /// <summary>Marks an operation active and records its key when needed.</summary>
+    /// <param name="operation">The operation being started.</param>
+    private void MarkOperationActive(KeyedOperation operation)
+    {
+        _activeCount++;
+        if (operation.KeyIsDefault || operation.Key is not { } activeKey)
+        {
+            return;
+        }
+
+        _activeKeys.Add(activeKey);
+    }
+
+    /// <summary>Starts a scheduled operation.</summary>
+    /// <param name="operation">The operation to start.</param>
+    private void StartOperation(KeyedOperation operation)
     {
         Debug.WriteLine("Processing item {0}, priority {1}", operation.Id, operation.Priority);
-        return Observable.Defer(operation.EvaluateFunc)
-            .Select(_ => operation)
-            .Catch(Observable.Return(operation));
+
+        try
+        {
+            operation.EvaluateFunc().Subscribe(
+                _ => { },
+                _ => FinishOperation(operation),
+                () => FinishOperation(operation));
+        }
+        catch
+        {
+            FinishOperation(operation);
+        }
+    }
+
+    /// <summary>Marks an operation as finished and schedules more work if capacity is available.</summary>
+    /// <param name="operation">The operation that finished.</param>
+    private void FinishOperation(KeyedOperation operation)
+    {
+        operation.CancelSubscription!.Dispose();
+
+        var operationsToStart = new List<KeyedOperation>();
+        var completeShutdown = false;
+
+        lock (_gate)
+        {
+            if (_activeCount > 0)
+            {
+                _activeCount--;
+            }
+
+            if (!operation.KeyIsDefault && operation.Key is { } key)
+            {
+                _activeKeys.Remove(key);
+            }
+
+            DrainPendingOperations(operationsToStart);
+            completeShutdown = IsShutdownReady();
+        }
+
+        for (var i = 0; i < operationsToStart.Count; i++)
+        {
+            var next = operationsToStart[i];
+            _sequencer.Schedule((Queue: this, Operation: next), static state => state.Queue.StartOperation(state.Operation));
+        }
+
+        if (!completeShutdown)
+        {
+            return;
+        }
+
+        CompleteShutdown();
+    }
+
+    /// <summary>Completes shutdown if there is no pending or active work.</summary>
+    private void CompleteShutdownIfReady()
+    {
+        bool completeShutdown;
+        lock (_gate)
+        {
+            completeShutdown = IsShutdownReady();
+        }
+
+        if (!completeShutdown)
+        {
+            return;
+        }
+
+        CompleteShutdown();
+    }
+
+    /// <summary>Determines whether shutdown can be signalled.</summary>
+    /// <returns><see langword="true"/> if shutdown is ready; otherwise, <see langword="false"/>.</returns>
+    private bool IsShutdownReady()
+    {
+        if (_shutdownObs is null || _shutdownCompleted || _activeCount != 0 || _pendingOperations.Count != 0)
+        {
+            return false;
+        }
+
+        _shutdownCompleted = true;
+        return true;
+    }
+
+    /// <summary>Emits and completes the shutdown signal.</summary>
+    private void CompleteShutdown()
+    {
+        var shutdown = Volatile.Read(ref _shutdownObs)!;
+        shutdown.OnNext(RxVoid.Default);
+        shutdown.OnCompleted();
     }
 }

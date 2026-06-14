@@ -1,13 +1,12 @@
-// Copyright (c) 2025 ReactiveUI and Contributors. All rights reserved.
-// Licensed to the ReactiveUI and Contributors under one or more agreements.
-// ReactiveUI and Contributors licenses this file to you under the MIT license.
+// Copyright (c) 2019-2026 ReactiveUI Association Incorporated. All rights reserved.
+// ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System.Reactive.Linq;
-using System.Reactive.Threading.Tasks;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
+using ReactiveUI.Primitives;
+using ReactiveUI.Primitives.Signals;
 
 namespace Punchclock.Benchmarks;
 
@@ -25,18 +24,14 @@ public class OperationQueueBenchmarks
 {
     private OperationQueue? _queue;
 
-    /// <summary>
-    /// Setup method called before each benchmark.
-    /// </summary>
+    /// <summary>Setup method called before each benchmark.</summary>
     [GlobalSetup]
     public void Setup()
     {
         _queue = new OperationQueue(maximumConcurrent: 4);
     }
 
-    /// <summary>
-    /// Cleanup method called after each benchmark.
-    /// </summary>
+    /// <summary>Cleanup method called after each benchmark.</summary>
     [GlobalCleanup]
     public void Cleanup()
     {
@@ -49,7 +44,7 @@ public class OperationQueueBenchmarks
     /// </summary>
     /// <returns>Task for async operation.</returns>
     [Benchmark(Description = "100 operations with mixed priorities")]
-    public async Task MixedPriorities()
+    public async Task MixedPrioritiesAsync()
     {
         var tasks = new Task<int>[100];
         for (var i = 0; i < 100; i++)
@@ -70,7 +65,7 @@ public class OperationQueueBenchmarks
     /// </summary>
     /// <returns>Task for async operation.</returns>
     [Benchmark(Description = "50 serialized operations (same key)")]
-    public async Task SerializedOperations()
+    public async Task SerializedOperationsAsync()
     {
         var tasks = new Task<int>[50];
         for (var i = 0; i < 50; i++)
@@ -91,7 +86,7 @@ public class OperationQueueBenchmarks
     /// </summary>
     /// <returns>Task for async operation.</returns>
     [Benchmark(Baseline = true, Description = "100 parallel operations (unique keys)")]
-    public async Task ParallelOperations()
+    public async Task ParallelOperationsAsync()
     {
         var tasks = new Task<int>[100];
         for (var i = 0; i < 100; i++)
@@ -106,13 +101,10 @@ public class OperationQueueBenchmarks
         await Task.WhenAll(tasks);
     }
 
-    /// <summary>
-    /// Benchmark: Observable-based enqueue (10 operations).
-    /// Tests the raw observable API performance.
-    /// </summary>
+    /// <summary>Benchmark: Observable-based enqueue (10 operations). Tests the raw observable API performance.</summary>
     /// <returns>Task for async operation.</returns>
     [Benchmark(Description = "10 observable operations")]
-    public async Task ObservableOperations()
+    public async Task ObservableOperationsAsync()
     {
         var tasks = new Task<int>[10];
         for (var i = 0; i < 10; i++)
@@ -120,7 +112,7 @@ public class OperationQueueBenchmarks
             var capturedI = i;
             var obs = _queue!.EnqueueObservableOperation(
                 priority: 1,
-                asyncCalculationFunc: () => Observable.Return(capturedI));
+                asyncCalculationFunc: () => Signal.Emit(capturedI));
             tasks[i] = obs.ToTask();
         }
 
@@ -133,7 +125,7 @@ public class OperationQueueBenchmarks
     /// </summary>
     /// <returns>Task for async operation.</returns>
     [Benchmark(Description = "Pause/resume with 20 operations")]
-    public async Task PauseResumeOperations()
+    public async Task PauseResumeOperationsAsync()
     {
         using var pause = _queue!.PauseQueue();
 
@@ -152,13 +144,10 @@ public class OperationQueueBenchmarks
         await Task.WhenAll(tasks);
     }
 
-    /// <summary>
-    /// Benchmark: Random priority with tie-breaking (deterministic seed).
-    /// Tests randomization overhead.
-    /// </summary>
+    /// <summary>Benchmark: Random priority with tie-breaking (deterministic seed). Tests randomization overhead.</summary>
     /// <returns>Task for async operation.</returns>
     [Benchmark(Description = "50 operations with random tie-breaking")]
-    public async Task RandomPriorityTieBreaking()
+    public async Task RandomPriorityTieBreakingAsync()
     {
         using var randomQueue = new OperationQueue(
             maximumConcurrent: 4,

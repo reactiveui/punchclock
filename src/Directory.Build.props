@@ -1,20 +1,36 @@
 <Project>
 	<PropertyGroup>
-		<Copyright>Copyright (c) ReactiveUI and Contributors</Copyright>
-		<Authors>ReactiveUI and Contributors</Authors>
-		
+    <Authors>ReactiveUI Association Inc</Authors>
+    <Company>ReactiveUI Association Inc</Company>
+    <Copyright>Copyright (c) ReactiveUI Association Inc $([System.DateTime]::Now.ToString('yyyy'))</Copyright>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageProjectUrl>https://github.com/reactiveui/punchclock/</PackageProjectUrl>
-		<Platform>AnyCPU</Platform>
+		<Description>Make sure your asynchronous operations show up to work on time</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>logo.png</PackageIcon>
-		<Description>Make sure your asynchronous operations show up to work on time</Description>
+    <Owners>glennawatson;rlittlesii;chrispulman</Owners>
 		<PackageReleaseNotes>https://github.com/reactiveui/punchclock/releases</PackageReleaseNotes>
 		<RepositoryUrl>https://github.com/reactiveui/punchclock</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-		<IsTestProject>$(MSBuildProjectName.Contains('Tests'))</IsTestProject>
+		<Platform>AnyCPU</Platform>
+    <IsTestProject>$(MSBuildProjectName.EndsWith('.Tests'))</IsTestProject>
 		<DebugType>Embedded</DebugType>
+
+    <!-- Analyzer + style enforcement. -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <RunAnalyzers>true</RunAnalyzers>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <ReportAnalyzer>true</ReportAnalyzer>
+
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(MSBuildProjectDirectory)/obj/Generated</CompilerGeneratedFilesOutputPath>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
 		<!-- Optional: Publish the repository URL in the built .nupkg (in the NuSpec <Repository> element) -->
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
 		<!-- Optional: Embed source files that are not tracked by the source control manager in the PDB -->
@@ -22,17 +38,41 @@
 		<!-- Optional: Include PDB in the built .nupkg -->
 		<AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
     <WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-		<EnableNETAnalyzers>True</EnableNETAnalyzers>
-		<AnalysisLevel>latest</AnalysisLevel>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <LangVersion>latest</LangVersion>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="$(IsTestProject)">
+  <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <TUnitImplicitUsings>true</TUnitImplicitUsings>
+    <TUnitAssertionsImplicitUsings>true</TUnitAssertionsImplicitUsings>
 		<IsPackable>false</IsPackable>
-	</PropertyGroup>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <NetTargetFrameworks>net8.0;net9.0;net10.0;net11.0</NetTargetFrameworks>
+    <NetFrameworkTargetFrameworks>net462;net472;net48;net481</NetFrameworkTargetFrameworks>
+    <LibraryTargetFrameworks>$(NetTargetFrameworks);$(NetFrameworkTargetFrameworks)</LibraryTargetFrameworks>
+  </PropertyGroup>
+
+  <!-- AOT/trim analyzers on net8.0+ (netfx doesn't support them). -->
+  <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net11.0'))">
+    <Features>$(Features);runtime-async=on</Features>
+  </PropertyGroup>
+
+  <!-- MinVer (versioning) — replaces Nerdbank.GitVersioning. Floor at 6.1
+	     so untagged builds produce 6.1.x-alpha.0.<height> until a v6.1.x
+	     (or later) tag is reachable. -->
+  <PropertyGroup>
+    <MinVerAutoIncrement>minor</MinVerAutoIncrement>
+    <MinVerDefaultPreReleaseIdentifiers>alpha.0</MinVerDefaultPreReleaseIdentifiers>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerMinimumMajorMinor>6.1</MinVerMinimumMajorMinor>
+  </PropertyGroup>
 
   <!-- MTP Native JSON Configuration -->
   <ItemGroup Condition="$(IsTestProject)">
@@ -42,9 +82,9 @@
     </None>
   </ItemGroup>
 
-	<ItemGroup Condition="'$(IsTestProject)' != 'true'">
-		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
-	</ItemGroup>
+  <ItemGroup Condition="'$(IsTestProject)' != 'true'">
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+  </ItemGroup>
 
 	<ItemGroup>
 		<None Include="$(MSBuildThisFileDirectory)../images/logo.png" Pack="true" PackagePath="\" />
@@ -52,35 +92,37 @@
 		<None Include="$(MSBuildThisFileDirectory)../README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
-	<!-- MinVer (versioning) — replaces Nerdbank.GitVersioning. Floor at 6.1
-	     so untagged builds produce 6.1.x-alpha.0.<height> until a v6.1.x
-	     (or later) tag is reachable. -->
-	<PropertyGroup>
-		<MinVerAutoIncrement>minor</MinVerAutoIncrement>
-		<MinVerDefaultPreReleaseIdentifiers>alpha.0</MinVerDefaultPreReleaseIdentifiers>
-		<MinVerTagPrefix>v</MinVerTagPrefix>
-		<MinVerMinimumMajorMinor>6.1</MinVerMinimumMajorMinor>
-	</PropertyGroup>
-
-	<ItemGroup>
-		<PackageReference Include="MinVer" PrivateAssets="all" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Include="stylecop.analyzers" PrivateAssets="all" />
-		<PackageReference Include="Roslynator.Analyzers" PrivateAssets="All" />
-	</ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="MinVer" PrivateAssets="all"/>
+    <PackageReference Include="StyleSharp.Analyzers" PrivateAssets="all"/>
+    <PackageReference Include="Roslynator.Analyzers" PrivateAssets="All"/>
+    <PackageReference Include="SonarAnalyzer.CSharp" PrivateAssets="all"/>
+  </ItemGroup>
+  
+  <!-- Alias Lock to the dedicated System.Threading.Lock on .NET 9+ (faster EnterScope fast path),
+     and to a plain object elsewhere (the lock statement falls back to Monitor). -->
+  <ItemGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net9.0'))">
+    <Using Include="System.Threading.Lock" Alias="Lock"/>
+  </ItemGroup>
+  <ItemGroup Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net9.0'))">
+    <Using Include="System.Object" Alias="Lock"/>
+  </ItemGroup>
 
 	<ItemGroup>
 		<AdditionalFiles Include="$(MSBuildThisFileDirectory)/stylecop.json" Link="stylecop.json" />
 	</ItemGroup>
 
-	<PropertyGroup>
-		<PunchclockModernTargets>net8.0;net9.0;net10.0</PunchclockModernTargets>
-
-		<PunchclockLegacyTargets Condition="$([MSBuild]::IsOsPlatform('Windows'))">net462;net472;net481</PunchclockLegacyTargets>
-
-		<PunchclockCoreTargets>$(PunchclockModernTargets)</PunchclockCoreTargets>
-		<PunchclockCoreTargets Condition=" '$(PunchclockLegacyTargets)' != '' ">$(PunchclockCoreTargets);$(PunchclockLegacyTargets)</PunchclockCoreTargets>
-	</PropertyGroup>
+  <!-- Drop unused SDK source generators from @(Analyzer) to cut csc time. Re-enable any whose
+       trigger attribute gets introduced, else its codegen is silently skipped. -->
+  <Target Name="RemoveUnusedSdkGenerators" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <Analyzer Remove="@(Analyzer)"
+                Condition="'%(Filename)' == 'Microsoft.Interop.ComInterfaceGenerator'
+                        or '%(Filename)' == 'Microsoft.Interop.ComClassGenerator'
+                        or '%(Filename)' == 'Microsoft.Interop.VtableIndexStubGenerator'
+                        or '%(Filename)' == 'Microsoft.Interop.JavaScript.JSImportGenerator'
+                        or '%(Filename)' == 'Microsoft.Interop.LibraryImportGenerator'
+                        or '%(Filename)' == 'System.Text.Json.SourceGeneration'"/>
+    </ItemGroup>
+  </Target>
 </Project>
