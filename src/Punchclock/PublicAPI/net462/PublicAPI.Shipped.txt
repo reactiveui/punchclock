@@ -1,0 +1,29 @@
+#nullable enable
+Punchclock.OperationQueue
+Punchclock.OperationQueue.Dispose() -> void
+Punchclock.OperationQueue.EnqueueObservableOperation<T, TDontCare>(int priority, string! key, System.IObservable<TDontCare>! cancel, System.Func<System.IObservable<T>!>! asyncCalculationFunc) -> System.IObservable<T>!
+Punchclock.OperationQueue.EnqueueObservableOperation<T>(int priority, string! key, System.Func<System.IObservable<T>!>! asyncCalculationFunc) -> System.IObservable<T>!
+Punchclock.OperationQueue.EnqueueObservableOperation<T>(int priority, System.Func<System.IObservable<T>!>! asyncCalculationFunc) -> System.IObservable<T>!
+Punchclock.OperationQueue.OperationQueue() -> void
+Punchclock.OperationQueue.OperationQueue(int maximumConcurrent, bool randomizeEqualPriority, int? seed, ReactiveUI.Primitives.Concurrency.ISequencer? scheduler) -> void
+Punchclock.OperationQueue.OperationQueue(int maximumConcurrent, bool randomizeEqualPriority, int? seed) -> void
+Punchclock.OperationQueue.OperationQueue(int maximumConcurrent, ReactiveUI.Primitives.Concurrency.ISequencer! scheduler) -> void
+Punchclock.OperationQueue.OperationQueue(int maximumConcurrent) -> void
+Punchclock.OperationQueue.PauseQueue() -> System.IDisposable!
+Punchclock.OperationQueue.SetMaximumConcurrent(int maximumConcurrent) -> void
+Punchclock.OperationQueue.ShutdownQueue() -> System.IObservable<ReactiveUI.Primitives.RxVoid>!
+Punchclock.OperationQueueExtensions
+Punchclock.OperationQueueExtensions.extension(Punchclock.OperationQueue!)
+Punchclock.OperationQueueExtensions.extension(Punchclock.OperationQueue!).Enqueue(int priority, string! key, System.Func<System.Threading.Tasks.Task!>! asyncOperation, System.Threading.CancellationToken token) -> System.Threading.Tasks.Task!
+Punchclock.OperationQueueExtensions.extension(Punchclock.OperationQueue!).Enqueue(int priority, string! key, System.Func<System.Threading.Tasks.Task!>! asyncOperation) -> System.Threading.Tasks.Task!
+Punchclock.OperationQueueExtensions.extension(Punchclock.OperationQueue!).Enqueue(int priority, System.Func<System.Threading.Tasks.Task!>! asyncOperation) -> System.Threading.Tasks.Task!
+Punchclock.OperationQueueExtensions.extension(Punchclock.OperationQueue!).Enqueue<T>(int priority, string! key, System.Func<System.Threading.Tasks.Task<T>!>! asyncOperation, System.Threading.CancellationToken token) -> System.Threading.Tasks.Task<T>!
+Punchclock.OperationQueueExtensions.extension(Punchclock.OperationQueue!).Enqueue<T>(int priority, string! key, System.Func<System.Threading.Tasks.Task<T>!>! asyncOperation) -> System.Threading.Tasks.Task<T>!
+Punchclock.OperationQueueExtensions.extension(Punchclock.OperationQueue!).Enqueue<T>(int priority, System.Func<System.Threading.Tasks.Task<T>!>! asyncOperation) -> System.Threading.Tasks.Task<T>!
+static Punchclock.OperationQueueExtensions.Enqueue(this Punchclock.OperationQueue! operationQueue, int priority, string! key, System.Func<System.Threading.Tasks.Task!>! asyncOperation, System.Threading.CancellationToken token) -> System.Threading.Tasks.Task!
+static Punchclock.OperationQueueExtensions.Enqueue(this Punchclock.OperationQueue! operationQueue, int priority, string! key, System.Func<System.Threading.Tasks.Task!>! asyncOperation) -> System.Threading.Tasks.Task!
+static Punchclock.OperationQueueExtensions.Enqueue(this Punchclock.OperationQueue! operationQueue, int priority, System.Func<System.Threading.Tasks.Task!>! asyncOperation) -> System.Threading.Tasks.Task!
+static Punchclock.OperationQueueExtensions.Enqueue<T>(this Punchclock.OperationQueue! operationQueue, int priority, string! key, System.Func<System.Threading.Tasks.Task<T>!>! asyncOperation, System.Threading.CancellationToken token) -> System.Threading.Tasks.Task<T>!
+static Punchclock.OperationQueueExtensions.Enqueue<T>(this Punchclock.OperationQueue! operationQueue, int priority, string! key, System.Func<System.Threading.Tasks.Task<T>!>! asyncOperation) -> System.Threading.Tasks.Task<T>!
+static Punchclock.OperationQueueExtensions.Enqueue<T>(this Punchclock.OperationQueue! operationQueue, int priority, System.Func<System.Threading.Tasks.Task<T>!>! asyncOperation) -> System.Threading.Tasks.Task<T>!
+virtual Punchclock.OperationQueue.Dispose(bool isDisposing) -> void

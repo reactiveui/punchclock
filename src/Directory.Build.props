@@ -74,12 +74,29 @@
     <MinVerMinimumMajorMinor>6.1</MinVerMinimumMajorMinor>
   </PropertyGroup>
 
+  <!-- Per-TFM public-API tracking via Roslyn PublicApiAnalyzers (RS0016/RS0017); baselines in
+       PublicAPI/<tfm>/. Tests, benchmarks, and source generators are exempt. -->
+  <PropertyGroup>
+    <TrackPublicApi Condition="'$(TrackPublicApi)' == ''">true</TrackPublicApi>
+    <TrackPublicApi Condition="$(MSBuildProjectName.EndsWith('.Tests'))">false</TrackPublicApi>
+    <TrackPublicApi Condition="$(MSBuildProjectName.EndsWith('.Benchmarks'))">false</TrackPublicApi>
+    <TrackPublicApi Condition="$(MSBuildProjectName.EndsWith('.Generator'))">false</TrackPublicApi>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(TrackPublicApi)' == 'true'">
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all"/>
+    <AdditionalFiles Include="$(MSBuildProjectDirectory)\PublicAPI\$(TargetFramework)\PublicAPI.Shipped.txt"/>
+    <AdditionalFiles Include="$(MSBuildProjectDirectory)\PublicAPI\$(TargetFramework)\PublicAPI.Unshipped.txt"/>
+  </ItemGroup>
+
   <!-- MTP Native JSON Configuration -->
   <ItemGroup Condition="$(IsTestProject)">
     <None Include="$(MSBuildThisFileDirectory)testconfig.json">
       <Link>$(AssemblyName).testconfig.json</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage"/>
+    <PackageReference Include="TUnit"/>
   </ItemGroup>
 
   <ItemGroup Condition="'$(IsTestProject)' != 'true'">
