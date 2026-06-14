@@ -17,11 +17,6 @@
   <ItemGroup>
     <PackageReference Include="ReactiveUI.Primitives" />
     <PackageReference Include="DynamicData" />
-    <PackageReference Include="PublicApiGenerator" />
-    <PackageReference Include="Verify.TUnit" />
-    <PackageReference Include="TUnit" />
-    <PackageReference Include="DiffEngine" />
-    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
   </ItemGroup>
 
   <ItemGroup>
