@@ -4,6 +4,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Using Include="System"/>
+    <Using Include="System.Collections.Generic"/>
+    <Using Include="System.Diagnostics.CodeAnalysis"/>
+    <Using Include="System.Linq"/>
+    <Using Include="System.Threading"/>
+    <Using Include="System.Threading.Tasks"/>
+    <Using Include="TUnit.Core.Executors"/>
+    <Using Include="TUnit.Core.Interfaces"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="ReactiveUI.Primitives" />
     <PackageReference Include="DynamicData" />
     <PackageReference Include="PublicApiGenerator" />

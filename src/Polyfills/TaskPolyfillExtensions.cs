@@ -1,6 +1,5 @@
-// Copyright (c) 2025 ReactiveUI and Contributors. All rights reserved.
-// Licensed to the ReactiveUI and Contributors under one or more agreements.
-// ReactiveUI and Contributors licenses this file to you under the MIT license.
+// Copyright (c) 2019-2026 ReactiveUI Association Incorporated. All rights reserved.
+// ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
 // Polyfill implementation adapted from SimonCropp/Polyfill (https://github.com/SimonCropp/Polyfill).
@@ -10,27 +9,35 @@ namespace System.Threading.Tasks;
 /// <summary>Polyfill extensions for <see cref="Task"/> on frameworks without the .NET 6 <c>WaitAsync</c> overloads.</summary>
 internal static class TaskPolyfillExtensions
 {
-    /// <summary>Gets a task that completes with <paramref name="task"/>, or faults when the timeout elapses or the token is cancelled.</summary>
+    /// <summary>WaitAsync members for non-generic tasks.</summary>
     /// <param name="task">The task to await.</param>
-    /// <param name="timeout">The timeout after which the returned task faults, or <see cref="Timeout.InfiniteTimeSpan"/> for no timeout.</param>
-    /// <param name="cancellationToken">A token that cancels the wait.</param>
-    /// <returns>A task that mirrors <paramref name="task"/> subject to the timeout and cancellation.</returns>
-    public static async Task WaitAsync(this Task task, TimeSpan timeout, CancellationToken cancellationToken)
+    extension(Task task)
     {
-        await WaitForCompletionAsync(task, timeout, cancellationToken).ConfigureAwait(false);
-        await task.ConfigureAwait(false);
+        /// <summary>Gets a task that completes with <paramref name="task"/>, or faults when the timeout elapses or the token is cancelled.</summary>
+        /// <param name="timeout">The timeout after which the returned task faults, or <see cref="Timeout.InfiniteTimeSpan"/> for no timeout.</param>
+        /// <param name="cancellationToken">A token that cancels the wait.</param>
+        /// <returns>A task that mirrors <paramref name="task"/> subject to the timeout and cancellation.</returns>
+        public async Task WaitAsync(TimeSpan timeout, CancellationToken cancellationToken)
+        {
+            await WaitForCompletionAsync(task, timeout, cancellationToken).ConfigureAwait(false);
+            await task.ConfigureAwait(false);
+        }
     }
 
-    /// <summary>Gets a task that completes with the same result as <paramref name="task"/>, or faults when the timeout elapses or the token is cancelled.</summary>
+    /// <summary>WaitAsync members for result-producing tasks.</summary>
     /// <param name="task">The task to await.</param>
-    /// <param name="timeout">The timeout after which the returned task faults, or <see cref="Timeout.InfiniteTimeSpan"/> for no timeout.</param>
-    /// <param name="cancellationToken">A token that cancels the wait.</param>
     /// <typeparam name="T">The task result type.</typeparam>
-    /// <returns>A task that mirrors <paramref name="task"/> subject to the timeout and cancellation.</returns>
-    public static async Task<T> WaitAsync<T>(this Task<T> task, TimeSpan timeout, CancellationToken cancellationToken)
+    extension<T>(Task<T> task)
     {
-        await WaitForCompletionAsync(task, timeout, cancellationToken).ConfigureAwait(false);
-        return await task.ConfigureAwait(false);
+        /// <summary>Gets a task that completes with the same result as <paramref name="task"/>, or faults when the timeout elapses or the token is cancelled.</summary>
+        /// <param name="timeout">The timeout after which the returned task faults, or <see cref="Timeout.InfiniteTimeSpan"/> for no timeout.</param>
+        /// <param name="cancellationToken">A token that cancels the wait.</param>
+        /// <returns>A task that mirrors <paramref name="task"/> subject to the timeout and cancellation.</returns>
+        public async Task<T> WaitAsync(TimeSpan timeout, CancellationToken cancellationToken)
+        {
+            await WaitForCompletionAsync(task, timeout, cancellationToken).ConfigureAwait(false);
+            return await task.ConfigureAwait(false);
+        }
     }
 
     /// <summary>Waits for the task to complete, timeout, or cancellation.</summary>

@@ -1,6 +1,5 @@
-// Copyright (c) 2025 ReactiveUI and Contributors. All rights reserved.
-// Licensed to the ReactiveUI and Contributors under one or more agreements.
-// ReactiveUI and Contributors licenses this file to you under the MIT license.
+// Copyright (c) 2019-2026 ReactiveUI Association Incorporated. All rights reserved.
+// ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
 using ReactiveUI.Primitives;
@@ -8,16 +7,11 @@ using ReactiveUI.Primitives.Signals;
 
 namespace Punchclock;
 
-/// <summary>
-/// Typed operation that can be enqueued in an <see cref="OperationQueue"/>.
-/// Wraps a user-provided function that returns an observable of <typeparamref name="T"/>.
-/// </summary>
+/// <summary>Typed operation that can be enqueued in an <see cref="OperationQueue"/>. Wraps a user-provided function that returns an observable of <typeparamref name="T"/>.</summary>
 /// <typeparam name="T">The type of value produced by this operation.</typeparam>
 internal sealed class KeyedOperation<T> : KeyedOperation
 {
-    /// <summary>
-    /// Gets the function that produces the observable result for this operation.
-    /// </summary>
+    /// <summary>Gets the function that produces the observable result for this operation.</summary>
     /// <value>
     /// A function that returns an <see cref="IObservable{T}"/> when invoked, or null if not set.
     /// </value>

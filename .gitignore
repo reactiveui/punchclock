@@ -451,5 +451,8 @@ src/Tools/
 /app
 .dotnet/
 
+# Test results and coverage reports
+test_results/
+
 # Claude Settings
 .claude/

@@ -1,6 +1,5 @@
-// Copyright (c) 2025 ReactiveUI and Contributors. All rights reserved.
-// Licensed to the ReactiveUI and Contributors under one or more agreements.
-// ReactiveUI and Contributors licenses this file to you under the MIT license.
+// Copyright (c) 2019-2026 ReactiveUI Association Incorporated. All rights reserved.
+// ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
 using System.Runtime.CompilerServices;
@@ -14,9 +13,7 @@ namespace Punchclock;
 /// </summary>
 internal static class PriorityQueueHelper
 {
-    /// <summary>
-    /// Number of children per node in the quaternary heap.
-    /// </summary>
+    /// <summary>Number of children per node in the quaternary heap.</summary>
     private const int Arity = 4;
 
     /// <summary>
@@ -34,11 +31,6 @@ internal static class PriorityQueueHelper
     /// Quaternary heap: parent = (index - 1) / 4.
     /// Time complexity: O(log₄ n) where n is the count of items in the heap.
     /// Implementation follows dotnet/runtime's iterative hole-based approach for better performance.
-    /// </para>
-    /// <para>
-    /// <strong>JIT vs AOT Strategy:</strong> This method uses different code shapes for different runtimes.
-    /// Modern .NET (8.0+) with tiered PGO benefits from helper methods and natural optimization,
-    /// while AOT and legacy .NET Framework benefit from direct CompareTo calls and aggressive upfront optimization.
     /// </para>
     /// </remarks>
 #if NATIVEAOT
@@ -65,13 +57,7 @@ internal static class PriorityQueueHelper
         {
             var parent = (currentIndex - 1) / Arity;
 
-#if NATIVEAOT || NETFRAMEWORK
-            // AOT + .NET Framework: Direct CompareTo call to reduce call layers and improve inlining
-            if (item.CompareTo(items[parent]) >= 0)
-#else
-            // Modern .NET: Helper method enables better inlining decisions with tiered PGO
             if (!IsHigherPriority(item, items[parent]))
-#endif
             {
                 break;
             }
@@ -101,17 +87,10 @@ internal static class PriorityQueueHelper
     /// Time complexity: O(log₄ n) where n is the count of items in the heap.
     /// Implementation follows dotnet/runtime's iterative hole-based approach for better performance.
     /// </para>
-    /// <para>
-    /// <strong>JIT vs AOT Strategy:</strong> This method uses different code shapes for different runtimes.
-    /// Modern .NET (8.0+) with tiered PGO uses a loop with helper methods (compact, lets JIT optimize naturally),
-    /// while AOT and legacy .NET Framework use unrolled comparisons with direct CompareTo calls for better upfront optimization.
-    /// </para>
     /// </remarks>
 #if NATIVEAOT
-    // AOT path: Unrolled comparisons + Direct CompareTo + AggressiveOptimization
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
 #elif NETFRAMEWORK
-    // .NET Framework: Unrolled + Direct CompareTo (AggressiveOptimization not available before .NET Core 3.0)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
     internal static void Heapify<T>(T[] items, int index, int count)
@@ -137,53 +116,13 @@ internal static class PriorityQueueHelper
                 break;
             }
 
-#if NATIVEAOT || NETFRAMEWORK
-            // AOT + .NET Framework path: Unroll the 4-child comparisons for better code generation
-            // Direct CompareTo calls reduce call layers and improve inlining
-            var highestPriorityChild = firstChild;
-
-            var child2 = firstChild + 1;
-            if (child2 < count && items[child2].CompareTo(items[highestPriorityChild]) < 0)
-            {
-                highestPriorityChild = child2;
-            }
-
-            var child3 = firstChild + 2;
-            if (child3 < count && items[child3].CompareTo(items[highestPriorityChild]) < 0)
-            {
-                highestPriorityChild = child3;
-            }
-
-            var child4 = firstChild + 3;
-            if (child4 < count && items[child4].CompareTo(items[highestPriorityChild]) < 0)
-            {
-                highestPriorityChild = child4;
-            }
-
-            // If the item has higher priority than the best child, we've found the right spot
-            if (items[highestPriorityChild].CompareTo(item) >= 0)
-            {
-                break;
-            }
-#else
-            // Modern .NET path: Use loop with helper method for compact code that JIT can optimize well
-            var highestPriorityChild = firstChild;
-            var lastChild = Math.Min(firstChild + Arity, count);
-
-            for (var child = firstChild + 1; child < lastChild; child++)
-            {
-                if (IsHigherPriority(items, child, highestPriorityChild))
-                {
-                    highestPriorityChild = child;
-                }
-            }
+            var highestPriorityChild = FindHighestPriorityChild(items, firstChild, count);
 
             // If the item has higher priority than the best child, we've found the right spot
             if (!IsHigherPriority(items[highestPriorityChild], item))
             {
                 break;
             }
-#endif
 
             // Move the highest-priority child up into the hole
             items[currentIndex] = items[highestPriorityChild];
@@ -243,9 +182,7 @@ internal static class PriorityQueueHelper
         return true;
     }
 
-    /// <summary>
-    /// Determines whether the item at the left index has higher priority than the item at the right index.
-    /// </summary>
+    /// <summary>Determines whether the item at the left index has higher priority than the item at the right index.</summary>
     /// <typeparam name="T">The type of items in the heap, must be comparable.</typeparam>
     /// <param name="items">The array representing the heap structure.</param>
     /// <param name="left">The index of the left item to compare.</param>
@@ -267,9 +204,7 @@ internal static class PriorityQueueHelper
         where T : IComparable<T>
         => items[left].CompareTo(items[right]) < 0;
 
-    /// <summary>
-    /// Determines whether the left item has higher priority than the right item.
-    /// </summary>
+    /// <summary>Determines whether the left item has higher priority than the right item.</summary>
     /// <typeparam name="T">The type of items in the heap, must be comparable.</typeparam>
     /// <param name="left">The left item to compare.</param>
     /// <param name="right">The right item to compare.</param>
@@ -282,4 +217,28 @@ internal static class PriorityQueueHelper
     private static bool IsHigherPriority<T>(T left, T right)
         where T : IComparable<T>
         => left.CompareTo(right) < 0;
+
+    /// <summary>Finds the highest-priority child for a quaternary heap parent.</summary>
+    /// <typeparam name="T">The type of items in the heap, must be comparable.</typeparam>
+    /// <param name="items">The array representing the heap structure.</param>
+    /// <param name="firstChild">The first child index to inspect.</param>
+    /// <param name="count">The current number of valid items in the heap.</param>
+    /// <returns>The index of the highest-priority child.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int FindHighestPriorityChild<T>(T[] items, int firstChild, int count)
+        where T : IComparable<T>
+    {
+        var highestPriorityChild = firstChild;
+        var lastChild = Math.Min(firstChild + Arity, count);
+
+        for (var child = firstChild + 1; child < lastChild; child++)
+        {
+            if (IsHigherPriority(items, child, highestPriorityChild))
+            {
+                highestPriorityChild = child;
+            }
+        }
+
+        return highestPriorityChild;
+    }
 }

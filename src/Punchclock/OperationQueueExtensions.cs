@@ -1,6 +1,5 @@
-// Copyright (c) 2025 ReactiveUI and Contributors. All rights reserved.
-// Licensed to the ReactiveUI and Contributors under one or more agreements.
-// ReactiveUI and Contributors licenses this file to you under the MIT license.
+// Copyright (c) 2019-2026 ReactiveUI Association Incorporated. All rights reserved.
+// ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
 using ReactiveUI.Primitives;
@@ -10,154 +9,142 @@ using ReactiveUI.Primitives.Signals;
 
 namespace Punchclock;
 
-/// <summary>
-/// Extension methods associated with the <see cref="OperationQueue"/>.
-/// Provides convenient Task-based overloads for enqueueing operations.
-/// </summary>
+/// <summary>Extension methods associated with the <see cref="OperationQueue"/>. Provides convenient Task-based overloads for enqueueing operations.</summary>
 public static class OperationQueueExtensions
 {
-    /// <summary>
-    /// Adds an operation to the operation queue with priority, key, and cancellation support.
-    /// </summary>
-    /// <typeparam name="T">The type of value returned by the operation.</typeparam>
+    /// <summary>Enqueues an operation to the operation queue with priority, key, and cancellation support.</summary>
     /// <param name="operationQueue">The operation queue to add the operation to.</param>
-    /// <param name="priority">The priority of operation. Higher priorities run before lower ones.</param>
-    /// <param name="key">A key to apply to the operation. Items with the same key will be run in order. Pass null for non-keyed operations.</param>
-    /// <param name="asyncOperation">The async method to execute when scheduled.</param>
-    /// <param name="token">A cancellation token which if signalled, will cancel the operation.</param>
-    /// <returns>A task that completes when the operation completes, containing the result.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via <paramref name="token"/>.</exception>
-    public static Task<T> Enqueue<T>(this OperationQueue operationQueue, int priority, string key, Func<Task<T>> asyncOperation, CancellationToken token)
+    extension(OperationQueue operationQueue)
     {
-        ArgumentExceptionHelper.ThrowIfNull(operationQueue);
-        ArgumentExceptionHelper.ThrowIfNull(asyncOperation);
-
-        // Fast path: if token can't be cancelled, use the no-token overload to avoid registration overhead
-        if (!token.CanBeCanceled)
+        /// <summary>Adds an operation to the operation queue with priority, key, and cancellation support.</summary>
+        /// <typeparam name="T">The type of value returned by the operation.</typeparam>
+        /// <param name="priority">The priority of operation. Higher priorities run before lower ones.</param>
+        /// <param name="key">A key to apply to the operation. Items with the same key will be run in order. Pass null for non-keyed operations.</param>
+        /// <param name="asyncOperation">The async method to execute when scheduled.</param>
+        /// <param name="token">A cancellation token which if signalled, will cancel the operation.</param>
+        /// <returns>A task that completes when the operation completes, containing the result.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
+        /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via <paramref name="token"/>.</exception>
+        public Task<T> Enqueue<T>(int priority, string key, Func<Task<T>> asyncOperation, CancellationToken token)
         {
-            return Enqueue(operationQueue, priority, key, asyncOperation);
+            ArgumentExceptionHelper.ThrowIfNull(operationQueue);
+            ArgumentExceptionHelper.ThrowIfNull(asyncOperation);
+
+            // Fast path: if token can't be cancelled, avoid registration overhead.
+            if (!token.CanBeCanceled)
+            {
+                return operationQueue.EnqueueObservableOperation(priority, key, Signal.Silent<RxVoid>(), () => Signal.FromTask(asyncOperation()))
+                    .ToTask(CancellationToken.None);
+            }
+
+            // Fast path: if token is already canceled, return immediately without enqueueing
+            if (token.IsCancellationRequested)
+            {
+                return Task.FromCanceled<T>(token);
+            }
+
+            return operationQueue.EnqueueObservableOperation(priority, key, ConvertTokenToObservable(token), () => Signal.FromTask(asyncOperation()))
+                .ToTask(token);
         }
 
-        // Fast path: if token is already canceled, return immediately without enqueueing
-        if (token.IsCancellationRequested)
+        /// <summary>Adds an operation to the operation queue with priority, key, and cancellation support.</summary>
+        /// <param name="priority">The priority of operation. Higher priorities run before lower ones.</param>
+        /// <param name="key">A key to apply to the operation. Items with the same key will be run in order. Pass null for non-keyed operations.</param>
+        /// <param name="asyncOperation">The async method to execute when scheduled.</param>
+        /// <param name="token">A cancellation token which if signalled, will cancel the operation.</param>
+        /// <returns>A task that completes when the operation completes.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
+        /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via <paramref name="token"/>.</exception>
+        public Task Enqueue(int priority, string key, Func<Task> asyncOperation, CancellationToken token)
         {
-            return Task.FromCanceled<T>(token);
+            ArgumentExceptionHelper.ThrowIfNull(operationQueue);
+            ArgumentExceptionHelper.ThrowIfNull(asyncOperation);
+
+            // Fast path: if token can't be cancelled, avoid registration overhead.
+            if (!token.CanBeCanceled)
+            {
+                return operationQueue.EnqueueObservableOperation(priority, key, Signal.Silent<RxVoid>(), () => Signal.FromTask(ToRxVoidTask(asyncOperation)))
+                    .ToTask(CancellationToken.None);
+            }
+
+            // Fast path: if token is already canceled, return immediately without enqueueing
+            if (token.IsCancellationRequested)
+            {
+                return Task.FromCanceled(token);
+            }
+
+            return operationQueue.EnqueueObservableOperation(priority, key, ConvertTokenToObservable(token), () => Signal.FromTask(ToRxVoidTask(asyncOperation)))
+                .ToTask(token);
         }
 
-        return operationQueue.EnqueueObservableOperation(priority, key, ConvertTokenToObservable(token), () => Signal.FromTask(asyncOperation()))
-            .ToTask(token);
-    }
-
-    /// <summary>
-    /// Adds an operation to the operation queue with priority, key, and cancellation support.
-    /// </summary>
-    /// <param name="operationQueue">The operation queue to add the operation to.</param>
-    /// <param name="priority">The priority of operation. Higher priorities run before lower ones.</param>
-    /// <param name="key">A key to apply to the operation. Items with the same key will be run in order. Pass null for non-keyed operations.</param>
-    /// <param name="asyncOperation">The async method to execute when scheduled.</param>
-    /// <param name="token">A cancellation token which if signalled, will cancel the operation.</param>
-    /// <returns>A task that completes when the operation completes.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via <paramref name="token"/>.</exception>
-    public static Task Enqueue(this OperationQueue operationQueue, int priority, string key, Func<Task> asyncOperation, CancellationToken token)
-    {
-        ArgumentExceptionHelper.ThrowIfNull(operationQueue);
-        ArgumentExceptionHelper.ThrowIfNull(asyncOperation);
-
-        // Fast path: if token can't be cancelled, use the no-token overload to avoid registration overhead
-        if (!token.CanBeCanceled)
+        /// <summary>Adds an operation to the operation queue with priority and key.</summary>
+        /// <typeparam name="T">The type of value returned by the operation.</typeparam>
+        /// <param name="priority">The priority of operation. Higher priorities run before lower ones.</param>
+        /// <param name="key">A key to apply to the operation. Items with the same key will be run in order. Pass null for non-keyed operations.</param>
+        /// <param name="asyncOperation">The async method to execute when scheduled.</param>
+        /// <returns>A task that completes when the operation completes, containing the result.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
+        public Task<T> Enqueue<T>(int priority, string key, Func<Task<T>> asyncOperation)
         {
-            return Enqueue(operationQueue, priority, key, asyncOperation);
+            ArgumentExceptionHelper.ThrowIfNull(operationQueue);
+            ArgumentExceptionHelper.ThrowIfNull(asyncOperation);
+
+            return operationQueue.EnqueueObservableOperation(priority, key, Signal.Silent<RxVoid>(), () => Signal.FromTask(asyncOperation()))
+                .ToTask();
         }
 
-        // Fast path: if token is already canceled, return immediately without enqueueing
-        if (token.IsCancellationRequested)
+        /// <summary>Adds an operation to the operation queue with priority and key.</summary>
+        /// <param name="priority">The priority of operation. Higher priorities run before lower ones.</param>
+        /// <param name="key">A key to apply to the operation. Items with the same key will be run in order. Pass null for non-keyed operations.</param>
+        /// <param name="asyncOperation">The async method to execute when scheduled.</param>
+        /// <returns>A task that completes when the operation completes.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
+        public Task Enqueue(int priority, string key, Func<Task> asyncOperation)
         {
-            return Task.FromCanceled(token);
+            ArgumentExceptionHelper.ThrowIfNull(operationQueue);
+            ArgumentExceptionHelper.ThrowIfNull(asyncOperation);
+
+            return operationQueue.EnqueueObservableOperation(priority, key, Signal.Silent<RxVoid>(), () => Signal.FromTask(ToRxVoidTask(asyncOperation)))
+                .ToTask();
         }
 
-        return operationQueue.EnqueueObservableOperation(priority, key, ConvertTokenToObservable(token), () => Signal.FromTask(ToRxVoidTask(asyncOperation)))
-            .ToTask(token);
+        /// <summary>
+        /// Adds a non-keyed operation to the operation queue with priority.
+        /// Non-keyed operations can run concurrently with other non-keyed operations.
+        /// </summary>
+        /// <typeparam name="T">The type of value returned by the operation.</typeparam>
+        /// <param name="priority">The priority of operation. Higher priorities run before lower ones.</param>
+        /// <param name="asyncOperation">The async method to execute when scheduled.</param>
+        /// <returns>A task that completes when the operation completes, containing the result.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
+        public Task<T> Enqueue<T>(int priority, Func<Task<T>> asyncOperation)
+        {
+            ArgumentExceptionHelper.ThrowIfNull(operationQueue);
+            ArgumentExceptionHelper.ThrowIfNull(asyncOperation);
+
+            return operationQueue.EnqueueObservableOperation(priority, () => Signal.FromTask(asyncOperation()))
+                .ToTask();
+        }
+
+        /// <summary>
+        /// Adds a non-keyed operation to the operation queue with priority.
+        /// Non-keyed operations can run concurrently with other non-keyed operations.
+        /// </summary>
+        /// <param name="priority">The priority of operation. Higher priorities run before lower ones.</param>
+        /// <param name="asyncOperation">The async method to execute when scheduled.</param>
+        /// <returns>A task that completes when the operation completes.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
+        public Task Enqueue(int priority, Func<Task> asyncOperation)
+        {
+            ArgumentExceptionHelper.ThrowIfNull(operationQueue);
+            ArgumentExceptionHelper.ThrowIfNull(asyncOperation);
+
+            return operationQueue.EnqueueObservableOperation(priority, () => Signal.FromTask(ToRxVoidTask(asyncOperation)))
+                .ToTask();
+        }
     }
 
-    /// <summary>
-    /// Adds an operation to the operation queue with priority and key.
-    /// </summary>
-    /// <typeparam name="T">The type of value returned by the operation.</typeparam>
-    /// <param name="operationQueue">The operation queue to add the operation to.</param>
-    /// <param name="priority">The priority of operation. Higher priorities run before lower ones.</param>
-    /// <param name="key">A key to apply to the operation. Items with the same key will be run in order. Pass null for non-keyed operations.</param>
-    /// <param name="asyncOperation">The async method to execute when scheduled.</param>
-    /// <returns>A task that completes when the operation completes, containing the result.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
-    public static Task<T> Enqueue<T>(this OperationQueue operationQueue, int priority, string key, Func<Task<T>> asyncOperation)
-    {
-        ArgumentExceptionHelper.ThrowIfNull(operationQueue);
-        ArgumentExceptionHelper.ThrowIfNull(asyncOperation);
-
-        return operationQueue.EnqueueObservableOperation(priority, key, Signal.Silent<RxVoid>(), () => Signal.FromTask(asyncOperation()))
-            .ToTask();
-    }
-
-    /// <summary>
-    /// Adds an operation to the operation queue with priority and key.
-    /// </summary>
-    /// <param name="operationQueue">The operation queue to add the operation to.</param>
-    /// <param name="priority">The priority of operation. Higher priorities run before lower ones.</param>
-    /// <param name="key">A key to apply to the operation. Items with the same key will be run in order. Pass null for non-keyed operations.</param>
-    /// <param name="asyncOperation">The async method to execute when scheduled.</param>
-    /// <returns>A task that completes when the operation completes.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
-    public static Task Enqueue(this OperationQueue operationQueue, int priority, string key, Func<Task> asyncOperation)
-    {
-        ArgumentExceptionHelper.ThrowIfNull(operationQueue);
-        ArgumentExceptionHelper.ThrowIfNull(asyncOperation);
-
-        return operationQueue.EnqueueObservableOperation(priority, key, Signal.Silent<RxVoid>(), () => Signal.FromTask(ToRxVoidTask(asyncOperation)))
-            .ToTask();
-    }
-
-    /// <summary>
-    /// Adds a non-keyed operation to the operation queue with priority.
-    /// Non-keyed operations can run concurrently with other non-keyed operations.
-    /// </summary>
-    /// <typeparam name="T">The type of value returned by the operation.</typeparam>
-    /// <param name="operationQueue">The operation queue to add the operation to.</param>
-    /// <param name="priority">The priority of operation. Higher priorities run before lower ones.</param>
-    /// <param name="asyncOperation">The async method to execute when scheduled.</param>
-    /// <returns>A task that completes when the operation completes, containing the result.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
-    public static Task<T> Enqueue<T>(this OperationQueue operationQueue, int priority, Func<Task<T>> asyncOperation)
-    {
-        ArgumentExceptionHelper.ThrowIfNull(operationQueue);
-        ArgumentExceptionHelper.ThrowIfNull(asyncOperation);
-
-        return operationQueue.EnqueueObservableOperation(priority, () => Signal.FromTask(asyncOperation()))
-            .ToTask();
-    }
-
-    /// <summary>
-    /// Adds a non-keyed operation to the operation queue with priority.
-    /// Non-keyed operations can run concurrently with other non-keyed operations.
-    /// </summary>
-    /// <param name="operationQueue">The operation queue to add the operation to.</param>
-    /// <param name="priority">The priority of operation. Higher priorities run before lower ones.</param>
-    /// <param name="asyncOperation">The async method to execute when scheduled.</param>
-    /// <returns>A task that completes when the operation completes.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
-    public static Task Enqueue(this OperationQueue operationQueue, int priority, Func<Task> asyncOperation)
-    {
-        ArgumentExceptionHelper.ThrowIfNull(operationQueue);
-        ArgumentExceptionHelper.ThrowIfNull(asyncOperation);
-
-        return operationQueue.EnqueueObservableOperation(priority, () => Signal.FromTask(ToRxVoidTask(asyncOperation)))
-            .ToTask();
-    }
-
-    /// <summary>
-    /// Converts a <see cref="CancellationToken"/> to an observable that signals when cancellation is requested.
-    /// </summary>
+    /// <summary>Converts a <see cref="CancellationToken"/> to an observable that signals when cancellation is requested.</summary>
     /// <param name="token">The cancellation token to convert.</param>
     /// <returns>
     /// An observable that emits <see cref="RxVoid.Default"/> when the token is cancelled.
@@ -215,12 +202,10 @@ public static class OperationQueueExtensions
             });
         });
 
-        return scheduler != null ? obs.SubscribeOn(scheduler) : obs;
+        return scheduler is not null ? obs.SubscribeOn(scheduler) : obs;
     }
 
-    /// <summary>
-    /// Converts a non-generic task operation into a task that emits <see cref="RxVoid"/>.
-    /// </summary>
+    /// <summary>Converts a non-generic task operation into a task that emits <see cref="RxVoid"/>.</summary>
     /// <param name="asyncOperation">The async operation to execute.</param>
     /// <returns>A task that produces <see cref="RxVoid.Default"/> after completion.</returns>
     private static async Task<RxVoid> ToRxVoidTask(Func<Task> asyncOperation)

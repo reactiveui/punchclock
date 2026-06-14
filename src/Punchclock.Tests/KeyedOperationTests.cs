@@ -1,6 +1,5 @@
-// Copyright (c) 2025 ReactiveUI and Contributors. All rights reserved.
-// Licensed to the ReactiveUI and Contributors under one or more agreements.
-// ReactiveUI and Contributors licenses this file to you under the MIT license.
+// Copyright (c) 2019-2026 ReactiveUI Association Incorporated. All rights reserved.
+// ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
 using ReactiveUI.Primitives.Signals;
@@ -8,14 +7,12 @@ using RxVoid = ReactiveUI.Primitives.RxVoid;
 
 namespace Punchclock.Tests;
 
-/// <summary>
-/// Tests for <see cref="KeyedOperation"/> and related functionality.
-/// </summary>
+/// <summary>Tests for <see cref="KeyedOperation"/> and related functionality.</summary>
 public class KeyedOperationTests
 {
-    /// <summary>
-    /// Verifies that CompareTo returns 1 when other is null.
-    /// </summary>
+    private const int DefaultValue = 42;
+
+    /// <summary>Verifies that CompareTo returns 1 when other is null.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task CompareTo_WithNull_ReturnsOne()
@@ -25,9 +22,7 @@ public class KeyedOperationTests
         await Assert.That(result).IsEqualTo(1);
     }
 
-    /// <summary>
-    /// Verifies that non-keyed operations come before keyed operations.
-    /// </summary>
+    /// <summary>Verifies that non-keyed operations come before keyed operations.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task CompareTo_NonKeyedBeforeKeyed()
@@ -42,9 +37,7 @@ public class KeyedOperationTests
         }
     }
 
-    /// <summary>
-    /// Verifies that higher priority operations come before lower priority ones.
-    /// </summary>
+    /// <summary>Verifies that higher priority operations come before lower priority ones.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task CompareTo_HigherPriorityFirst()
@@ -59,9 +52,7 @@ public class KeyedOperationTests
         }
     }
 
-    /// <summary>
-    /// Verifies that equal priority operations return 0 for FIFO handling.
-    /// </summary>
+    /// <summary>Verifies that equal priority operations return 0 for FIFO handling.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task CompareTo_EqualPriority_ReturnsZero()
@@ -76,9 +67,7 @@ public class KeyedOperationTests
         }
     }
 
-    /// <summary>
-    /// Verifies that random tiebreak works when enabled.
-    /// </summary>
+    /// <summary>Verifies that random tiebreak works when enabled.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task CompareTo_WithRandomTiebreak_UsesRandomOrder()
@@ -93,9 +82,7 @@ public class KeyedOperationTests
         }
     }
 
-    /// <summary>
-    /// Verifies that KeyIsDefault returns true for null key.
-    /// </summary>
+    /// <summary>Verifies that KeyIsDefault returns true for null key.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task KeyIsDefault_WithNullKey_ReturnsTrue()
@@ -104,9 +91,7 @@ public class KeyedOperationTests
         await Assert.That(op.KeyIsDefault).IsTrue();
     }
 
-    /// <summary>
-    /// Verifies that KeyIsDefault returns true for empty string.
-    /// </summary>
+    /// <summary>Verifies that KeyIsDefault returns true for empty string.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task KeyIsDefault_WithEmptyKey_ReturnsTrue()
@@ -115,9 +100,7 @@ public class KeyedOperationTests
         await Assert.That(op.KeyIsDefault).IsTrue();
     }
 
-    /// <summary>
-    /// Verifies that KeyIsDefault returns true for DefaultKey.
-    /// </summary>
+    /// <summary>Verifies that KeyIsDefault returns true for DefaultKey.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task KeyIsDefault_WithDefaultKey_ReturnsTrue()
@@ -126,9 +109,7 @@ public class KeyedOperationTests
         await Assert.That(op.KeyIsDefault).IsTrue();
     }
 
-    /// <summary>
-    /// Verifies that KeyIsDefault returns false for custom key.
-    /// </summary>
+    /// <summary>Verifies that KeyIsDefault returns false for custom key.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task KeyIsDefault_WithCustomKey_ReturnsFalse()
@@ -137,9 +118,7 @@ public class KeyedOperationTests
         await Assert.That(op.KeyIsDefault).IsFalse();
     }
 
-    /// <summary>
-    /// Verifies that EvaluateFunc returns empty when CancelledEarly is true.
-    /// </summary>
+    /// <summary>Verifies that EvaluateFunc returns empty when CancelledEarly is true.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task EvaluateFunc_WhenCancelledEarly_ReturnsEmpty()
@@ -156,9 +135,7 @@ public class KeyedOperationTests
         }
     }
 
-    /// <summary>
-    /// Verifies that EvaluateFunc executes the function when not cancelled.
-    /// </summary>
+    /// <summary>Verifies that EvaluateFunc executes the function when not cancelled.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task EvaluateFunc_WhenNotCancelled_ExecutesFunction()
@@ -182,9 +159,7 @@ public class KeyedOperationTests
         }
     }
 
-    /// <summary>
-    /// Verifies that EvaluateFunc respects cancel signal.
-    /// </summary>
+    /// <summary>Verifies that EvaluateFunc respects cancel signal.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task EvaluateFunc_WithCancelSignal_Cancels()
@@ -209,9 +184,7 @@ public class KeyedOperationTests
         }
     }
 
-    /// <summary>
-    /// Verifies that Result subject is created and accessible.
-    /// </summary>
+    /// <summary>Verifies that Result subject is created and accessible.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task Result_IsAccessible()
@@ -272,9 +245,15 @@ public class KeyedOperationTests
         await Assert.That(results).IsEmpty();
     }
 
-    /// <summary>
-    /// Helper to create a KeyedOperation for testing.
-    /// </summary>
+    /// <summary>Helper to create a KeyedOperation for testing.</summary>
+    /// <returns>A new instance of <see cref="KeyedOperation{T}"/>.</returns>
+    /// <param name="priority">The priority of the operation.</param>
+    /// <param name="key">The key of the operation.</param>
+    /// <param name="id">The ID of the operation.</param>
+    /// <param name="useRandom">Whether to use random tiebreak.</param>
+    /// <param name="randomOrder">The random order value.</param>
+    /// <param name="func">The function to execute.</param>
+    /// <param name="cancelSignal">The cancel signal observable.</param>
     private static KeyedOperation<int> CreateOperation(
         int priority,
         string? key,
@@ -289,7 +268,7 @@ public class KeyedOperationTests
             Id = id,
             UseRandomTiebreak = useRandom,
             RandomOrder = randomOrder,
-            Func = func ?? (() => Signal.Emit(42)),
+            Func = func ?? (() => Signal.Emit(DefaultValue)),
             CancelSignal = cancelSignal,
         };
 }

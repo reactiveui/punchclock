@@ -1,9 +1,7 @@
-// Copyright (c) 2025 ReactiveUI and Contributors. All rights reserved.
-// Licensed to the ReactiveUI and Contributors under one or more agreements.
-// ReactiveUI and Contributors licenses this file to you under the MIT license.
+// Copyright (c) 2019-2026 ReactiveUI Association Incorporated. All rights reserved.
+// ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System.Runtime.CompilerServices;
 using ReactiveUI.Primitives;
 
 namespace Punchclock;
@@ -14,9 +12,7 @@ namespace Punchclock;
 /// </summary>
 internal abstract class KeyedOperation : IComparable<KeyedOperation>
 {
-    /// <summary>
-    /// Gets or sets a value indicating whether this operation was cancelled before execution started.
-    /// </summary>
+    /// <summary>Gets or sets a value indicating whether this operation was cancelled before execution started.</summary>
     /// <value>
     /// <c>true</c> if the operation was cancelled early; otherwise, <c>false</c>.
     /// </value>
@@ -25,34 +21,25 @@ internal abstract class KeyedOperation : IComparable<KeyedOperation>
     /// </remarks>
     public bool CancelledEarly { get; set; }
 
-    /// <summary>
-    /// Gets the priority of this operation. Higher values indicate higher priority.
-    /// </summary>
+    /// <summary>Gets the priority of this operation. Higher values indicate higher priority.</summary>
     /// <value>
     /// The priority value. Higher numbers are dequeued before lower numbers.
     /// </value>
     public int Priority { get; init; }
 
-    /// <summary>
-    /// Gets the unique identifier for this operation.
-    /// Used for stable FIFO ordering among equal-priority operations.
-    /// </summary>
+    /// <summary>Gets the unique identifier for this operation. Used for stable FIFO ordering among equal-priority operations.</summary>
     /// <value>
     /// The operation identifier, assigned sequentially at enqueue time.
     /// </value>
     public int Id { get; init; }
 
-    /// <summary>
-    /// Gets the key for this operation. Operations with the same key are executed serially.
-    /// </summary>
+    /// <summary>Gets the key for this operation. Operations with the same key are executed serially.</summary>
     /// <value>
     /// The key string, or null/empty/<see cref="OperationQueue.DefaultKey"/> for non-keyed operations.
     /// </value>
     public string? Key { get; init; }
 
-    /// <summary>
-    /// Gets the observable that signals cancellation of this operation.
-    /// </summary>
+    /// <summary>Gets the observable that signals cancellation of this operation.</summary>
     /// <value>
     /// An observable that emits when cancellation is requested, or null if no cancellation signal is provided.
     /// </value>
@@ -70,30 +57,22 @@ internal abstract class KeyedOperation : IComparable<KeyedOperation>
     /// </remarks>
     public bool KeyIsDefault => string.IsNullOrEmpty(Key) || Key == OperationQueue.DefaultKey;
 
-    /// <summary>
-    /// Gets the random order value used for tie-breaking when <see cref="UseRandomTiebreak"/> is enabled.
-    /// </summary>
+    /// <summary>Gets the random order value used for tie-breaking when <see cref="UseRandomTiebreak"/> is enabled.</summary>
     /// <value>
     /// A random integer used for shuffling equal-priority items across different keys.
     /// </value>
     public int RandomOrder { get; init; }
 
-    /// <summary>
-    /// Gets a value indicating whether random tie-breaking is enabled for this operation.
-    /// </summary>
+    /// <summary>Gets a value indicating whether random tie-breaking is enabled for this operation.</summary>
     /// <value>
     /// <c>true</c> if random tie-breaking should be used for equal priorities across different keys; otherwise, <c>false</c>.
     /// </value>
     public bool UseRandomTiebreak { get; init; }
 
-    /// <summary>
-    /// Gets or sets the subscription that watches the cancellation source before execution starts.
-    /// </summary>
+    /// <summary>Gets or sets the subscription that watches the cancellation source before execution starts.</summary>
     public IDisposable? CancelSubscription { get; set; }
 
-    /// <summary>
-    /// Evaluates the operation function and returns an observable stream.
-    /// </summary>
+    /// <summary>Evaluates the operation function and returns an observable stream.</summary>
     /// <returns>An observable of <see cref="RxVoid"/> that completes when the operation finishes.</returns>
     public abstract IObservable<RxVoid> EvaluateFunc();
 
@@ -139,7 +118,7 @@ internal abstract class KeyedOperation : IComparable<KeyedOperation>
     /// </para>
     /// </remarks>
 #if NET8_0_OR_GREATER
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
 #endif
     public int CompareTo(KeyedOperation? other)
     {

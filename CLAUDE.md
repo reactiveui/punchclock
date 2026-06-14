@@ -10,11 +10,11 @@ See: https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-test?tabs=dotnet
 
 ### Solution Format
 
-This repository uses the traditional **SLN** (solution) format.
+This repository uses the **SLNX** (solution) format.
 
-**File Location:** `src/Punchclock.sln`
+**File Location:** `src/Punchclock.slnx`
 
-All build and test commands in this document reference `Punchclock.sln`.
+All build and test commands in this document reference `Punchclock.slnx`.
 
 ### Prerequisites
 
@@ -24,7 +24,7 @@ dotnet --info
 
 # Restore NuGet packages
 cd src
-dotnet restore Punchclock.sln
+dotnet restore Punchclock.slnx
 ```
 
 ### Build Commands
@@ -33,13 +33,13 @@ dotnet restore Punchclock.sln
 
 ```powershell
 # Build the solution
-dotnet build Punchclock.sln -c Release
+dotnet build Punchclock.slnx -c Release
 
 # Build with warnings as errors (includes StyleCop violations)
-dotnet build Punchclock.sln -c Release -warnaserror
+dotnet build Punchclock.slnx -c Release -warnaserror
 
 # Clean the solution
-dotnet clean Punchclock.sln
+dotnet clean Punchclock.slnx
 ```
 
 ### Test Commands (Microsoft Testing Platform)
@@ -100,7 +100,7 @@ MTP is the modern test execution platform for .NET, replacing the legacy VSTest 
 
 ```powershell
 # Run all tests in the solution
-dotnet test --solution Punchclock.sln -c Release
+dotnet test --solution Punchclock.slnx -c Release
 
 # Run all tests in the test project
 dotnet test --project Punchclock.Tests/Punchclock.Tests.csproj
@@ -116,31 +116,31 @@ dotnet test --project Punchclock.Tests/Punchclock.Tests.csproj -- --treenode-fil
 dotnet test --project Punchclock.Tests/Punchclock.Tests.csproj -- --treenode-filter "/*/MyNamespace/*/*"
 
 # Filter by test property (e.g., Category)
-dotnet test --solution Punchclock.sln -- --treenode-filter "/*/*/*/*[Category=Integration]"
+dotnet test --solution Punchclock.slnx -- --treenode-filter "/*/*/*/*[Category=Integration]"
 
 # Run tests with code coverage (Microsoft Code Coverage)
-dotnet test --solution Punchclock.sln --coverage --coverage-output-format cobertura
+dotnet test --solution Punchclock.slnx --coverage --coverage-output-format cobertura
 
 # Run tests with detailed output
-dotnet test --solution Punchclock.sln -- --output Detailed
+dotnet test --solution Punchclock.slnx -- --output Detailed
 
 # List all available tests without running them
 dotnet test --project Punchclock.Tests/Punchclock.Tests.csproj -- --list-tests
 
 # Fail fast (stop on first failure)
-dotnet test --solution Punchclock.sln -- --fail-fast
+dotnet test --solution Punchclock.slnx -- --fail-fast
 
 # Control parallel test execution
-dotnet test --solution Punchclock.sln -- --maximum-parallel-tests 4
+dotnet test --solution Punchclock.slnx -- --maximum-parallel-tests 4
 
 # Generate TRX report
-dotnet test --solution Punchclock.sln -- --report-trx
+dotnet test --solution Punchclock.slnx -- --report-trx
 
 # Disable logo for cleaner output
 dotnet test --project Punchclock.Tests/Punchclock.Tests.csproj -- --disable-logo
 
 # Combine options: coverage + TRX report + detailed output
-dotnet test --solution Punchclock.sln --coverage --coverage-output-format cobertura -- --report-trx --output Detailed
+dotnet test --solution Punchclock.slnx --coverage --coverage-output-format cobertura -- --report-trx --output Detailed
 
 # Run tests using test modules (for already-built assemblies)
 dotnet test --test-modules "**/bin/**/Release/net9.0/Punchclock.Tests.dll"
@@ -450,7 +450,7 @@ public class OperationQueue
 
 - **Repository Location:** Working directory is `C:\source\punchclock`
 - **Source Location:** `src/` folder contains the solution and all projects
-- **Main Solution:** `Punchclock.sln`
+- **Main Solution:** `Punchclock.slnx`
 - **Required .NET SDKs:** .NET 8.0, 9.0, and 10.0 (all three required for modern targets)
 - **Optional:** .NET Framework 4.6.2, 4.7.2, 4.8.1 SDKs (only needed on Windows for legacy targets)
 - **Version Management:** Uses Nerdbank.GitVersioning for semantic versioning based on git history

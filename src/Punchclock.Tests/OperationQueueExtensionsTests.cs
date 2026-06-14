@@ -1,6 +1,5 @@
-// Copyright (c) 2025 ReactiveUI and Contributors. All rights reserved.
-// Licensed to the ReactiveUI and Contributors under one or more agreements.
-// ReactiveUI and Contributors licenses this file to you under the MIT license.
+// Copyright (c) 2019-2026 ReactiveUI Association Incorporated. All rights reserved.
+// ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
 using System.Diagnostics.CodeAnalysis;
@@ -11,15 +10,24 @@ using RxVoid = ReactiveUI.Primitives.RxVoid;
 
 namespace Punchclock.Tests;
 
-/// <summary>
-/// Tests for <see cref="OperationQueueExtensions"/> convenience APIs and related semantics.
-/// </summary>
-[SuppressMessage("Reliability", "CA2025:Ensure tasks using 'IDisposable' instances complete before the instances are disposed", Justification = "Test methods ensure proper task completion and disposal ordering")]
+/// <summary>Tests for <see cref="OperationQueueExtensions"/> convenience APIs and related semantics.</summary>
+    [SuppressMessage(
+        "Reliability",
+        "CA2025:Ensure tasks using 'IDisposable' instances complete before instances are disposed",
+        Justification = "Test methods ensure proper task completion and disposal ordering")]
 public class OperationQueueExtensionsTests
 {
-    /// <summary>
-    /// Verifies that passing a null queue throws <see cref="ArgumentNullException"/> with the correct parameter name.
-    /// </summary>
+    private const int Two = 2;
+
+    private const int Five = 5;
+
+    private const int Ten = 10;
+
+    private const int FourtyTwo = 42;
+
+    private const int OneHundredAndTwentyThree = 123;
+
+    /// <summary>Verifies that passing a null queue throws <see cref="ArgumentNullException"/> with the correct parameter name.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task Enqueue_WithNullQueue_ThrowsArgumentNullException()
@@ -29,46 +37,43 @@ public class OperationQueueExtensionsTests
             OperationQueue? q = null;
             var ex1 = await Assert.That(() => OperationQueueExtensions.Enqueue(q!, 1, () => Task.CompletedTask))
                 .Throws<ArgumentNullException>();
-            await Assert.That(ex1!.ParamName).IsEqualTo("operationQueue");
+            const string Expected = "operationQueue";
+            await Assert.That(ex1!.ParamName).IsEqualTo(Expected);
 
             var ex2 = await Assert.That(() => OperationQueueExtensions.Enqueue(q!, 1, "k", () => Task.CompletedTask))
                 .Throws<ArgumentNullException>();
-            await Assert.That(ex2!.ParamName).IsEqualTo("operationQueue");
+            await Assert.That(ex2!.ParamName).IsEqualTo(Expected);
 
-            var ex3 = await Assert.That(() => OperationQueueExtensions.Enqueue<int>(q!, 1, () => Task.FromResult(42)))
+            var ex3 = await Assert.That(() => OperationQueueExtensions.Enqueue(q!, 1, () => Task.FromResult(FourtyTwo)))
                 .Throws<ArgumentNullException>();
-            await Assert.That(ex3!.ParamName).IsEqualTo("operationQueue");
+            await Assert.That(ex3!.ParamName).IsEqualTo(Expected);
 
-            var ex4 = await Assert.That(() => OperationQueueExtensions.Enqueue<int>(q!, 1, "k", () => Task.FromResult(42)))
+            var ex4 = await Assert.That(() => OperationQueueExtensions.Enqueue(q!, 1, "k", () => Task.FromResult(FourtyTwo)))
                 .Throws<ArgumentNullException>();
-            await Assert.That(ex4!.ParamName).IsEqualTo("operationQueue");
+            await Assert.That(ex4!.ParamName).IsEqualTo(Expected);
         }
     }
 
-    /// <summary>
-    /// Ensures Task-based overloads execute and return expected results.
-    /// </summary>
+    /// <summary>Ensures Task-based overloads execute and return expected results.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task Enqueue_TaskOverloads_RunAndReturnResults()
     {
         using (Assert.Multiple())
         {
-            using var q = new OperationQueue(2);
+            using var q = new OperationQueue(Two);
 
-            await q.Enqueue(5, () => Task.CompletedTask);
-            var r1 = await q.Enqueue(5, () => Task.FromResult(123));
-            await Assert.That(r1).IsEqualTo(123);
+            await q.Enqueue(Five, () => Task.CompletedTask);
+            var r1 = await q.Enqueue(Five, () => Task.FromResult(OneHundredAndTwentyThree));
+            await Assert.That(r1).IsEqualTo(OneHundredAndTwentyThree);
 
-            await q.Enqueue(5, "key", () => Task.CompletedTask);
-            var r2 = await q.Enqueue(5, "key", () => Task.FromResult("hi"));
+            await q.Enqueue(Five, "key", () => Task.CompletedTask);
+            var r2 = await q.Enqueue(Five, "key", () => Task.FromResult("hi"));
             await Assert.That(r2).IsEqualTo("hi");
         }
     }
 
-    /// <summary>
-    /// If the <see cref="CancellationToken"/> is already canceled, the returned task should be canceled immediately.
-    /// </summary>
+    /// <summary>If the <see cref="CancellationToken"/> is already canceled, the returned task should be canceled immediately.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task Enqueue_WithAlreadyCanceledToken_CancelsImmediately()
@@ -77,20 +82,18 @@ public class OperationQueueExtensionsTests
         {
             using var q = new OperationQueue(1);
             using var cts = new CancellationTokenSource();
-            cts.Cancel();
+            await cts.CancelAsync();
 
             // Task-returning overload
             var t1 = q.Enqueue(1, "k", () => Task.FromResult(1), cts.Token);
-            await Assert.That(() => t1.GetAwaiter().GetResult()).Throws<TaskCanceledException>();
+            await Assert.That(() => t1).Throws<TaskCanceledException>();
 
             var t2 = q.Enqueue(1, "k", () => Task.CompletedTask, cts.Token);
-            await Assert.That(() => t2.GetAwaiter().GetResult()).Throws<TaskCanceledException>();
+            await Assert.That(() => t2).Throws<TaskCanceledException>();
         }
     }
 
-    /// <summary>
-    /// Pending operations should be canceled by the supplied token before evaluation starts.
-    /// </summary>
+    /// <summary>Pending operations should be canceled by the supplied token before evaluation starts.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task Enqueue_WithCancellationToken_CancelsPendingOperation()
@@ -101,8 +104,8 @@ public class OperationQueueExtensionsTests
 
             // Block the queue with a subject that we complete later
             var gate = new Signal<int>();
-            var hold = q.EnqueueObservableOperation(1, () => gate.AsObservable());
-            using var sub = System.ObservableExtensions.Subscribe(hold, _ => { });
+            var hold = q.EnqueueObservableOperation(1, gate.AsObservable);
+            using var sub = ObservableExtensions.Subscribe(hold, _ => { });
 
             using var cts = new CancellationTokenSource();
             var started = false;
@@ -112,14 +115,14 @@ public class OperationQueueExtensionsTests
                 () =>
                 {
                     started = true;
-                    return Task.FromResult(42);
+                    return Task.FromResult(FourtyTwo);
                 },
                 cts.Token);
 
             await Assert.That(started).IsFalse();
-            cts.Cancel();
+            await cts.CancelAsync();
 
-            await Assert.That(async () => await pending).Throws<TaskCanceledException>();
+            await Assert.That(() => pending).Throws<TaskCanceledException>();
 
             await Assert.That(started).IsFalse();
             gate.OnNext(0);
@@ -127,9 +130,7 @@ public class OperationQueueExtensionsTests
         }
     }
 
-    /// <summary>
-    /// Shutdown should complete once outstanding work finishes.
-    /// </summary>
+    /// <summary>Shutdown should complete once outstanding work finishes.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task ShutdownQueue_CompletesAfterOutstandingWork()
@@ -141,7 +142,7 @@ public class OperationQueueExtensionsTests
             var work = q.Enqueue(1, () => tcs.Task);
 
             var shutdownTcs = new TaskCompletionSource<bool>();
-            using var sub = System.ObservableExtensions.Subscribe(
+            using var sub = ObservableExtensions.Subscribe(
                 q.ShutdownQueue(),
                 _ => shutdownTcs.TrySetResult(true),
                 ex => shutdownTcs.TrySetException(ex),
@@ -149,15 +150,13 @@ public class OperationQueueExtensionsTests
 
             await Assert.That(shutdownTcs.Task.IsCompleted).IsFalse();
 
-            tcs.SetResult(10);
-            await Assert.That(await work).IsEqualTo(10);
+            tcs.SetResult(Ten);
+            await Assert.That(await work).IsEqualTo(Ten);
             await shutdownTcs.Task; // should complete without throwing
         }
     }
 
-    /// <summary>
-    /// PauseQueue should be ref-counted; resuming only when the last handle is disposed.
-    /// </summary>
+    /// <summary>PauseQueue should be ref-counted; resuming only when the last handle is disposed.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task PauseQueue_IsRefCounted()
@@ -178,7 +177,7 @@ public class OperationQueueExtensionsTests
                     return Signal.Emit(1);
                 }));
 
-            using var sub = System.ObservableExtensions.Subscribe(obs, _ => { });
+            using var sub = ObservableExtensions.Subscribe(obs, _ => { });
             await Assert.That(ran).IsFalse();
 
             p1.Dispose();
@@ -199,16 +198,16 @@ public class OperationQueueExtensionsTests
     {
         using (Assert.Multiple())
         {
-            using var q = new OperationQueue(2);
+            using var q = new OperationQueue(Two);
 
             // CancellationToken.None should take fast path
             var result1 = await q.Enqueue(
                 1,
                 "key",
-                () => Task.FromResult(42),
+                () => Task.FromResult(FourtyTwo),
                 CancellationToken.None);
 
-            await Assert.That(result1).IsEqualTo(42);
+            await Assert.That(result1).IsEqualTo(FourtyTwo);
 
             // Non-generic overload with CancellationToken.None
             var executed = false;
@@ -236,7 +235,7 @@ public class OperationQueueExtensionsTests
     {
         using (Assert.Multiple())
         {
-            using var q = new OperationQueue(2);
+            using var q = new OperationQueue(Two);
 
             // Create a token source that will never be cancelled
             using var cts = new CancellationTokenSource();
@@ -245,18 +244,15 @@ public class OperationQueueExtensionsTests
             var result = await q.Enqueue(
                 1,
                 "key",
-                () => Task.FromResult(123),
+                () => Task.FromResult(OneHundredAndTwentyThree),
                 token);
 
-            await Assert.That(result).IsEqualTo(123);
+            await Assert.That(result).IsEqualTo(OneHundredAndTwentyThree);
             await Assert.That(cts.IsCancellationRequested).IsFalse();
         }
     }
 
-    /// <summary>
-    /// Verifies that an already-cancelled token throws <see cref="OperationCanceledException"/>
-    /// (not <see cref="ArgumentException"/>) when the observable is subscribed to.
-    /// </summary>
+    /// <summary>Verifies that an already-cancelled token throws <see cref="OperationCanceledException"/> (not <see cref="ArgumentException"/>) when the observable is subscribed to.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task Enqueue_WithAlreadyCanceledToken_ThrowsOperationCanceledException()
@@ -265,13 +261,13 @@ public class OperationQueueExtensionsTests
         {
             using var q = new OperationQueue(1);
             using var cts = new CancellationTokenSource();
-            cts.Cancel();
+            await cts.CancelAsync();
 
             // Should throw OperationCanceledException, not ArgumentException
             var task = q.Enqueue(
                 1,
                 "key",
-                () => Task.FromResult(42),
+                () => Task.FromResult(FourtyTwo),
                 cts.Token);
 
             var ex = await Assert.That(() => task).Throws<OperationCanceledException>();
@@ -279,10 +275,7 @@ public class OperationQueueExtensionsTests
         }
     }
 
-    /// <summary>
-    /// Verifies that multiple operations with <see cref="CancellationToken.None"/> execute correctly
-    /// in parallel without interference.
-    /// </summary>
+    /// <summary>Verifies that multiple operations with <see cref="CancellationToken.None"/> execute correctly in parallel without interference.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task Enqueue_MultipleOperationsWithTokenNone_ExecuteInParallel()
@@ -292,20 +285,20 @@ public class OperationQueueExtensionsTests
             using var q = new OperationQueue(4);
 
             // Queue multiple operations with CancellationToken.None
-            var tasks = Enumerable.Range(0, 10)
+            var tasks = Enumerable.Range(0, Ten)
                 .Select(i => q.Enqueue(
                     1,
                     $"key{i}",
-                    () => Task.FromResult(i * 2),
+                    () => Task.FromResult(i * Two),
                     CancellationToken.None))
                 .ToArray();
 
             var results = await Task.WhenAll(tasks);
 
             // Verify all results
-            for (var i = 0; i < 10; i++)
+            for (var i = 0; i < Ten; i++)
             {
-                await Assert.That(results[i]).IsEqualTo(i * 2);
+                await Assert.That(results[i]).IsEqualTo(i * Two);
             }
         }
     }
@@ -324,7 +317,7 @@ public class OperationQueueExtensionsTests
 
             // Block the queue
             var gate = new Signal<int>();
-            var hold = q.EnqueueObservableOperation(1, () => gate.AsObservable());
+            var hold = q.EnqueueObservableOperation(1, gate.AsObservable);
             using var sub = ObservableExtensions.Subscribe(hold, _ => { });
 
             // Enqueue with CancellationToken.None
@@ -339,11 +332,11 @@ public class OperationQueueExtensionsTests
             var cancellable = q.Enqueue(
                 1,
                 "cancellable",
-                () => Task.FromResult(2),
+                () => Task.FromResult(Two),
                 cts.Token);
 
             // Cancel the cancellable token
-            cts.Cancel();
+            await cts.CancelAsync();
 
             // Release the queue
             gate.OnNext(0);
@@ -368,13 +361,13 @@ public class OperationQueueExtensionsTests
     {
         using (Assert.Multiple())
         {
-            using var queue = new OperationQueue(2);
+            using var queue = new OperationQueue(Two);
             using var cts = new CancellationTokenSource();
 
             // Token is cancellable but not cancelled - should use normal path (lines 108/109)
-            var result = await queue.Enqueue(1, "key", () => Task.FromResult(42), cts.Token);
+            var result = await queue.Enqueue(1, "key", () => Task.FromResult(FourtyTwo), cts.Token);
 
-            await Assert.That(result).IsEqualTo(42);
+            await Assert.That(result).IsEqualTo(FourtyTwo);
             await Assert.That(cts.IsCancellationRequested).IsFalse();
         }
     }
@@ -402,13 +395,13 @@ public class OperationQueueExtensionsTests
             var task = queue.Enqueue(
                 1,
                 "key",
-                () => Task.FromResult(42),
+                () => Task.FromResult(FourtyTwo),
                 cts.Token);
 
             // Cancel before the operation starts
-            cts.Cancel();
+            await cts.CancelAsync();
 
-            await Assert.That(async () => await task).Throws<TaskCanceledException>();
+            await Assert.That(() => task).Throws<TaskCanceledException>();
 
             blocker.OnCompleted(); // Unblock queue for cleanup
         }
@@ -432,7 +425,7 @@ public class OperationQueueExtensionsTests
 
             using var subscription = ObservableExtensions.Subscribe(
                 observable,
-                v => receivedValues.Add(v),
+                receivedValues.Add,
                 ex => { },
                 () => completed = true);
 
@@ -453,12 +446,12 @@ public class OperationQueueExtensionsTests
         using (Assert.Multiple())
         {
             using var cts = new CancellationTokenSource();
-            cts.Cancel();
+            await cts.CancelAsync();
 
             var observable = OperationQueueExtensions.ConvertTokenToObservable(cts.Token);
 
             Exception? caughtException = null;
-            System.ObservableExtensions.Subscribe(
+            ObservableExtensions.Subscribe(
                 observable,
                 v => { },
                 ex => caughtException = ex);
@@ -486,14 +479,14 @@ public class OperationQueueExtensionsTests
             var receivedValues = new List<RxVoid>();
             var completed = false;
 
-            using var subscription = System.ObservableExtensions.Subscribe(
+            using var subscription = ObservableExtensions.Subscribe(
                 observable,
-                v => receivedValues.Add(v),
+                receivedValues.Add,
                 ex => { },
                 () => completed = true);
 
             // Cancel the token - should emit RxVoid.Default and complete synchronously
-            cts.Cancel();
+            await cts.CancelAsync();
 
             await Assert.That(receivedValues).Count().IsEqualTo(1);
             await Assert.That(completed).IsTrue();
@@ -510,7 +503,7 @@ public class OperationQueueExtensionsTests
     {
         using (Assert.Multiple())
         {
-            using var queue = new OperationQueue(2, ImmediateSequencer.Instance);
+            using var queue = new OperationQueue(Two, ImmediateSequencer.Instance);
             using var cts = new CancellationTokenSource();
 
             var executed = false;
@@ -541,13 +534,13 @@ public class OperationQueueExtensionsTests
     {
         using (Assert.Multiple())
         {
-            using var queue = new OperationQueue(2, ImmediateSequencer.Instance);
+            using var queue = new OperationQueue(Two, ImmediateSequencer.Instance);
             using var cts = new CancellationTokenSource();
 
             // Enqueue with cancellable token but don't cancel it (generic overload)
-            var result = await queue.Enqueue(1, "key", () => Task.FromResult(42), cts.Token);
+            var result = await queue.Enqueue(1, "key", () => Task.FromResult(FourtyTwo), cts.Token);
 
-            await Assert.That(result).IsEqualTo(42);
+            await Assert.That(result).IsEqualTo(FourtyTwo);
             await Assert.That(cts.IsCancellationRequested).IsFalse();
         }
     }
@@ -567,7 +560,7 @@ public class OperationQueueExtensionsTests
             using var cts = new CancellationTokenSource();
 
             // Schedule cancellation to happen during subscription
-            testScheduler.Schedule(TimeSpan.FromTicks(5), () => cts.Cancel());
+            testScheduler.Schedule(TimeSpan.FromTicks(Five), cts.Cancel);
 
             var observable = OperationQueueExtensions.ConvertTokenToObservable(testScheduler, cts.Token);
 
@@ -575,7 +568,7 @@ public class OperationQueueExtensionsTests
             var receivedValues = new List<RxVoid>();
 
             // Subscribe at time 0
-            testScheduler.Schedule(TimeSpan.FromTicks(10), () =>
+            testScheduler.Schedule(TimeSpan.FromTicks(Ten), () =>
             {
                 ObservableExtensions.Subscribe(
                     observable,
@@ -603,7 +596,7 @@ public class OperationQueueExtensionsTests
     {
         using (Assert.Multiple())
         {
-            using var queue = new OperationQueue(2, ImmediateSequencer.Instance);
+            using var queue = new OperationQueue(Two, ImmediateSequencer.Instance);
 
             // Test false branch (not cancelled) - lines 108-109
             using var cts1 = new CancellationTokenSource();
@@ -612,9 +605,9 @@ public class OperationQueueExtensionsTests
 
             // Test true branch (already cancelled) - line 105
             using var cts2 = new CancellationTokenSource();
-            cts2.Cancel();
-            await Assert.That(async () =>
-                await queue.Enqueue(1, "key2", () => Task.FromResult(2), cts2.Token))
+            await cts2.CancelAsync();
+            await Assert.That(() =>
+                queue.Enqueue(1, "key2", () => Task.FromResult(Two), cts2.Token))
                 .Throws<TaskCanceledException>();
         }
     }

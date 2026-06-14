@@ -14,13 +14,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Reference NEW version via project reference -->
-    <ProjectReference Include="..\..\..\Primitives\src\ReactiveUI.Disposables\ReactiveUI.Disposables.csproj" />
-    <ProjectReference Include="..\..\..\Primitives\src\ReactiveUI.Primitives\ReactiveUI.Primitives.csproj" />
     <ProjectReference Include="..\Punchclock\Punchclock.csproj" />
 
     <!-- BenchmarkDotNet - version from Directory.Packages.props -->
-    <!--<PackageReference Include="ReactiveUI.Primitives" />-->
+    <PackageReference Include="ReactiveUI.Primitives" />
     <PackageReference Include="BenchmarkDotNet" />
   </ItemGroup>
 

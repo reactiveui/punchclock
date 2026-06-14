@@ -1,6 +1,5 @@
-// Copyright (c) 2025 ReactiveUI and Contributors. All rights reserved.
-// Licensed to the ReactiveUI and Contributors under one or more agreements.
-// ReactiveUI and Contributors licenses this file to you under the MIT license.
+// Copyright (c) 2019-2026 ReactiveUI Association Incorporated. All rights reserved.
+// ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
 // Polyfill implementation adapted from SimonCropp/Polyfill (https://github.com/SimonCropp/Polyfill).
@@ -10,13 +9,17 @@ namespace System.Threading;
 /// <summary>Polyfill extensions for <see cref="CancellationTokenSource"/> on frameworks without the .NET 8 async cancellation API.</summary>
 internal static class CancellationTokenSourcePolyfillExtensions
 {
-    /// <summary>Communicates a request for cancellation, completing synchronously.</summary>
+    /// <summary>Async cancellation members for cancellation token sources.</summary>
     /// <param name="source">The cancellation token source.</param>
-    /// <returns>A completed task representing the cancellation request.</returns>
-    public static Task CancelAsync(this CancellationTokenSource source)
+    extension(CancellationTokenSource source)
     {
-        source.Cancel();
-        return Task.CompletedTask;
+        /// <summary>Communicates a request for cancellation, completing synchronously.</summary>
+        /// <returns>A completed task representing the cancellation request.</returns>
+        public Task CancelAsync()
+        {
+            source.Cancel();
+            return Task.CompletedTask;
+        }
     }
 }
 #endif
