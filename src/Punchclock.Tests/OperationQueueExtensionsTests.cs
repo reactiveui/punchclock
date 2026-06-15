@@ -556,11 +556,11 @@ public class OperationQueueExtensionsTests
     {
         using (Assert.Multiple())
         {
-            var testScheduler = new TestClock();
+            var testScheduler = new VirtualClock();
             using var cts = new CancellationTokenSource();
 
             // Schedule cancellation to happen during subscription
-            testScheduler.Schedule(TimeSpan.FromTicks(Five), cts.Cancel);
+            testScheduler.ScheduleRelative(TimeSpan.FromTicks(Five), cts.Cancel);
 
             var observable = OperationQueueExtensions.ConvertTokenToObservable(testScheduler, cts.Token);
 
@@ -568,7 +568,7 @@ public class OperationQueueExtensionsTests
             var receivedValues = new List<RxVoid>();
 
             // Subscribe at time 0
-            testScheduler.Schedule(TimeSpan.FromTicks(Ten), () =>
+            testScheduler.ScheduleRelative(TimeSpan.FromTicks(Ten), () =>
             {
                 ObservableExtensions.Subscribe(
                     observable,
