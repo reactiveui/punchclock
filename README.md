@@ -45,59 +45,63 @@ Punchclock currently targets modern .NET (`net8.0`, `net9.0`, `net10.0`,
 `net11.0`) and .NET Framework (`net462`, `net472`, `net48`, `net481`).
 
 Punchclock v7.0.0 moves the queue internals and observable examples onto
-`ReactiveUI.Primitives`. If you are migrating from Punchclock v6 code that
-still uses System.Reactive, or you want to bridge to R3 at the edge of your
-application, reference `ReactiveUI.Primitives` directly so its source-generator
-bridge analyzers are available to your project. The generators do not add a
-runtime Rx or R3 dependency to Punchclock; they emit adapters only when your
-app already references `System.Reactive`, `System.Reactive.Async`, `R3`, or
-`R3Async`.
+`ReactiveUI.Primitives`. ReactiveUI.Primitives v5 keeps System.Reactive
+interop explicit: the base `ReactiveUI.Primitives` package provides the lean
+Primitives API and optional generated R3/R3Async bridges, while System.Reactive
+compatibility lives in the `.Reactive` package variants such as
+`ReactiveUI.Primitives.Reactive`, `ReactiveUI.Primitives.Async.Reactive`, and
+`ReactiveUI.Primitives.Extensions.Reactive`.
 
 For a v6-style System.Reactive migration, keep the Rx package while you move
-code across the boundary:
+code across the boundary. Punchclock returns standard BCL `IObservable<T>`
+values, so System.Reactive LINQ can still compose queue results directly:
 
 ```powershell
 dotnet add package Punchclock --version 7.0.0
-dotnet add package ReactiveUI.Primitives
 dotnet add package System.Reactive
+# Optional when your own code needs Primitives APIs with System.Reactive Unit or IScheduler:
+dotnet add package ReactiveUI.Primitives.Reactive
 ```
 
-Then import the generated System.Reactive bridge namespace:
+Then keep System.Reactive at the application edge while Punchclock schedules
+the work:
 
 ```csharp
 using Punchclock;
-using ReactiveUI.Primitives;
-using ReactiveUI.Primitives.SystemReactiveBridge;
+using System;
+using System.Net.Http;
+using System.Reactive;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 
 using var queue = new OperationQueue(maximumConcurrent: 2);
 using var http = new HttpClient();
 
-var cancelFromLegacyRx = new Subject<RxVoid>();
+using var cancelFromLegacyRx = new Subject<Unit>();
 
 IObservable<string> rxFriendlyResult =
     queue.EnqueueObservableOperation(
         priority: 5,
         key: "legacy:refresh",
-        cancel: cancelFromLegacyRx.AsPrimitivesSignal(),
+        cancel: cancelFromLegacyRx,
         asyncCalculationFunc: () =>
-            Observable
-                .FromAsync(() => http.GetStringAsync("https://example.com/legacy"))
-                .AsPrimitivesSignal())
-    .AsSystemObservable();
+            Observable.FromAsync(() => http.GetStringAsync("https://example.com/legacy")));
 
-using var subscription = System.ObservableExtensions.Subscribe(
-    Observable.Timeout(rxFriendlyResult, TimeSpan.FromSeconds(10)),
-    value => Console.WriteLine(value),
-    error => Console.Error.WriteLine(error));
+using var subscription = rxFriendlyResult
+    .Timeout(TimeSpan.FromSeconds(10))
+    .Subscribe(
+        value => Console.WriteLine(value),
+        error => Console.Error.WriteLine(error));
 
-cancelFromLegacyRx.OnNext(RxVoid.Default);
+cancelFromLegacyRx.OnNext(Unit.Default);
 ```
 
-The R3 bridge works the same way from the generated
-`ReactiveUI.Primitives.R3Bridge` namespace when the consuming project references
-R3.
+R3 and R3Async bridge adapters are still generated from the base
+`ReactiveUI.Primitives` package in the `ReactiveUI.Primitives.R3Bridge`
+namespace when the consuming project references R3 or R3Async. There is no
+generated System.Reactive bridge namespace in ReactiveUI.Primitives v5; use the
+`.Reactive` packages when your own Primitives-facing code must expose
+System.Reactive `Unit` or `IScheduler`.
 
 Most application code only needs this:
 

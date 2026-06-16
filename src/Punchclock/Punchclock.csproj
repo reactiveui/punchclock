@@ -43,7 +43,7 @@
 
 	<Target Name="RemoveReactiveUIPrimitivesBridgeAnalyzers" BeforeTargets="CoreCompile">
 		<ItemGroup>
-			<Analyzer Remove="@(Analyzer)" Condition="'%(Filename)' == 'ReactiveUI.Primitives.R3Bridge.Generator' or '%(Filename)' == 'ReactiveUI.Primitives.SystemReactiveBridge.Generator'" />
+			<Analyzer Remove="@(Analyzer)" Condition="'%(Filename)' == 'ReactiveUI.Primitives.R3Bridge.Generator'" />
 		</ItemGroup>
 	</Target>
 
