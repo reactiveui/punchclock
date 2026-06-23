@@ -4,12 +4,14 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using ReactiveUI.Primitives;
-using ReactiveUI.Primitives.Concurrency;
-using ReactiveUI.Primitives.Core;
-using ReactiveUI.Primitives.Signals;
+
+#if REACTIVE_SHIM
+
+namespace Punchclock.Reactive;
+#else
 
 namespace Punchclock;
+#endif
 
 /// <summary>
 /// <para>
@@ -54,7 +56,7 @@ public class OperationQueue : IDisposable
     private readonly HashSet<string> _activeKeys = [];
 
     /// <summary>Sequencer used to start scheduled operations.</summary>
-    private readonly ISequencer _sequencer;
+    private readonly IScheduler _sequencer;
 
     /// <summary>Whether to randomize execution order among equal-priority items across different keys.</summary>
     private readonly bool _randomizeEqualPriority;
@@ -75,7 +77,7 @@ public class OperationQueue : IDisposable
     private bool _isDisposed;
 
     /// <summary>Observable that signals when shutdown is complete. Null until <see cref="ShutdownQueue"/> is called.</summary>
-    private ReplaySignal<RxVoid>? _shutdownObs;
+    private ReplaySignal<Unit>? _shutdownObs;
 
     /// <summary>Tracks whether shutdown has already been signalled.</summary>
     private bool _shutdownCompleted;
@@ -96,7 +98,7 @@ public class OperationQueue : IDisposable
     /// <summary>Initializes a new instance of the <see cref="OperationQueue"/> class with a scheduler.</summary>
     /// <param name="maximumConcurrent">The maximum number of concurrent operations. Must be positive.</param>
     /// <param name="scheduler">Sequencer for controlling execution timing. Useful for testing.</param>
-    public OperationQueue(int maximumConcurrent, ISequencer scheduler)
+    public OperationQueue(int maximumConcurrent, IScheduler scheduler)
         : this(maximumConcurrent, randomizeEqualPriority: false, seed: null, scheduler: scheduler)
     {
     }
@@ -115,12 +117,12 @@ public class OperationQueue : IDisposable
     /// <param name="randomizeEqualPriority">If true, randomizes execution order among equal-priority items across different keys.</param>
     /// <param name="seed">Optional seed to make randomization deterministic for tests.</param>
     /// <param name="scheduler">Sequencer for controlling execution timing. Useful for testing.</param>
-    public OperationQueue(int maximumConcurrent, bool randomizeEqualPriority, int? seed, ISequencer? scheduler)
+    public OperationQueue(int maximumConcurrent, bool randomizeEqualPriority, int? seed, IScheduler? scheduler)
     {
         ArgumentOutOfRangeExceptionHelper.ThrowIfNegativeOrZero(maximumConcurrent);
 
         _maximumConcurrent = maximumConcurrent;
-        _sequencer = scheduler ?? Sequencer.Immediate;
+        _sequencer = scheduler ?? Scheduler.Immediate;
         _randomizeEqualPriority = randomizeEqualPriority;
         if (randomizeEqualPriority)
         {
@@ -159,7 +161,7 @@ public class OperationQueue : IDisposable
             Key = string.IsNullOrEmpty(key) ? DefaultKey : key,
             Id = id,
             Priority = priority,
-            CancelSignal = cancelReplay.Map(_ => RxVoid.Default),
+            CancelSignal = cancelReplay.Map(_ => Unit.Default),
             Func = asyncCalculationFunc,
             UseRandomTiebreak = _randomizeEqualPriority,
             RandomOrder = _randomizeEqualPriority ? _random!.Next() : 0,
@@ -202,7 +204,7 @@ public class OperationQueue : IDisposable
     /// <param name="asyncCalculationFunc">The async method to execute when scheduled.</param>
     /// <returns>An observable that produces the result of the async calculation.</returns>
     public IObservable<T> EnqueueObservableOperation<T>(int priority, string key, Func<IObservable<T>> asyncCalculationFunc) =>
-        EnqueueObservableOperation(priority, key, Signal.Silent<RxVoid>(), asyncCalculationFunc);
+        EnqueueObservableOperation(priority, key, Signal.Silent<Unit>(), asyncCalculationFunc);
 
     /// <summary>This method enqueues an action to be run at a later time, according to the scheduling policies (i.e. via priority).</summary>
     /// <typeparam name="T">The type of item for the observable.</typeparam>
@@ -210,7 +212,7 @@ public class OperationQueue : IDisposable
     /// <param name="asyncCalculationFunc">The async method to execute when scheduled.</param>
     /// <returns>An observable that produces the result of the async calculation.</returns>
     public IObservable<T> EnqueueObservableOperation<T>(int priority, Func<IObservable<T>> asyncCalculationFunc) =>
-        EnqueueObservableOperation(priority, DefaultKey, Signal.Silent<RxVoid>(), asyncCalculationFunc);
+        EnqueueObservableOperation(priority, DefaultKey, Signal.Silent<Unit>(), asyncCalculationFunc);
 
     /// <summary>
     /// This method pauses the dispatch queue. Inflight operations will not
@@ -225,7 +227,7 @@ public class OperationQueue : IDisposable
             ScheduleOperations();
         }
 
-        return ReactiveUI.Primitives.Disposables.Scope.Create(() =>
+        return Disposable.Create(() =>
         {
             if (Interlocked.Decrement(ref _pauseRefCount) > 0)
             {
@@ -268,9 +270,9 @@ public class OperationQueue : IDisposable
     /// </summary>
     /// <returns>An Observable that will signal when all items are complete,
     /// or an error if any operations failed during shutdown.</returns>
-    public IObservable<RxVoid> ShutdownQueue()
+    public IObservable<Unit> ShutdownQueue()
     {
-        ReplaySignal<RxVoid> shutdown;
+        ReplaySignal<Unit> shutdown;
         lock (_gate)
         {
             if (_shutdownObs is not null)
@@ -278,7 +280,7 @@ public class OperationQueue : IDisposable
                 return _shutdownObs;
             }
 
-            shutdown = new ReplaySignal<RxVoid>();
+            shutdown = new ReplaySignal<Unit>();
             _shutdownObs = shutdown;
         }
 
@@ -335,7 +337,7 @@ public class OperationQueue : IDisposable
         for (var i = 0; i < operationsToStart.Count; i++)
         {
             var operation = operationsToStart[i];
-            _sequencer.Schedule((Queue: this, Operation: operation), static state => state.Queue.StartOperation(state.Operation));
+            ScheduleStart(operation);
         }
     }
 
@@ -461,7 +463,7 @@ public class OperationQueue : IDisposable
         for (var i = 0; i < operationsToStart.Count; i++)
         {
             var next = operationsToStart[i];
-            _sequencer.Schedule((Queue: this, Operation: next), static state => state.Queue.StartOperation(state.Operation));
+            ScheduleStart(next);
         }
 
         if (!completeShutdown)
@@ -489,6 +491,25 @@ public class OperationQueue : IDisposable
         CompleteShutdown();
     }
 
+    /// <summary>Schedules an operation start using the active scheduler shape for the current package variant.</summary>
+    /// <param name="operation">The operation to start.</param>
+    private void ScheduleStart(KeyedOperation operation)
+    {
+#if REACTIVE_SHIM
+        _sequencer.Schedule(
+            (Queue: this, Operation: operation),
+            static (_, state) =>
+            {
+                state.Queue.StartOperation(state.Operation);
+                return Disposable.Empty;
+            });
+#else
+        _sequencer.Schedule(
+            (Queue: this, Operation: operation),
+            static state => state.Queue.StartOperation(state.Operation));
+#endif
+    }
+
     /// <summary>Determines whether shutdown can be signalled.</summary>
     /// <returns><see langword="true"/> if shutdown is ready; otherwise, <see langword="false"/>.</returns>
     private bool IsShutdownReady()
@@ -506,7 +527,7 @@ public class OperationQueue : IDisposable
     private void CompleteShutdown()
     {
         var shutdown = Volatile.Read(ref _shutdownObs)!;
-        shutdown.OnNext(RxVoid.Default);
+        shutdown.OnNext(Unit.Default);
         shutdown.OnCompleted();
     }
 }
