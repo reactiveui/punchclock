@@ -2,12 +2,13 @@
 // ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using ReactiveUI.Primitives;
-using ReactiveUI.Primitives.Concurrency;
-using ReactiveUI.Primitives.Disposables;
-using ReactiveUI.Primitives.Signals;
+#if REACTIVE_SHIM
+
+namespace Punchclock.Reactive;
+#else
 
 namespace Punchclock;
+#endif
 
 /// <summary>Extension methods associated with the <see cref="OperationQueue"/>. Provides convenient Task-based overloads for enqueueing operations.</summary>
 public static class OperationQueueExtensions
@@ -23,7 +24,7 @@ public static class OperationQueueExtensions
         /// <param name="asyncOperation">The async method to execute when scheduled.</param>
         /// <param name="token">A cancellation token which if signalled, will cancel the operation.</param>
         /// <returns>A task that completes when the operation completes, containing the result.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
+        /// <exception cref="ArgumentExceptionHelper">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
         /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via <paramref name="token"/>.</exception>
         public Task<T> Enqueue<T>(int priority, string key, Func<Task<T>> asyncOperation, CancellationToken token)
         {
@@ -33,7 +34,7 @@ public static class OperationQueueExtensions
             // Fast path: if token can't be cancelled, avoid registration overhead.
             if (!token.CanBeCanceled)
             {
-                return operationQueue.EnqueueObservableOperation(priority, key, Signal.Silent<RxVoid>(), () => Signal.FromTask(asyncOperation()))
+                return operationQueue.EnqueueObservableOperation(priority, key, Signal.Silent<Unit>(), () => Signal.FromTask(asyncOperation()))
                     .ToTask(CancellationToken.None);
             }
 
@@ -53,7 +54,7 @@ public static class OperationQueueExtensions
         /// <param name="asyncOperation">The async method to execute when scheduled.</param>
         /// <param name="token">A cancellation token which if signalled, will cancel the operation.</param>
         /// <returns>A task that completes when the operation completes.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
+        /// <exception cref="ArgumentExceptionHelper">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
         /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via <paramref name="token"/>.</exception>
         public Task Enqueue(int priority, string key, Func<Task> asyncOperation, CancellationToken token)
         {
@@ -63,7 +64,7 @@ public static class OperationQueueExtensions
             // Fast path: if token can't be cancelled, avoid registration overhead.
             if (!token.CanBeCanceled)
             {
-                return operationQueue.EnqueueObservableOperation(priority, key, Signal.Silent<RxVoid>(), () => Signal.FromTask(ToRxVoidTask(asyncOperation)))
+                return operationQueue.EnqueueObservableOperation(priority, key, Signal.Silent<Unit>(), () => Signal.FromTask(ToRxVoidTask(asyncOperation)))
                     .ToTask(CancellationToken.None);
             }
 
@@ -83,13 +84,13 @@ public static class OperationQueueExtensions
         /// <param name="key">A key to apply to the operation. Items with the same key will be run in order. Pass null for non-keyed operations.</param>
         /// <param name="asyncOperation">The async method to execute when scheduled.</param>
         /// <returns>A task that completes when the operation completes, containing the result.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
+        /// <exception cref="ArgumentExceptionHelper">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
         public Task<T> Enqueue<T>(int priority, string key, Func<Task<T>> asyncOperation)
         {
             ArgumentExceptionHelper.ThrowIfNull(operationQueue);
             ArgumentExceptionHelper.ThrowIfNull(asyncOperation);
 
-            return operationQueue.EnqueueObservableOperation(priority, key, Signal.Silent<RxVoid>(), () => Signal.FromTask(asyncOperation()))
+            return operationQueue.EnqueueObservableOperation(priority, key, Signal.Silent<Unit>(), () => Signal.FromTask(asyncOperation()))
                 .ToTask();
         }
 
@@ -98,13 +99,13 @@ public static class OperationQueueExtensions
         /// <param name="key">A key to apply to the operation. Items with the same key will be run in order. Pass null for non-keyed operations.</param>
         /// <param name="asyncOperation">The async method to execute when scheduled.</param>
         /// <returns>A task that completes when the operation completes.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
+        /// <exception cref="ArgumentExceptionHelper">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
         public Task Enqueue(int priority, string key, Func<Task> asyncOperation)
         {
             ArgumentExceptionHelper.ThrowIfNull(operationQueue);
             ArgumentExceptionHelper.ThrowIfNull(asyncOperation);
 
-            return operationQueue.EnqueueObservableOperation(priority, key, Signal.Silent<RxVoid>(), () => Signal.FromTask(ToRxVoidTask(asyncOperation)))
+            return operationQueue.EnqueueObservableOperation(priority, key, Signal.Silent<Unit>(), () => Signal.FromTask(ToRxVoidTask(asyncOperation)))
                 .ToTask();
         }
 
@@ -116,7 +117,7 @@ public static class OperationQueueExtensions
         /// <param name="priority">The priority of operation. Higher priorities run before lower ones.</param>
         /// <param name="asyncOperation">The async method to execute when scheduled.</param>
         /// <returns>A task that completes when the operation completes, containing the result.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
+        /// <exception cref="ArgumentExceptionHelper">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
         public Task<T> Enqueue<T>(int priority, Func<Task<T>> asyncOperation)
         {
             ArgumentExceptionHelper.ThrowIfNull(operationQueue);
@@ -133,7 +134,7 @@ public static class OperationQueueExtensions
         /// <param name="priority">The priority of operation. Higher priorities run before lower ones.</param>
         /// <param name="asyncOperation">The async method to execute when scheduled.</param>
         /// <returns>A task that completes when the operation completes.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
+        /// <exception cref="ArgumentExceptionHelper">Thrown when <paramref name="operationQueue"/> or <paramref name="asyncOperation"/> is null.</exception>
         public Task Enqueue(int priority, Func<Task> asyncOperation)
         {
             ArgumentExceptionHelper.ThrowIfNull(operationQueue);
@@ -147,14 +148,14 @@ public static class OperationQueueExtensions
     /// <summary>Converts a <see cref="CancellationToken"/> to an observable that signals when cancellation is requested.</summary>
     /// <param name="token">The cancellation token to convert.</param>
     /// <returns>
-    /// An observable that emits <see cref="RxVoid.Default"/> when the token is cancelled.
+    /// An observable that emits <see cref="Unit.Default"/> when the token is cancelled.
     /// For non-cancellable tokens, returns an observable that never completes (fast path).
     /// </returns>
     /// <exception cref="OperationCanceledException">Thrown immediately if the token is already cancelled.</exception>
 #if NET8_0_OR_GREATER
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
 #endif
-    internal static IObservable<RxVoid> ConvertTokenToObservable(CancellationToken token) =>
+    internal static IObservable<Unit> ConvertTokenToObservable(CancellationToken token) =>
         ConvertTokenToObservable(null, token);
 
     /// <summary>
@@ -164,40 +165,40 @@ public static class OperationQueueExtensions
     /// <param name="scheduler">Optional sequencer for subscription. Used for testing temporal behavior.</param>
     /// <param name="token">The cancellation token to convert.</param>
     /// <returns>
-    /// An observable that emits <see cref="RxVoid.Default"/> when the token is cancelled.
+    /// An observable that emits <see cref="Unit.Default"/> when the token is cancelled.
     /// For non-cancellable tokens, returns an observable that never completes (fast path).
     /// </returns>
     /// <exception cref="OperationCanceledException">Thrown immediately if the token is already cancelled.</exception>
 #if NET8_0_OR_GREATER
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
 #endif
-    internal static IObservable<RxVoid> ConvertTokenToObservable(ISequencer? scheduler, CancellationToken token)
+    internal static IObservable<Unit> ConvertTokenToObservable(IScheduler? scheduler, CancellationToken token)
     {
         // Fast path: non-cancellable tokens never cancel, so return never-completing observable
         if (!token.CanBeCanceled)
         {
-            return Signal.Silent<RxVoid>();
+            return Signal.Silent<Unit>();
         }
 
         // Fast path: already cancelled tokens throw immediately
         if (token.IsCancellationRequested)
         {
-            return Signal.Fail<RxVoid>(new OperationCanceledException(token));
+            return Signal.Fail<Unit>(new OperationCanceledException(token));
         }
 
         // Standard path: create observable that signals on cancellation
-        var obs = Signal.Create<RxVoid>(observer =>
+        var obs = Signal.Create<Unit>(observer =>
         {
             // Double-check cancellation after observable creation
             if (token.IsCancellationRequested)
             {
                 observer.OnError(new OperationCanceledException(token));
-                return Scope.Empty;
+                return Disposable.Empty;
             }
 
             return token.Register(() =>
             {
-                observer.OnNext(RxVoid.Default);
+                observer.OnNext(Unit.Default);
                 observer.OnCompleted();
             });
         });
@@ -205,12 +206,12 @@ public static class OperationQueueExtensions
         return scheduler is not null ? obs.SubscribeOn(scheduler) : obs;
     }
 
-    /// <summary>Converts a non-generic task operation into a task that emits <see cref="RxVoid"/>.</summary>
+    /// <summary>Converts a non-generic task operation into a task that emits <see cref="Unit"/>.</summary>
     /// <param name="asyncOperation">The async operation to execute.</param>
-    /// <returns>A task that produces <see cref="RxVoid.Default"/> after completion.</returns>
-    private static async Task<RxVoid> ToRxVoidTask(Func<Task> asyncOperation)
+    /// <returns>A task that produces <see cref="Unit.Default"/> after completion.</returns>
+    private static async Task<Unit> ToRxVoidTask(Func<Task> asyncOperation)
     {
         await asyncOperation().ConfigureAwait(false);
-        return RxVoid.Default;
+        return Unit.Default;
     }
 }

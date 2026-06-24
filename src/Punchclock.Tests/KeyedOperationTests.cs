@@ -3,7 +3,7 @@
 // See the LICENSE file in the project root for full license information.
 
 using ReactiveUI.Primitives.Signals;
-using RxVoid = ReactiveUI.Primitives.RxVoid;
+using Unit = ReactiveUI.Primitives.RxVoid;
 
 namespace Punchclock.Tests;
 
@@ -128,7 +128,7 @@ public class KeyedOperationTests
             var op = CreateOperation(priority: 1, key: "test");
             op.CancelledEarly = true;
 
-            var results = new List<RxVoid>();
+            var results = new List<Unit>();
             op.EvaluateFunc().Subscribe(results.Add);
 
             await Assert.That(results).IsEmpty();
@@ -152,7 +152,7 @@ public class KeyedOperationTests
                     return Signal.Emit(42);
                 });
 
-            var results = new List<RxVoid>();
+            var results = new List<Unit>();
             op.EvaluateFunc().Subscribe(results.Add);
 
             await Assert.That(executed).IsTrue();
@@ -166,7 +166,7 @@ public class KeyedOperationTests
     {
         using (Assert.Multiple())
         {
-            var cancelSubject = new Signal<RxVoid>();
+            var cancelSubject = new Signal<Unit>();
             var completed = false;
             var op = CreateOperation(
                 priority: 1,
@@ -176,7 +176,7 @@ public class KeyedOperationTests
 
             op.EvaluateFunc().Subscribe(_ => { }, () => completed = true);
 
-            cancelSubject.OnNext(RxVoid.Default);
+            cancelSubject.OnNext(Unit.Default);
             cancelSubject.OnCompleted();
 
             // TakeUntil completes synchronously when cancel signal completes
@@ -239,7 +239,7 @@ public class KeyedOperationTests
             Func = null, // Null func - should hit line 190
         };
 
-        var results = new List<RxVoid>();
+        var results = new List<Unit>();
         op.EvaluateFunc().Subscribe(results.Add);
 
         await Assert.That(results).IsEmpty();
@@ -261,7 +261,7 @@ public class KeyedOperationTests
         bool useRandom = false,
         int randomOrder = 0,
         Func<IObservable<int>>? func = null,
-        IObservable<RxVoid>? cancelSignal = null) => new()
+        IObservable<Unit>? cancelSignal = null) => new()
         {
             Priority = priority,
             Key = key,

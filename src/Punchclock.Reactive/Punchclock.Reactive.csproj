@@ -1,7 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-		<TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
-	</PropertyGroup>
+
+  <PropertyGroup>
+    <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <DefineConstants>$(DefineConstants);REACTIVE_SHIM</DefineConstants>
+  </PropertyGroup>
   <!-- Inject nullable-annotation attribute polyfills on frameworks that lack them. -->
   <ItemGroup Condition="$(TargetFramework.StartsWith('net4'))">
     <Compile Include="..\Polyfills\NotNullWhenAttribute.cs" Link="Polyfills\NotNullWhenAttribute.cs" />
@@ -11,7 +15,6 @@
     <Compile Include="..\Polyfills\IsExternalInit.cs" Link="Polyfills\IsExternalInit.cs" />
     <Compile Include="..\Polyfills\RequiredMemberAttribute.cs" Link="Polyfills\RequiredMemberAttribute.cs" />
     <Compile Include="..\Polyfills\CompilerFeatureRequiredAttribute.cs" Link="Polyfills\CompilerFeatureRequiredAttribute.cs" />
-    <Compile Include="..\Polyfills\TaskCompletionSource.cs" Link="Polyfills\TaskCompletionSource.cs" />
     <Compile Include="..\Polyfills\SetsRequiredMembersAttribute.cs" Link="Polyfills\SetsRequiredMembersAttribute.cs" />
     <Compile Include="..\Polyfills\CancellationTokenSourcePolyfillExtensions.cs" Link="Polyfills\CancellationTokenSourcePolyfillExtensions.cs" />
     <Compile Include="..\Polyfills\CancellationTokenPolyfillExtensions.cs" Link="Polyfills\CancellationTokenPolyfillExtensions.cs" />
@@ -31,30 +34,20 @@
     <Using Include="System.ArgumentOutOfRangeException" Alias="ArgumentOutOfRangeExceptionHelper" />
   </ItemGroup>
 
-	<ItemGroup>
-		<InternalsVisibleTo Include="Punchclock.Tests" />
-		<InternalsVisibleTo Include="Punchclock.Benchmarks" />
-	</ItemGroup>
-
-	<ItemGroup>
-    <PackageReference Include="ReactiveUI.Primitives" ExcludeAssets="analyzers" />
-	</ItemGroup>
-
   <ItemGroup>
-    <Using Include="ReactiveUI.Primitives"/>
-    <Using Include="ReactiveUI.Primitives.Concurrency" />
-    <Using Include="ReactiveUI.Primitives.Core" />
-    <Using Include="ReactiveUI.Primitives.Signals" />
-    <Using Include="ReactiveUI.Primitives.RxVoid" Alias="Unit" />
-    <Using Include="ReactiveUI.Primitives.Concurrency.ISequencer" Alias="IScheduler" />
-    <Using Include="ReactiveUI.Primitives.Concurrency.Sequencer" Alias="Scheduler" />
-    <Using Include="ReactiveUI.Primitives.Disposables.Scope" Alias="Disposable" />
+    <Compile Include="..\Punchclock\**\*.cs" Exclude="..\Punchclock\bin\**;..\Punchclock\obj\**" Link="%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
-	<Target Name="RemoveReactiveUIPrimitivesBridgeAnalyzers" BeforeTargets="CoreCompile">
-		<ItemGroup>
-			<Analyzer Remove="@(Analyzer)" Condition="'%(Filename)' == 'ReactiveUI.Primitives.R3Bridge.Generator'" />
-		</ItemGroup>
-	</Target>
+  <ItemGroup>
+    <PackageReference Include="ReactiveUI.Primitives.Reactive" PrivateAssets="analyzers" />
+    <Using Include="System.Reactive.Unit" Alias="Unit" />
+    <Using Include="System.Reactive.Concurrency.IScheduler" Alias="IScheduler" />
+    <Using Include="System.Reactive.Concurrency.Scheduler" Alias="Scheduler" />
+    <Using Include="ReactiveUI.Primitives.Reactive" />
+    <Using Include="ReactiveUI.Primitives.Reactive.Concurrency" />
+    <Using Include="ReactiveUI.Primitives.Core" />
+    <Using Include="ReactiveUI.Primitives.Reactive.Signals" />
+    <Using Include="System.Reactive.Disposables" />
+  </ItemGroup>
 
 </Project>

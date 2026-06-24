@@ -1,11 +1,13 @@
 // Copyright (c) 2019-2026 ReactiveUI Association Incorporated. All rights reserved.
 // ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
+#if REACTIVE_SHIM
 
-using ReactiveUI.Primitives;
-using ReactiveUI.Primitives.Signals;
+namespace Punchclock.Reactive;
+#else
 
 namespace Punchclock;
+#endif
 
 /// <summary>Typed operation that can be enqueued in an <see cref="OperationQueue"/>. Wraps a user-provided function that returns an observable of <typeparamref name="T"/>.</summary>
 /// <typeparam name="T">The type of value produced by this operation.</typeparam>
@@ -31,25 +33,25 @@ internal sealed class KeyedOperation<T> : KeyedOperation
     /// Respects early cancellation and the cancellation signal.
     /// </summary>
     /// <returns>
-    /// An observable of <see cref="RxVoid"/> that completes when the operation finishes.
+    /// An observable of <see cref="Unit"/> that completes when the operation finishes.
     /// Returns an empty observable if the function is null or the operation was cancelled early.
     /// </returns>
-    public override IObservable<RxVoid> EvaluateFunc()
+    public override IObservable<Unit> EvaluateFunc()
     {
         if (Func is null)
         {
-            return Signal.None<RxVoid>();
+            return Signal.None<Unit>();
         }
 
         if (CancelledEarly)
         {
-            return Signal.None<RxVoid>();
+            return Signal.None<Unit>();
         }
 
-        var signal = CancelSignal ?? Signal.None<RxVoid>();
+        var signal = CancelSignal ?? Signal.None<Unit>();
         var ret = Func().TakeUntil(signal).Multicast(Result);
         ret.Connect();
 
-        return ret.Map(_ => RxVoid.Default);
+        return ret.Map(_ => Unit.Default);
     }
 }

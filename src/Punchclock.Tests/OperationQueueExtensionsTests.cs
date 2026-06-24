@@ -6,7 +6,6 @@ using System.Diagnostics.CodeAnalysis;
 using ReactiveUI.Primitives;
 using ReactiveUI.Primitives.Concurrency;
 using ReactiveUI.Primitives.Signals;
-using RxVoid = ReactiveUI.Primitives.RxVoid;
 
 namespace Punchclock.Tests;
 

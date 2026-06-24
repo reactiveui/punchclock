@@ -18,6 +18,7 @@
     <File Path="testconfig.json" />
   </Folder>
   <Project Path="Punchclock.Benchmarks/Punchclock.Benchmarks.csproj" />
+  <Project Path="Punchclock.Reactive/Punchclock.Reactive.csproj" Id="00cbf112-2779-45e6-93d5-1e5a9051c365" />
   <Project Path="Punchclock.Tests/Punchclock.Tests.csproj" />
   <Project Path="Punchclock/Punchclock.csproj" />
 </Solution>

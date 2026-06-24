@@ -1,10 +1,13 @@
 // Copyright (c) 2019-2026 ReactiveUI Association Incorporated. All rights reserved.
 // ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
+#if REACTIVE_SHIM
 
-using ReactiveUI.Primitives;
+namespace Punchclock.Reactive;
+#else
 
 namespace Punchclock;
+#endif
 
 /// <summary>
 /// Base class for operations that can be enqueued in an <see cref="OperationQueue"/>.
@@ -43,7 +46,7 @@ internal abstract class KeyedOperation : IComparable<KeyedOperation>
     /// <value>
     /// An observable that emits when cancellation is requested, or null if no cancellation signal is provided.
     /// </value>
-    public IObservable<RxVoid>? CancelSignal { get; init; }
+    public IObservable<Unit>? CancelSignal { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether this operation uses the default (non-keyed) key.
@@ -73,8 +76,8 @@ internal abstract class KeyedOperation : IComparable<KeyedOperation>
     public IDisposable? CancelSubscription { get; set; }
 
     /// <summary>Evaluates the operation function and returns an observable stream.</summary>
-    /// <returns>An observable of <see cref="RxVoid"/> that completes when the operation finishes.</returns>
-    public abstract IObservable<RxVoid> EvaluateFunc();
+    /// <returns>An observable of <see cref="Unit"/> that completes when the operation finishes.</returns>
+    public abstract IObservable<Unit> EvaluateFunc();
 
     /// <summary>
     /// Compares this operation to another for priority-based scheduling.

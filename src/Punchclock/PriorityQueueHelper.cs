@@ -4,7 +4,13 @@
 
 using System.Runtime.CompilerServices;
 
+#if REACTIVE_SHIM
+
+namespace Punchclock.Reactive;
+#else
+
 namespace Punchclock;
+#endif
 
 /// <summary>
 /// Internal helper class providing static heap operations for priority queues.
