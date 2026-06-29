@@ -14,15 +14,15 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.0.0-1.25277.114" />
     <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.0.0-1.25277.114" />
     <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.27.0.140913" />
-		<PackageVersion Include="ReactiveUI.Primitives" Version="5.6.0" />
-    <PackageVersion Include="ReactiveUI.Primitives.Reactive" Version="5.6.0" />
+		<PackageVersion Include="ReactiveUI.Primitives" Version="5.7.0" />
+    <PackageVersion Include="ReactiveUI.Primitives.Reactive" Version="5.7.0" />
   </ItemGroup>
 
   <!-- Benchmarks + tests -->
 	<ItemGroup>
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
     <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.8.0" />
-		<PackageVersion Include="TUnit" Version="1.56.25" />
+		<PackageVersion Include="TUnit" Version="1.56.35" />
     <PackageVersion Include="DynamicData" Version="9.4.31" />
 
 		<PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
