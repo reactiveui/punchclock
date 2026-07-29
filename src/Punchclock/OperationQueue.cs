@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for full license information.
 
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 
 #if REACTIVE_SHIM
 
@@ -32,10 +31,16 @@ namespace Punchclock;
 /// item can run at the same time as a "foo" item.
 /// </para>
 /// </summary>
-[SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Random - used for non-security purposes (priority queue tiebreaking), supports deterministic seeding for tests")]
 public class OperationQueue : IDisposable
 {
+    /// <summary>The default maximum number of concurrent operations.</summary>
     private const int MaximumConcurrent = 4;
+
+    /// <summary>Multiplier for deterministic pseudo-random ordering.</summary>
+    private const int RandomMultiplier = 1_103_515_245;
+
+    /// <summary>Increment for deterministic pseudo-random ordering.</summary>
+    private const int RandomIncrement = 12_345;
 
     /// <summary>
     /// Global sequence number for operation IDs across all OperationQueue instances.
@@ -61,11 +66,14 @@ public class OperationQueue : IDisposable
     /// <summary>Whether to randomize execution order among equal-priority items across different keys.</summary>
     private readonly bool _randomizeEqualPriority;
 
-    /// <summary>Random number generator for tie-breaking when <see cref="_randomizeEqualPriority"/> is enabled. Null when randomization is disabled.</summary>
-    private readonly Random? _random;
+    /// <summary>Optional seed for deterministic tie-break ordering.</summary>
+    private readonly int? _randomSeed;
 
     /// <summary>Maximum number of concurrent operations allowed. Modified under lock via <see cref="SetMaximumConcurrent"/>.</summary>
     private int _maximumConcurrent;
+
+    /// <summary>Per-queue sequence used to generate deterministic tie-break values.</summary>
+    private int _randomSequence;
 
     /// <summary>Reference count for pause operations. When greater than zero, the queue is paused.</summary>
     private int _pauseRefCount;
@@ -124,14 +132,7 @@ public class OperationQueue : IDisposable
         _maximumConcurrent = maximumConcurrent;
         _sequencer = scheduler ?? Scheduler.Immediate;
         _randomizeEqualPriority = randomizeEqualPriority;
-        if (randomizeEqualPriority)
-        {
-            _random = seed.HasValue ? new Random(seed.Value) : new Random();
-        }
-        else
-        {
-            _random = null;
-        }
+        _randomSeed = seed;
     }
 
     /// <summary>Gets the default key used for non-keyed operations. Operations with this key run concurrently with each other.</summary>
@@ -161,10 +162,10 @@ public class OperationQueue : IDisposable
             Key = string.IsNullOrEmpty(key) ? DefaultKey : key,
             Id = id,
             Priority = priority,
-            CancelSignal = cancelReplay.Map(_ => Unit.Default),
+            CancelSignal = cancelReplay.Map(static _ => Unit.Default),
             Func = asyncCalculationFunc,
             UseRandomTiebreak = _randomizeEqualPriority,
-            RandomOrder = _randomizeEqualPriority ? _random!.Next() : 0,
+            RandomOrder = _randomizeEqualPriority ? GetRandomOrder() : 0,
         };
 
         item.CancelSubscription = cancel.Subscribe(
@@ -227,21 +228,23 @@ public class OperationQueue : IDisposable
             ScheduleOperations();
         }
 
-        return Disposable.Create(() =>
-        {
-            if (Interlocked.Decrement(ref _pauseRefCount) > 0)
+        return Disposable.Create(
+            this,
+            static queue =>
             {
-                return;
-            }
+                if (Interlocked.Decrement(ref queue._pauseRefCount) > 0)
+                {
+                    return;
+                }
 
-            // Don't resume if we've been shut down (no lock needed for this check)
-            if (Volatile.Read(ref _shutdownObs) is not null)
-            {
-                return;
-            }
+                // Don't resume if we've been shut down (no lock needed for this check)
+                if (Volatile.Read(ref queue._shutdownObs) is not null)
+                {
+                    return;
+                }
 
-            ScheduleOperations();
-        });
+                queue.ScheduleOperations();
+            });
     }
 
     /// <summary>
@@ -280,7 +283,7 @@ public class OperationQueue : IDisposable
                 return _shutdownObs;
             }
 
-            shutdown = new ReplaySignal<Unit>();
+            shutdown = new();
             _shutdownObs = shutdown;
         }
 
@@ -315,7 +318,7 @@ public class OperationQueue : IDisposable
 
             foreach (var operation in pending)
             {
-                operation.CancelSubscription!.Dispose();
+                operation.Dispose();
             }
 
             _shutdownObs?.Dispose();
@@ -383,7 +386,7 @@ public class OperationQueue : IDisposable
     {
         if (operation.CancelledEarly)
         {
-            operation.CancelSubscription!.Dispose();
+            operation.Dispose();
             return;
         }
 
@@ -395,6 +398,19 @@ public class OperationQueue : IDisposable
 
         MarkOperationActive(operation);
         operationsToStart.Add(operation);
+    }
+
+    /// <summary>Generates a tie-break value, deterministically when a seed was supplied.</summary>
+    /// <returns>A non-security pseudo-random ordering value.</returns>
+    private int GetRandomOrder()
+    {
+        if (_randomSeed is not int seed)
+        {
+            return Guid.NewGuid().GetHashCode();
+        }
+
+        var sequence = Interlocked.Increment(ref _randomSequence);
+        return unchecked(((seed + sequence) * RandomMultiplier) + RandomIncrement);
     }
 
     /// <summary>Determines whether a keyed operation is blocked by another active operation with the same key.</summary>
@@ -413,7 +429,7 @@ public class OperationQueue : IDisposable
             return;
         }
 
-        _activeKeys.Add(activeKey);
+        _ = _activeKeys.Add(activeKey);
     }
 
     /// <summary>Starts a scheduled operation.</summary>
@@ -424,8 +440,8 @@ public class OperationQueue : IDisposable
 
         try
         {
-            operation.EvaluateFunc().Subscribe(
-                _ => { },
+            _ = operation.EvaluateFunc().Subscribe(
+                static _ => { },
                 _ => FinishOperation(operation),
                 () => FinishOperation(operation));
         }
@@ -453,7 +469,7 @@ public class OperationQueue : IDisposable
 
             if (!operation.KeyIsDefault && operation.Key is { } key)
             {
-                _activeKeys.Remove(key);
+                _ = _activeKeys.Remove(key);
             }
 
             DrainPendingOperations(operationsToStart);
@@ -493,10 +509,9 @@ public class OperationQueue : IDisposable
 
     /// <summary>Schedules an operation start using the active scheduler shape for the current package variant.</summary>
     /// <param name="operation">The operation to start.</param>
-    private void ScheduleStart(KeyedOperation operation)
-    {
 #if REACTIVE_SHIM
-        _sequencer.Schedule(
+    private void ScheduleStart(KeyedOperation operation) =>
+        _ = _sequencer.Schedule(
             (Queue: this, Operation: operation),
             static (_, state) =>
             {
@@ -504,11 +519,11 @@ public class OperationQueue : IDisposable
                 return Disposable.Empty;
             });
 #else
-        _sequencer.Schedule(
+    private void ScheduleStart(KeyedOperation operation) =>
+        _ = _sequencer.Schedule(
             (Queue: this, Operation: operation),
             static state => state.Queue.StartOperation(state.Operation));
 #endif
-    }
 
     /// <summary>Determines whether shutdown can be signalled.</summary>
     /// <returns><see langword="true"/> if shutdown is ready; otherwise, <see langword="false"/>.</returns>

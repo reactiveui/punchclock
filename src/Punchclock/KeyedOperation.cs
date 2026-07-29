@@ -13,7 +13,7 @@ namespace Punchclock;
 /// Base class for operations that can be enqueued in an <see cref="OperationQueue"/>.
 /// Supports priority ordering, key-based serialization, and cancellation.
 /// </summary>
-internal abstract class KeyedOperation : IComparable<KeyedOperation>
+internal abstract class KeyedOperation : IComparable<KeyedOperation>, IDisposable
 {
     /// <summary>Gets or sets a value indicating whether this operation was cancelled before execution started.</summary>
     /// <value>
@@ -22,31 +22,31 @@ internal abstract class KeyedOperation : IComparable<KeyedOperation>
     /// <remarks>
     /// This property has a setter because it is mutated after construction when cancellation occurs.
     /// </remarks>
-    public bool CancelledEarly { get; set; }
+    internal bool CancelledEarly { get; set; }
 
     /// <summary>Gets the priority of this operation. Higher values indicate higher priority.</summary>
     /// <value>
     /// The priority value. Higher numbers are dequeued before lower numbers.
     /// </value>
-    public int Priority { get; init; }
+    internal int Priority { get; init; }
 
     /// <summary>Gets the unique identifier for this operation. Used for stable FIFO ordering among equal-priority operations.</summary>
     /// <value>
     /// The operation identifier, assigned sequentially at enqueue time.
     /// </value>
-    public int Id { get; init; }
+    internal int Id { get; init; }
 
     /// <summary>Gets the key for this operation. Operations with the same key are executed serially.</summary>
     /// <value>
     /// The key string, or null/empty/<see cref="OperationQueue.DefaultKey"/> for non-keyed operations.
     /// </value>
-    public string? Key { get; init; }
+    internal string? Key { get; init; }
 
     /// <summary>Gets the observable that signals cancellation of this operation.</summary>
     /// <value>
     /// An observable that emits when cancellation is requested, or null if no cancellation signal is provided.
     /// </value>
-    public IObservable<Unit>? CancelSignal { get; init; }
+    internal IObservable<Unit>? CancelSignal { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether this operation uses the default (non-keyed) key.
@@ -58,26 +58,29 @@ internal abstract class KeyedOperation : IComparable<KeyedOperation>
     /// <remarks>
     /// This computed property is a hot path - the JIT will inline the getter automatically.
     /// </remarks>
-    public bool KeyIsDefault => string.IsNullOrEmpty(Key) || Key == OperationQueue.DefaultKey;
+    internal bool KeyIsDefault => string.IsNullOrEmpty(Key) || Key == OperationQueue.DefaultKey;
 
     /// <summary>Gets the random order value used for tie-breaking when <see cref="UseRandomTiebreak"/> is enabled.</summary>
     /// <value>
     /// A random integer used for shuffling equal-priority items across different keys.
     /// </value>
-    public int RandomOrder { get; init; }
+    internal int RandomOrder { get; init; }
 
     /// <summary>Gets a value indicating whether random tie-breaking is enabled for this operation.</summary>
     /// <value>
     /// <c>true</c> if random tie-breaking should be used for equal priorities across different keys; otherwise, <c>false</c>.
     /// </value>
-    public bool UseRandomTiebreak { get; init; }
+    internal bool UseRandomTiebreak { get; init; }
 
     /// <summary>Gets or sets the subscription that watches the cancellation source before execution starts.</summary>
-    public IDisposable? CancelSubscription { get; set; }
+    internal IDisposable? CancelSubscription { get; set; }
 
-    /// <summary>Evaluates the operation function and returns an observable stream.</summary>
-    /// <returns>An observable of <see cref="Unit"/> that completes when the operation finishes.</returns>
-    public abstract IObservable<Unit> EvaluateFunc();
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
 
     /// <summary>
     /// Compares this operation to another for priority-based scheduling.
@@ -162,5 +165,21 @@ internal abstract class KeyedOperation : IComparable<KeyedOperation>
         // See CompareTo documentation for design rationale.
         // GroupBy + Concat in OperationQueue ensures same-key operations run sequentially regardless of heap order.
         return 0;
+    }
+
+    /// <summary>Evaluates the operation function and returns an observable stream.</summary>
+    /// <returns>An observable of <see cref="Unit"/> that completes when the operation finishes.</returns>
+    internal abstract IObservable<Unit> EvaluateFunc();
+
+    /// <summary>Releases resources owned by the operation.</summary>
+    /// <param name="disposing">Whether managed resources should be released.</param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposing)
+        {
+            return;
+        }
+
+        CancelSubscription?.Dispose();
     }
 }

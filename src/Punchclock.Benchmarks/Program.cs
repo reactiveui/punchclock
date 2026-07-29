@@ -7,9 +7,11 @@ using BenchmarkDotNet.Running;
 namespace Punchclock.Benchmarks;
 
 /// <summary>Entry point for BenchmarkDotNet runner.</summary>
-internal static class Program
+public static class Program
 {
-    private static void Main(string[] args)
+    /// <summary>Runs the benchmarks selected by the supplied command-line arguments.</summary>
+    /// <param name="args">The command-line arguments supplied to BenchmarkDotNet.</param>
+    public static void Main(string[] args)
     {
         BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
     }

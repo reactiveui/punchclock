@@ -2,55 +2,80 @@
 // ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
 using ReactiveUI.Primitives.Core;
 
 namespace Punchclock.Tests;
 
 /// <summary>Tests for <see cref="PriorityQueue{T}"/>.</summary>
-[SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Random is used for test data generation, not for security purposes")]
 public class PriorityQueueTests
 {
+    /// <summary>Represents the value 2.</summary>
     private const int Two = 2;
 
+    /// <summary>Represents the value 3.</summary>
     private const int Three = 3;
 
+    /// <summary>Represents the value 4.</summary>
+    private const int Four = 4;
+
+    /// <summary>Represents the value 5.</summary>
     private const int Five = 5;
 
+    /// <summary>Represents the value 7.</summary>
     private const int Seven = 7;
 
+    /// <summary>Represents the value 8.</summary>
     private const int Eight = 8;
 
+    /// <summary>Represents the value 10.</summary>
     private const int Ten = 10;
 
+    /// <summary>Represents the value 15.</summary>
     private const int Fifteen = 15;
 
+    /// <summary>Represents the value 16.</summary>
     private const int Sixteen = 16;
 
+    /// <summary>Represents the value 17.</summary>
     private const int Seventeen = 17;
 
+    /// <summary>Represents the value 20.</summary>
     private const int Twenty = 20;
 
+    /// <summary>Represents the value 24.</summary>
     private const int TwentyFour = 24;
 
+    /// <summary>Represents the value 31.</summary>
     private const int ThirtyOne = 31;
 
+    /// <summary>Represents the value 32.</summary>
     private const int ThirtyTwo = 32;
 
+    /// <summary>Represents the value 33.</summary>
     private const int ThirtyThree = 33;
 
+    /// <summary>Represents the value 90.</summary>
     private const int Ninety = 90;
 
+    /// <summary>Represents the value 99.</summary>
+    private const int NinetyNine = 99;
+
+    /// <summary>Represents the value 100.</summary>
     private const int OneHundred = 100;
 
-    private const int OnThousand = 1000;
+    /// <summary>Represents the value 999.</summary>
+    private const int NineHundredNinetyNine = 999;
+
+    /// <summary>Represents the value 1000.</summary>
+    private const int OneThousand = 1000;
 
     /// <summary>Verifies that the constructor throws <see cref="ArgumentOutOfRangeException"/> for negative capacity.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task Constructor_WithNegativeCapacity_ThrowsArgumentOutOfRangeException()
     {
-        var ex = await Assert.That(() => new PriorityQueue<TestItem>(-1))
+        var ex = await Assert.That(static () => new PriorityQueue<TestItem>(-1))
             .Throws<ArgumentOutOfRangeException>();
         await Assert.That(ex!.ParamName).IsEqualTo("capacity");
     }
@@ -162,9 +187,9 @@ public class PriorityQueueTests
         using (Assert.Multiple())
         {
             var queue = new PriorityQueue<TestItem>();
-            queue.Enqueue(new TestItem(1));
-            queue.Enqueue(new TestItem(Two));
-            queue.Enqueue(new TestItem(Three));
+            queue.Enqueue(new(1));
+            queue.Enqueue(new(Two));
+            queue.Enqueue(new(Three));
 
             var items = queue.DequeueSome(Two);
             await Assert.That(items.Length).IsEqualTo(Two);
@@ -178,7 +203,7 @@ public class PriorityQueueTests
     public async Task DequeueSome_WithZeroCount_ReturnsEmptyArray()
     {
         var queue = new PriorityQueue<TestItem>();
-        queue.Enqueue(new TestItem(1));
+        queue.Enqueue(new(1));
 
         var items = queue.DequeueSome(0);
         await Assert.That(items.Length).IsEqualTo(0);
@@ -193,8 +218,8 @@ public class PriorityQueueTests
         using (Assert.Multiple())
         {
             var queue = new PriorityQueue<TestItem>();
-            queue.Enqueue(new TestItem(1));
-            queue.Enqueue(new TestItem(Two));
+            queue.Enqueue(new(1));
+            queue.Enqueue(new(Two));
 
             var items = queue.DequeueSome(Ten);
             await Assert.That(items.Length).IsEqualTo(Two);
@@ -210,9 +235,9 @@ public class PriorityQueueTests
         using (Assert.Multiple())
         {
             var queue = new PriorityQueue<TestItem>();
-            queue.Enqueue(new TestItem(Three));
-            queue.Enqueue(new TestItem(1));
-            queue.Enqueue(new TestItem(Two));
+            queue.Enqueue(new(Three));
+            queue.Enqueue(new(1));
+            queue.Enqueue(new(Two));
 
             var items = queue.DequeueAll();
             await Assert.That(items.Length).IsEqualTo(Three);
@@ -266,9 +291,9 @@ public class PriorityQueueTests
         using (Assert.Multiple())
         {
             var queue = new PriorityQueue<TestItem>();
-            queue.Enqueue(new TestItem(1));
+            queue.Enqueue(new(1));
 
-            var removed = queue.Remove(new TestItem(999));
+            var removed = queue.Remove(new(NineHundredNinetyNine));
             await Assert.That(removed).IsFalse();
             await Assert.That(queue.Count).IsEqualTo(1);
         }
@@ -282,7 +307,7 @@ public class PriorityQueueTests
         var queue = new PriorityQueue<TestItem>(Two);
         for (var i = 0; i < Twenty; i++)
         {
-            queue.Enqueue(new TestItem(i));
+            queue.Enqueue(new(i));
         }
 
         await Assert.That(queue.Count).IsEqualTo(Twenty);
@@ -296,13 +321,13 @@ public class PriorityQueueTests
         var queue = new PriorityQueue<TestItem>();
         for (var i = 0; i < OneHundred; i++)
         {
-            queue.Enqueue(new TestItem(i));
+            queue.Enqueue(new(i));
         }
 
         // Dequeue most items to trigger shrinking
         for (var i = 0; i < Ninety; i++)
         {
-            queue.Dequeue();
+            _ = queue.Dequeue();
         }
 
         await Assert.That(queue.Count).IsEqualTo(Ten);
@@ -343,7 +368,7 @@ public class PriorityQueueTests
             var queue = new PriorityQueue<TestItem>(0); // Start with zero capacity
 
             // First enqueue should trigger line 137 with _items.Length == 0
-            queue.Enqueue(new TestItem(1));
+            queue.Enqueue(new(1));
 
             await Assert.That(queue.Count).IsEqualTo(1);
 
@@ -366,11 +391,11 @@ public class PriorityQueueTests
         // Add and remove items to potentially trigger edge cases in percolation
         for (var i = 0; i < Five; i++)
         {
-            queue.Enqueue(new TestItem(i));
+            queue.Enqueue(new(i));
         }
 
-        queue.Dequeue();
-        queue.Dequeue();
+        _ = queue.Dequeue();
+        _ = queue.Dequeue();
 
         // Queue should still be consistent
         await Assert.That(queue.Count).IsEqualTo(Three);
@@ -385,7 +410,7 @@ public class PriorityQueueTests
 
         for (var i = 0; i < Twenty; i++)
         {
-            queue.Enqueue(new TestItem(Random.Shared.Next(OneHundred)));
+            queue.Enqueue(CreateRandomPriorityItem());
             await Assert.That(queue.VerifyHeapProperty()).IsTrue();
         }
     }
@@ -398,12 +423,12 @@ public class PriorityQueueTests
         var queue = new PriorityQueue<TestItem>();
         for (var i = 0; i < Twenty; i++)
         {
-            queue.Enqueue(new TestItem(Random.Shared.Next(OneHundred)));
+            queue.Enqueue(CreateRandomPriorityItem());
         }
 
         while (queue.Count > 0)
         {
-            queue.Dequeue();
+            _ = queue.Dequeue();
             await Assert.That(queue.VerifyHeapProperty()).IsTrue();
         }
     }
@@ -414,7 +439,7 @@ public class PriorityQueueTests
     public async Task Remove_MiddleElement_MaintainsHeapProperty()
     {
         var queue = new PriorityQueue<TestItem>();
-        var items = Enumerable.Range(0, Fifteen).Select(i => new TestItem(i, $"item{i}")).ToArray();
+        var items = CreateNamedPriorityItems(Fifteen);
 
         foreach (var item in items)
         {
@@ -424,7 +449,7 @@ public class PriorityQueueTests
         // Remove middle elements
         for (var i = Five; i < Ten; i++)
         {
-            queue.Remove(items[i]);
+            _ = queue.Remove(items[i]);
             await Assert.That(queue.VerifyHeapProperty()).IsTrue();
         }
     }
@@ -439,7 +464,7 @@ public class PriorityQueueTests
         // Insert in descending order
         for (var i = Twenty; i >= 1; i--)
         {
-            queue.Enqueue(new TestItem(i));
+            queue.Enqueue(new(i));
         }
 
         // Should dequeue in ascending order (highest priority first)
@@ -462,7 +487,7 @@ public class PriorityQueueTests
         // Insert in ascending order
         for (var i = 1; i <= Twenty; i++)
         {
-            queue.Enqueue(new TestItem(i));
+            queue.Enqueue(new(i));
         }
 
         // Should dequeue in ascending order (highest priority first)
@@ -487,7 +512,7 @@ public class PriorityQueueTests
         {
             while (queue.Count < count)
             {
-                queue.Enqueue(new TestItem(Random.Shared.Next(OneHundred)));
+                queue.Enqueue(CreateRandomPriorityItem());
             }
 
             await Assert.That(queue.VerifyHeapProperty()).IsTrue();
@@ -504,13 +529,13 @@ public class PriorityQueueTests
         // Enqueue 100 items
         for (var i = 0; i < OneHundred; i++)
         {
-            queue.Enqueue(new TestItem(i));
+            queue.Enqueue(new(i));
         }
 
         // Dequeue 90 items to trigger shrinking
         for (var i = 0; i < Ninety; i++)
         {
-            queue.Dequeue();
+            _ = queue.Dequeue();
         }
 
         using (Assert.Multiple())
@@ -528,13 +553,13 @@ public class PriorityQueueTests
         var queue = new PriorityQueue<TestItem>();
         var items = new List<TestItem>();
 
-        for (var i = 0; i < OnThousand; i++)
+        for (var i = 0; i < OneThousand; i++)
         {
-            switch (Random.Shared.Next(Three))
+            switch (RandomNumberGenerator.GetInt32(Three))
             {
                 case 0: // Enqueue
                     {
-                        var item = new TestItem(Random.Shared.Next(OneHundred), $"item{i}");
+                        var item = CreateRandomPriorityItem($"item{i}");
                         queue.Enqueue(item);
                         items.Add(item);
                         break;
@@ -542,15 +567,15 @@ public class PriorityQueueTests
 
                 case 1 when queue.Count > 0: // Dequeue
                     {
-                        queue.Dequeue();
+                        _ = queue.Dequeue();
                         break;
                     }
 
                 case Two when items.Count > 0: // Remove
                     {
-                        var toRemove = items[Random.Shared.Next(items.Count)];
-                        queue.Remove(toRemove);
-                        items.Remove(toRemove);
+                        var toRemove = items[RandomNumberGenerator.GetInt32(items.Count)];
+                        _ = queue.Remove(toRemove);
+                        _ = items.Remove(toRemove);
                         break;
                     }
             }
@@ -565,7 +590,7 @@ public class PriorityQueueTests
     public async Task FIFO_EqualPriorities_AllElements()
     {
         var queue = new PriorityQueue<TestItem>();
-        var items = Enumerable.Range(0, Twenty).Select(i => new TestItem(Five, $"item{i}")).ToArray();
+        var items = CreateEqualPriorityItems(Twenty, Five);
 
         foreach (var item in items)
         {
@@ -590,7 +615,7 @@ public class PriorityQueueTests
         // Enqueue 100 items with equal priority to test sequence counter
         for (var i = 0; i < OneHundred; i++)
         {
-            queue.Enqueue(new TestItem(Five, $"item{i}"));
+            queue.Enqueue(new(Five, $"item{i}"));
         }
 
         // All items should still be retrievable
@@ -610,7 +635,7 @@ public class PriorityQueueTests
     public async Task EnqueueRange_MultipleItems_AllEnqueued()
     {
         var queue = new PriorityQueue<TestItem>();
-        var items = Enumerable.Range(0, Twenty).Select(i => new TestItem(i)).ToArray();
+        var items = CreatePriorityItems(Twenty);
 
         queue.EnqueueRange(items);
 
@@ -637,7 +662,7 @@ public class PriorityQueueTests
         var queue = new PriorityQueue<TestItem>();
         for (var i = 0; i < Ten; i++)
         {
-            queue.Enqueue(new TestItem(i));
+            queue.Enqueue(new(i));
         }
 
         var buffer = new TestItem[Five];
@@ -655,7 +680,7 @@ public class PriorityQueueTests
         var queue = new PriorityQueue<TestItem>();
         for (var i = 0; i < Five; i++)
         {
-            queue.Enqueue(new TestItem(i));
+            queue.Enqueue(new(i));
         }
 
         var buffer = new TestItem[Ten];
@@ -738,8 +763,8 @@ public class PriorityQueueTests
     [Test]
     public async Task EnqueueRange_CapacityGrowth_HandlesCorrectly()
     {
-        var queue = new PriorityQueue<TestItem>(4);
-        var items = Enumerable.Range(0, Twenty).Select(i => new TestItem(i)).ToArray();
+        var queue = new PriorityQueue<TestItem>(Four);
+        var items = CreatePriorityItems(Twenty);
 
         queue.EnqueueRange(items); // Should trigger capacity growth
 
@@ -756,7 +781,7 @@ public class PriorityQueueTests
     public async Task EnqueueRange_WithZeroInitialCapacity_UsesDefaultCapacity()
     {
         var queue = new PriorityQueue<TestItem>(0); // Start with zero capacity
-        var items = Enumerable.Range(0, Five).Select(i => new TestItem(i)).ToArray();
+        var items = CreatePriorityItems(Five);
 
         // Line 191: _items.Length == 0 ? DefaultCapacity : _items.Length * 2
         queue.EnqueueRange(items); // Should use DefaultCapacity path
@@ -773,7 +798,7 @@ public class PriorityQueueTests
         // Index 0: parent = (0-1)/2 = -1/2 = 0 (integer division)
         // But the code checks if parent < 0 || parent == index, so it should return
         var queue = new PriorityQueue<TestItem>();
-        queue.Enqueue(new TestItem(1));
+        queue.Enqueue(new(1));
         await Assert.That(queue.Count).IsEqualTo(1);
         await Assert.That(queue.VerifyHeapProperty()).IsTrue();
     }
@@ -786,10 +811,10 @@ public class PriorityQueueTests
         // Create heap: [10, 5] where 5 is left child of 10
         // Removing root should handle left-only case
         var queue = new PriorityQueue<TestItem>(Two);
-        queue.Enqueue(new TestItem(Ten));
-        queue.Enqueue(new TestItem(Five));
+        queue.Enqueue(new(Ten));
+        queue.Enqueue(new(Five));
 
-        queue.Dequeue(); // Remove 5 (root after percolation)
+        _ = queue.Dequeue(); // Remove 5 (root after percolation)
         await Assert.That(queue.Peek().Priority).IsEqualTo(Ten);
         await Assert.That(queue.VerifyHeapProperty()).IsTrue();
     }
@@ -804,11 +829,11 @@ public class PriorityQueueTests
         // Fill to capacity
         for (var i = 0; i < Sixteen; i++)
         {
-            queue.Enqueue(new TestItem(i));
+            queue.Enqueue(new(i));
         }
 
         // This should trigger doubling to 32
-        queue.Enqueue(new TestItem(OneHundred));
+        queue.Enqueue(new(OneHundred));
         await Assert.That(queue.Count).IsEqualTo(Seventeen);
         await Assert.That(queue.VerifyHeapProperty()).IsTrue();
     }
@@ -823,19 +848,19 @@ public class PriorityQueueTests
         // Fill to 32 items
         for (var i = 0; i < ThirtyTwo; i++)
         {
-            queue.Enqueue(new TestItem(i));
+            queue.Enqueue(new(i));
         }
 
         // Dequeue to exactly 8 items (25% of 32)
         for (var i = 0; i < TwentyFour; i++)
         {
-            queue.Dequeue();
+            _ = queue.Dequeue();
         }
 
         await Assert.That(queue.Count).IsEqualTo(Eight);
 
         // Next dequeue should trigger shrink from 32 to 16
-        queue.Dequeue();
+        _ = queue.Dequeue();
         await Assert.That(queue.Count).IsEqualTo(Seven);
         await Assert.That(queue.VerifyHeapProperty()).IsTrue();
     }
@@ -846,9 +871,7 @@ public class PriorityQueueTests
     public async Task EdgeCase_SequenceCounterNearOverflow()
     {
         var queue = new PriorityQueue<TestItem>();
-        var items = Enumerable.Range(0, OneHundred)
-            .Select(i => new TestItem(Five, $"item{i}"))
-            .ToArray();
+        var items = CreateEqualPriorityItems(OneHundred, Five);
 
         queue.EnqueueRange(items);
 
@@ -897,7 +920,7 @@ public class PriorityQueueTests
         await Assert.That(queue.Count).IsEqualTo(0);
 
         // Should be able to enqueue even with zero initial capacity
-        queue.Enqueue(new TestItem(Five));
+        queue.Enqueue(new(Five));
         await Assert.That(queue.Count).IsEqualTo(1);
         await Assert.That(queue.Peek().Priority).IsEqualTo(Five);
     }
@@ -908,13 +931,65 @@ public class PriorityQueueTests
     public async Task EdgeCase_RemoveNonExistentItem()
     {
         var queue = new PriorityQueue<TestItem>();
-        queue.Enqueue(new TestItem(1));
-        queue.Enqueue(new TestItem(Two));
-        queue.Enqueue(new TestItem(Three));
+        queue.Enqueue(new(1));
+        queue.Enqueue(new(Two));
+        queue.Enqueue(new(Three));
 
-        var nonExistent = new TestItem(99);
+        var nonExistent = new TestItem(NinetyNine);
         await Assert.That(queue.Remove(nonExistent)).IsFalse();
         await Assert.That(queue.Count).IsEqualTo(Three);
+    }
+
+    /// <summary>Creates a test item with a cryptographically random priority.</summary>
+    /// <returns>A test item with a priority between 0 and 99.</returns>
+    private static TestItem CreateRandomPriorityItem() => new(RandomNumberGenerator.GetInt32(OneHundred));
+
+    /// <summary>Creates a named test item with a cryptographically random priority.</summary>
+    /// <param name="id">The identifier to assign to the created item.</param>
+    /// <returns>A test item with the provided identifier and a priority between 0 and 99.</returns>
+    private static TestItem CreateRandomPriorityItem(string id) => new(RandomNumberGenerator.GetInt32(OneHundred), id);
+
+    /// <summary>Creates sequential test items whose priorities match their indices.</summary>
+    /// <param name="count">The number of items to create.</param>
+    /// <returns>An array of sequentially prioritized test items.</returns>
+    private static TestItem[] CreatePriorityItems(int count)
+    {
+        var items = new TestItem[count];
+        for (var i = 0; i < items.Length; i++)
+        {
+            items[i] = new(i);
+        }
+
+        return items;
+    }
+
+    /// <summary>Creates named test items whose priorities match their indices.</summary>
+    /// <param name="count">The number of items to create.</param>
+    /// <returns>An array of named, sequentially prioritized test items.</returns>
+    private static TestItem[] CreateNamedPriorityItems(int count)
+    {
+        var items = new TestItem[count];
+        for (var i = 0; i < items.Length; i++)
+        {
+            items[i] = new(i, $"item{i}");
+        }
+
+        return items;
+    }
+
+    /// <summary>Creates named test items that all share the same priority.</summary>
+    /// <param name="count">The number of items to create.</param>
+    /// <param name="priority">The priority to assign to every item.</param>
+    /// <returns>An array of equally prioritized test items.</returns>
+    private static TestItem[] CreateEqualPriorityItems(int count, int priority)
+    {
+        var items = new TestItem[count];
+        for (var i = 0; i < items.Length; i++)
+        {
+            items[i] = new(priority, $"item{i}");
+        }
+
+        return items;
     }
 
     /// <summary>Test item that is comparable by priority.</summary>
@@ -925,9 +1000,6 @@ public class PriorityQueueTests
         /// <summary>Compares this instance with another TestItem based on Priority.</summary>
         /// <param name="other">The other TestItem to compare with.</param>
         /// <returns>A value indicating the relative order of the items.</returns>
-        public int CompareTo(TestItem? other)
-        {
-            return other is null ? 1 : Priority.CompareTo(other.Priority);
-        }
+        public int CompareTo(TestItem? other) => other is null ? 1 : Priority.CompareTo(other.Priority);
     }
 }

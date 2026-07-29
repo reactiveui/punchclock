@@ -39,13 +39,10 @@ public static class OperationQueueExtensions
             }
 
             // Fast path: if token is already canceled, return immediately without enqueueing
-            if (token.IsCancellationRequested)
-            {
-                return Task.FromCanceled<T>(token);
-            }
-
-            return operationQueue.EnqueueObservableOperation(priority, key, ConvertTokenToObservable(token), () => Signal.FromTask(asyncOperation()))
-                .ToTask(token);
+            return token.IsCancellationRequested
+                ? Task.FromCanceled<T>(token)
+                : operationQueue.EnqueueObservableOperation(priority, key, ConvertTokenToObservable(token), () => Signal.FromTask(asyncOperation()))
+                    .ToTask(token);
         }
 
         /// <summary>Adds an operation to the operation queue with priority, key, and cancellation support.</summary>
@@ -69,13 +66,10 @@ public static class OperationQueueExtensions
             }
 
             // Fast path: if token is already canceled, return immediately without enqueueing
-            if (token.IsCancellationRequested)
-            {
-                return Task.FromCanceled(token);
-            }
-
-            return operationQueue.EnqueueObservableOperation(priority, key, ConvertTokenToObservable(token), () => Signal.FromTask(ToRxVoidTask(asyncOperation)))
-                .ToTask(token);
+            return token.IsCancellationRequested
+                ? Task.FromCanceled(token)
+                : operationQueue.EnqueueObservableOperation(priority, key, ConvertTokenToObservable(token), () => Signal.FromTask(ToRxVoidTask(asyncOperation)))
+                    .ToTask(token);
         }
 
         /// <summary>Adds an operation to the operation queue with priority and key.</summary>
@@ -196,11 +190,14 @@ public static class OperationQueueExtensions
                 return Disposable.Empty;
             }
 
-            return token.Register(() =>
-            {
-                observer.OnNext(Unit.Default);
-                observer.OnCompleted();
-            });
+            return token.Register(
+                static state =>
+                {
+                    var tokenObserver = (IObserver<Unit>)state!;
+                    tokenObserver.OnNext(Unit.Default);
+                    tokenObserver.OnCompleted();
+                },
+                observer);
         });
 
         return scheduler is not null ? obs.SubscribeOn(scheduler) : obs;

@@ -17,7 +17,7 @@ internal static class TaskPolyfillExtensions
         /// <param name="timeout">The timeout after which the returned task faults, or <see cref="Timeout.InfiniteTimeSpan"/> for no timeout.</param>
         /// <param name="cancellationToken">A token that cancels the wait.</param>
         /// <returns>A task that mirrors <paramref name="task"/> subject to the timeout and cancellation.</returns>
-        public async Task WaitAsync(TimeSpan timeout, CancellationToken cancellationToken)
+        internal async Task WaitAsync(TimeSpan timeout, CancellationToken cancellationToken)
         {
             await WaitForCompletionAsync(task, timeout, cancellationToken).ConfigureAwait(false);
             await task.ConfigureAwait(false);
@@ -33,7 +33,7 @@ internal static class TaskPolyfillExtensions
         /// <param name="timeout">The timeout after which the returned task faults, or <see cref="Timeout.InfiniteTimeSpan"/> for no timeout.</param>
         /// <param name="cancellationToken">A token that cancels the wait.</param>
         /// <returns>A task that mirrors <paramref name="task"/> subject to the timeout and cancellation.</returns>
-        public async Task<T> WaitAsync(TimeSpan timeout, CancellationToken cancellationToken)
+        internal async Task<T> WaitAsync(TimeSpan timeout, CancellationToken cancellationToken)
         {
             await WaitForCompletionAsync(task, timeout, cancellationToken).ConfigureAwait(false);
             return await task.ConfigureAwait(false);

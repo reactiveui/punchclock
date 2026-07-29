@@ -111,7 +111,9 @@
 
   <ItemGroup>
     <PackageReference Include="MinVer" PrivateAssets="all"/>
-    <PackageReference Include="StyleSharp.Analyzers" PrivateAssets="all"/>
+    <PackageReference Include="StyleSharp.Analyzers" PrivateAssets="all" />
+    <PackageReference Include="PerformanceSharp.Analyzers" PrivateAssets="all"/>
+    <PackageReference Include="SecuritySharp.Analyzers" PrivateAssets="all"/>
     <PackageReference Include="Roslynator.Analyzers" PrivateAssets="All"/>
     <PackageReference Include="SonarAnalyzer.CSharp" PrivateAssets="all"/>
   </ItemGroup>
@@ -124,10 +126,6 @@
   <ItemGroup Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net9.0'))">
     <Using Include="System.Object" Alias="Lock"/>
   </ItemGroup>
-
-	<ItemGroup>
-		<AdditionalFiles Include="$(MSBuildThisFileDirectory)/stylecop.json" Link="stylecop.json" />
-	</ItemGroup>
 
   <!-- Drop unused SDK source generators from @(Analyzer) to cut csc time. Re-enable any whose
        trigger attribute gets introduced, else its codegen is silently skipped. -->

@@ -22,6 +22,9 @@ internal static class PriorityQueueHelper
     /// <summary>Number of children per node in the quaternary heap.</summary>
     private const int Arity = 4;
 
+    /// <summary>Offset used to locate the parent of the final heap item.</summary>
+    private const int LastParentOffset = 2;
+
     /// <summary>
     /// Percolates (bubbles up) an item at the given index to maintain quaternary heap property.
     /// Uses an iterative "hole" approach: moves parents down until finding the correct position,
@@ -171,7 +174,7 @@ internal static class PriorityQueueHelper
         // Verify quaternary heap property: each parent has higher priority than all 4 children
         // Only iterate through parent nodes - leaf nodes have no children to check
         // Last parent is at index (count-2)/4 because parent of last item (count-1) is (count-2)/4
-        var lastParentIndex = (count - 2) / Arity;
+        var lastParentIndex = (count - LastParentOffset) / Arity;
 
         for (var i = 0; i <= lastParentIndex; i++)
         {
@@ -207,8 +210,8 @@ internal static class PriorityQueueHelper
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsHigherPriority<T>(T[] items, int left, int right)
-        where T : IComparable<T>
-        => items[left].CompareTo(items[right]) < 0;
+        where T : IComparable<T> =>
+        items[left].CompareTo(items[right]) < 0;
 
     /// <summary>Determines whether the left item has higher priority than the right item.</summary>
     /// <typeparam name="T">The type of items in the heap, must be comparable.</typeparam>
@@ -221,8 +224,8 @@ internal static class PriorityQueueHelper
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsHigherPriority<T>(T left, T right)
-        where T : IComparable<T>
-        => left.CompareTo(right) < 0;
+        where T : IComparable<T> =>
+        left.CompareTo(right) < 0;
 
     /// <summary>Finds the highest-priority child for a quaternary heap parent.</summary>
     /// <typeparam name="T">The type of items in the heap, must be comparable.</typeparam>

@@ -23,6 +23,24 @@ namespace Punchclock.Benchmarks;
 [MarkdownExporterAttribute.GitHub]
 public class PriorityQueueBenchmark
 {
+    private const int SmallItemCount = 16;
+
+    private const int MediumItemCount = 100;
+
+    private const int LargeItemCount = 1000;
+
+    private const int PriorityMultiplier = 31;
+
+    private const int PriorityOffset = 42;
+
+    private const int PriorityRange = 100;
+
+    private const int SmallDequeueInterval = 4;
+
+    private const int MediumDequeueInterval = 10;
+
+    private const int LargeDequeueInterval = 100;
+
     private TestItem[] _smallData = null!;
 
     private TestItem[] _mediumData = null!;
@@ -33,10 +51,9 @@ public class PriorityQueueBenchmark
     [GlobalSetup]
     public void Setup()
     {
-        var random = new Random(42); // Fixed seed for reproducibility
-        _smallData = Enumerable.Range(0, 16).Select(i => new TestItem(random.Next(100))).ToArray();
-        _mediumData = Enumerable.Range(0, 100).Select(i => new TestItem(random.Next(100))).ToArray();
-        _largeData = Enumerable.Range(0, 1000).Select(i => new TestItem(random.Next(100))).ToArray();
+        _smallData = CreateData(SmallItemCount);
+        _mediumData = CreateData(MediumItemCount);
+        _largeData = CreateData(LargeItemCount);
     }
 
     // === Small Queue (typical Punchclock workload: 4-16 items) ===
@@ -56,10 +73,10 @@ public class PriorityQueueBenchmark
     public void Mixed_Small()
     {
         var queue = new PriorityQueue<TestItem>();
-        for (var i = 0; i < 16; i++)
+        for (var i = 0; i < SmallItemCount; i++)
         {
             queue.Enqueue(_smallData[i]);
-            if (i % 4 == 0 && queue.Count > 0)
+            if (i % SmallDequeueInterval == 0 && queue.Count > 0)
             {
                 queue.Dequeue();
             }
@@ -83,10 +100,10 @@ public class PriorityQueueBenchmark
     public void Mixed_Medium()
     {
         var queue = new PriorityQueue<TestItem>();
-        for (var i = 0; i < 100; i++)
+        for (var i = 0; i < MediumItemCount; i++)
         {
             queue.Enqueue(_mediumData[i]);
-            if (i % 10 == 0 && queue.Count > 0)
+            if (i % MediumDequeueInterval == 0 && queue.Count > 0)
             {
                 queue.Dequeue();
             }
@@ -110,15 +127,20 @@ public class PriorityQueueBenchmark
     public void Mixed_Large()
     {
         var queue = new PriorityQueue<TestItem>();
-        for (var i = 0; i < 1000; i++)
+        for (var i = 0; i < LargeItemCount; i++)
         {
             queue.Enqueue(_largeData[i]);
-            if (i % 100 == 0 && queue.Count > 0)
+            if (i % LargeDequeueInterval == 0 && queue.Count > 0)
             {
                 queue.Dequeue();
             }
         }
     }
+
+    private static TestItem[] CreateData(int count) =>
+        Enumerable.Range(0, count)
+            .Select(static index => new TestItem(((index * PriorityMultiplier) + PriorityOffset) % PriorityRange))
+            .ToArray();
 
     /// <summary>Test item for benchmarking.</summary>
     /// <param name="Priority">The priority value.</param>
