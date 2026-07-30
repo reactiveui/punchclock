@@ -205,6 +205,20 @@ public class KeyedOperationTests
         await Assert.That(op.Result).IsNotNull();
     }
 
+    /// <summary>Verifies that unmanaged-only disposal does not release the managed cancellation subscription.</summary>
+    /// <returns>A <see cref="Task" /> representing the asynchronous unit test.</returns>
+    [Test]
+    public async Task Dispose_WhenDisposingIsFalse_DoesNotDisposeManagedResources()
+    {
+        using var cancellationSubscription = new CancellationTokenSource();
+        using var operation = new TestKeyedOperation { CancelSubscription = cancellationSubscription };
+
+        operation.DisposeWithoutManagedResources();
+        await cancellationSubscription.CancelAsync();
+
+        await Assert.That(cancellationSubscription.IsCancellationRequested).IsTrue();
+    }
+
     /// <summary>Verifies that keyed operations compare after non-keyed operations.</summary>
     /// <returns>A <see cref="Task" /> representing the asynchronous unit test.</returns>
     [Test]
@@ -256,4 +270,14 @@ public class KeyedOperationTests
             Func = func ?? (static () => Signal.Emit(DefaultValue)),
             CancelSignal = cancelSignal,
         };
+
+    /// <summary>Exposes the unmanaged-only disposal path for contract testing.</summary>
+    private sealed class TestKeyedOperation : KeyedOperation
+    {
+        /// <summary>Invokes the disposal path that must not release managed resources.</summary>
+        internal void DisposeWithoutManagedResources() => Dispose(false);
+
+        /// <inheritdoc />
+        internal override IObservable<Unit> EvaluateFunc() => Signal.None<Unit>();
+    }
 }
