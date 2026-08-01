@@ -409,8 +409,11 @@ public class OperationQueue : IDisposable
             return Guid.NewGuid().GetHashCode();
         }
 
-        var sequence = Interlocked.Increment(ref _randomSequence);
-        return unchecked(((seed + sequence) * RandomMultiplier) + RandomIncrement);
+        var sequence = (uint)Interlocked.Increment(ref _randomSequence);
+        var mixed = unchecked((uint)seed + (sequence * 2654435769u));
+        mixed = unchecked((mixed ^ (mixed >> 16)) * 2246822519u);
+        mixed = unchecked((mixed ^ (mixed >> 13)) * 3266489917u);
+        return unchecked((int)(mixed ^ (mixed >> 16)));
     }
 
     /// <summary>Determines whether a keyed operation is blocked by another active operation with the same key.</summary>
