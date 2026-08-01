@@ -54,15 +54,4 @@ internal sealed class KeyedOperation<T> : KeyedOperation
 
         return ret.Map(static _ => Unit.Default);
     }
-
-    /// <inheritdoc />
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            Result.Dispose();
-        }
-
-        base.Dispose(disposing);
-    }
 }
