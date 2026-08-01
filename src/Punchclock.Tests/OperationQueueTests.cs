@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for full license information.
 
 using System.Collections.ObjectModel;
+using System.Globalization;
 
 using DynamicData;
 using ReactiveUI.Primitives.Signals;
@@ -49,6 +50,12 @@ public class OperationQueueTests
 
     /// <summary>Seed used to keep randomized ordering deterministic in tests.</summary>
     private const int DeterministicSeed = 123;
+
+    /// <summary>Alternative seed used to verify that seeded orderings diverge.</summary>
+    private const int AlternativeDeterministicSeed = 456;
+
+    /// <summary>Number of operations used by deterministic ordering tests.</summary>
+    private const int RandomizedItemCount = 8;
 
     /// <summary>Checks to make sure that items are dispatched based on their priority.</summary>
     /// <param name="cancellationToken">Cancellation token for timeout.</param>
@@ -635,6 +642,39 @@ public class OperationQueueTests
         }
     }
 
+    /// <summary>Checks that distinct seeds produce distinct equal-priority execution orders.</summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    public async Task EqualPriorityRandomization_WithDifferentSeeds_ProducesDifferentOrders()
+    {
+        using (Assert.Multiple())
+        {
+            var firstOrder = CaptureRandomizedOrder(DeterministicSeed);
+            var secondOrder = CaptureRandomizedOrder(AlternativeDeterministicSeed);
+
+            await Assert.That(firstOrder.Length).IsEqualTo(RandomizedItemCount);
+            await Assert.That(secondOrder.Length).IsEqualTo(RandomizedItemCount);
+            await Assert.That(firstOrder.SequenceEqual(secondOrder)).IsFalse();
+        }
+    }
+
+    /// <summary>Checks that early cancellation does not dispose the observable returned to the caller.</summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [Test]
+    public async Task EnqueueObservableOperation_WhenCancellationAlreadySignalled_ReturnedObservableRemainsSubscribable()
+    {
+        using var cancellation = new ReplaySignal<int>();
+        cancellation.OnNext(One);
+
+        using var queue = new OperationQueue(Two);
+        var result = queue.EnqueueObservableOperation(One, "cancelled", cancellation, static () => Signal.Emit(FourtyTwo));
+        var receivedValue = false;
+
+        using var subscription = result.Subscribe(_ => receivedValue = true);
+
+        await Assert.That(receivedValue).IsFalse();
+    }
+
     /// <summary>Verifies that constructor throws <see cref="ArgumentOutOfRangeException"/> for non-positive maximumConcurrent.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
@@ -980,6 +1020,27 @@ public class OperationQueueTests
         }
 
         return subjects;
+    }
+
+    /// <summary>Captures the execution order for a deterministic equal-priority workload.</summary>
+    /// <param name="seed">The deterministic tie-break seed.</param>
+    /// <returns>The operation values in execution order.</returns>
+    private static int[] CaptureRandomizedOrder(int seed)
+    {
+        var order = new List<int>(RandomizedItemCount);
+        using var queue = new OperationQueue(maximumConcurrent: One, randomizeEqualPriority: true, seed);
+
+        using (queue.PauseQueue())
+        {
+            for (var i = 0; i < RandomizedItemCount; i++)
+            {
+                var value = i;
+                var key = $"randomized-{i.ToString(CultureInfo.InvariantCulture)}";
+                _ = queue.EnqueueObservableOperation(One, key, () => Signal.Emit(value)).Subscribe(order.Add);
+            }
+        }
+
+        return [.. order];
     }
 
     /// <summary>Enqueues signals and captures their bound outputs.</summary>

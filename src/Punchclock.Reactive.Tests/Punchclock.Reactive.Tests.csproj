@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>$(NetTargetFrameworks)</TargetFrameworks>
+    <DefineConstants>$(DefineConstants);REACTIVE_SHIM_TESTS</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="System" />
+    <Using Include="System.Collections.Generic" />
+    <Using Include="System.Diagnostics.CodeAnalysis" />
+    <Using Include="System.Linq" />
+    <Using Include="System.Reactive.Linq" />
+    <Using Include="System.Threading" />
+    <Using Include="System.Threading.Tasks" />
+    <Using Include="Punchclock.Reactive" />
+    <Using Include="TUnit.Core.Executors" />
+    <Using Include="TUnit.Core.Interfaces" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Punchclock.Tests\KeyedOperationTests.cs" Link="KeyedOperationTests.cs" />
+    <Compile Include="..\Punchclock.Tests\OperationQueueExtensionsTests.cs" Link="OperationQueueExtensionsTests.cs" />
+    <Compile Include="..\Punchclock.Tests\OperationQueueTests.cs" Link="OperationQueueTests.cs" />
+    <Compile Include="..\Punchclock.Tests\PriorityQueueHelperTests.cs" Link="PriorityQueueHelperTests.cs" />
+    <Compile Include="..\Punchclock.Tests\PriorityQueuePropertyTests.cs" Link="PriorityQueuePropertyTests.cs" />
+    <Compile Include="..\Punchclock.Tests\PriorityQueueTests.cs" Link="PriorityQueueTests.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DynamicData" />
+    <PackageReference Include="ReactiveUI.Primitives" />
+    <PackageReference Include="ReactiveUI.Primitives.Reactive" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Punchclock.Reactive\Punchclock.Reactive.csproj" />
+  </ItemGroup>
+</Project>

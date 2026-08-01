@@ -39,6 +39,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Punchclock.Reactive.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="ReactiveUI.Primitives.Reactive" />
     <Using Include="System.Reactive.Unit" Alias="Unit" />
     <Using Include="System.Reactive.Concurrency.IScheduler" Alias="IScheduler" />

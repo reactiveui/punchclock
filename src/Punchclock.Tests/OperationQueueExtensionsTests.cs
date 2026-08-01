@@ -2,9 +2,18 @@
 // ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
+#if !REACTIVE_SHIM_TESTS
 using ReactiveUI.Primitives;
 using ReactiveUI.Primitives.Concurrency;
+#endif
 using ReactiveUI.Primitives.Signals;
+#if REACTIVE_SHIM_TESTS
+using QueueScheduler = System.Reactive.Concurrency.ImmediateScheduler;
+using RxVoid = System.Reactive.Unit;
+#else
+using QueueScheduler = ReactiveUI.Primitives.Concurrency.ImmediateSequencer;
+using RxVoid = ReactiveUI.Primitives.RxVoid;
+#endif
 
 namespace Punchclock.Tests;
 
@@ -115,7 +124,7 @@ public class OperationQueueExtensionsTests
 
             // Block the queue with a subject that we complete later
             using var gate = new Signal<int>();
-            var hold = q.EnqueueObservableOperation(One, gate.AsObservable);
+            var hold = q.EnqueueObservableOperation(One, () => gate);
             using var sub = ObservableExtensions.Subscribe(hold, static _ => { });
 
             using var cts = new CancellationTokenSource();
@@ -332,7 +341,7 @@ public class OperationQueueExtensionsTests
 
             // Block the queue
             using var gate = new Signal<int>();
-            var hold = q.EnqueueObservableOperation(One, gate.AsObservable);
+            var hold = q.EnqueueObservableOperation(One, () => gate);
             using var sub = ObservableExtensions.Subscribe(hold, static _ => { });
 
             // Enqueue with CancellationToken.None
@@ -398,7 +407,7 @@ public class OperationQueueExtensionsTests
     {
         using (Assert.Multiple())
         {
-            using var queue = new OperationQueue(One, ImmediateSequencer.Instance);
+            using var queue = new OperationQueue(One, QueueScheduler.Instance);
 
             // Block the queue
             var blocker = new Signal<int>();
@@ -518,7 +527,7 @@ public class OperationQueueExtensionsTests
     {
         using (Assert.Multiple())
         {
-            using var queue = new OperationQueue(Two, ImmediateSequencer.Instance);
+            using var queue = new OperationQueue(Two, QueueScheduler.Instance);
             using var cts = new CancellationTokenSource();
 
             var executed = false;
@@ -549,7 +558,7 @@ public class OperationQueueExtensionsTests
     {
         using (Assert.Multiple())
         {
-            using var queue = new OperationQueue(Two, ImmediateSequencer.Instance);
+            using var queue = new OperationQueue(Two, QueueScheduler.Instance);
             using var cts = new CancellationTokenSource();
 
             // Enqueue with cancellable token but don't cancel it (generic overload)
@@ -560,6 +569,7 @@ public class OperationQueueExtensionsTests
         }
     }
 
+#if !REACTIVE_SHIM_TESTS
     /// <summary>
     /// Covers lines 264/266-267 (now 281/283-284) - race condition where token is cancelled
     /// between ConvertTokenToObservable call and Observable.Create subscription.
@@ -602,6 +612,7 @@ public class OperationQueueExtensionsTests
             subscription?.Dispose();
         }
     }
+#endif
 
     /// <summary>
     /// Verifies line 103 - both branches of IsCancellationRequested check.
@@ -613,7 +624,7 @@ public class OperationQueueExtensionsTests
     {
         using (Assert.Multiple())
         {
-            using var queue = new OperationQueue(Two, ImmediateSequencer.Instance);
+            using var queue = new OperationQueue(Two, QueueScheduler.Instance);
 
             // Test false branch (not cancelled) - lines 108-109
             using var cts1 = new CancellationTokenSource();

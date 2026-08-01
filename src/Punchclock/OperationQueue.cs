@@ -36,11 +36,14 @@ public class OperationQueue : IDisposable
     /// <summary>The default maximum number of concurrent operations.</summary>
     private const int MaximumConcurrent = 4;
 
-    /// <summary>Multiplier for deterministic pseudo-random ordering.</summary>
-    private const int RandomMultiplier = 1_103_515_245;
+    /// <summary>Multiplier used to distribute sequential tie-break inputs.</summary>
+    private const uint RandomSequenceMultiplier = 2_654_435_769U;
 
-    /// <summary>Increment for deterministic pseudo-random ordering.</summary>
-    private const int RandomIncrement = 12_345;
+    /// <summary>Multiplier used by the first tie-break mixing round.</summary>
+    private const uint RandomFirstMixMultiplier = 2_246_822_519U;
+
+    /// <summary>Multiplier used by the second tie-break mixing round.</summary>
+    private const uint RandomSecondMixMultiplier = 3_266_489_917U;
 
     /// <summary>
     /// Global sequence number for operation IDs across all OperationQueue instances.
@@ -410,9 +413,9 @@ public class OperationQueue : IDisposable
         }
 
         var sequence = (uint)Interlocked.Increment(ref _randomSequence);
-        var mixed = unchecked((uint)seed + (sequence * 2654435769u));
-        mixed = unchecked((mixed ^ (mixed >> 16)) * 2246822519u);
-        mixed = unchecked((mixed ^ (mixed >> 13)) * 3266489917u);
+        var mixed = unchecked((uint)seed + (sequence * RandomSequenceMultiplier));
+        mixed = unchecked((mixed ^ (mixed >> 16)) * RandomFirstMixMultiplier);
+        mixed = unchecked((mixed ^ (mixed >> 13)) * RandomSecondMixMultiplier);
         return unchecked((int)(mixed ^ (mixed >> 16)));
     }
 
@@ -458,7 +461,7 @@ public class OperationQueue : IDisposable
     /// <param name="operation">The operation that finished.</param>
     private void FinishOperation(KeyedOperation operation)
     {
-        operation.CancelSubscription!.Dispose();
+        operation.Dispose();
 
         var operationsToStart = new List<KeyedOperation>();
         var completeShutdown = false;

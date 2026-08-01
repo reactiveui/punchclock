@@ -3,7 +3,11 @@
 // See the LICENSE file in the project root for full license information.
 
 using ReactiveUI.Primitives.Signals;
+#if REACTIVE_SHIM_TESTS
+using Unit = System.Reactive.Unit;
+#else
 using Unit = ReactiveUI.Primitives.RxVoid;
+#endif
 
 namespace Punchclock.Tests;
 
