@@ -21,13 +21,19 @@ namespace Punchclock.Benchmarks;
 [MarkdownExporterAttribute.GitHub]
 public class CancellationTokenBenchmarks
 {
+    private const string BenchmarkKey = "bench";
+
+    private const int BenchmarkResult = 42;
+
+    private const int BatchOperationCount = 100;
+
     private OperationQueue? _queue;
 
     /// <summary>Setup method called before each benchmark.</summary>
     [GlobalSetup]
     public void Setup()
     {
-        _queue = new OperationQueue(maximumConcurrent: 4);
+        _queue = new(maximumConcurrent: 4);
     }
 
     /// <summary>Cleanup method called after each benchmark.</summary>
@@ -47,8 +53,8 @@ public class CancellationTokenBenchmarks
     {
         await _queue!.Enqueue(
             priority: 1,
-            key: "bench",
-            asyncOperation: () => Task.FromResult(42),
+            key: BenchmarkKey,
+            asyncOperation: static () => Task.FromResult(BenchmarkResult),
             token: CancellationToken.None);
     }
 
@@ -63,8 +69,8 @@ public class CancellationTokenBenchmarks
         using var cts = new CancellationTokenSource();
         await _queue!.Enqueue(
             priority: 1,
-            key: "bench",
-            asyncOperation: () => Task.FromResult(42),
+            key: BenchmarkKey,
+            asyncOperation: static () => Task.FromResult(BenchmarkResult),
             token: cts.Token);
     }
 
@@ -75,8 +81,8 @@ public class CancellationTokenBenchmarks
     {
         await _queue!.Enqueue(
             priority: 1,
-            key: "bench",
-            asyncOperation: () => Task.FromResult(42));
+            key: BenchmarkKey,
+            asyncOperation: static () => Task.FromResult(BenchmarkResult));
     }
 
     /// <summary>Benchmark: Batch enqueue 100 operations with CancellationToken.None. Tests fast path scaling.</summary>
@@ -84,8 +90,8 @@ public class CancellationTokenBenchmarks
     [Benchmark(Description = "Batch 100 operations with CancellationToken.None")]
     public async Task BatchEnqueueWithTokenNoneAsync()
     {
-        var tasks = new Task<int>[100];
-        for (var i = 0; i < 100; i++)
+        var tasks = new Task<int>[BatchOperationCount];
+        for (var i = 0; i < BatchOperationCount; i++)
         {
             var capturedI = i;
             tasks[i] = _queue!.Enqueue(

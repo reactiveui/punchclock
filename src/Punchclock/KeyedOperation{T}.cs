@@ -17,7 +17,7 @@ internal sealed class KeyedOperation<T> : KeyedOperation
     /// <value>
     /// A function that returns an <see cref="IObservable{T}"/> when invoked, or null if not set.
     /// </value>
-    public Func<IObservable<T>>? Func { get; init; }
+    internal Func<IObservable<T>>? Func { get; init; }
 
     /// <summary>
     /// Gets the replay subject that multicasts the operation result to all subscribers.
@@ -26,7 +26,7 @@ internal sealed class KeyedOperation<T> : KeyedOperation
     /// <value>
     /// A <see cref="ReplaySignal{T}"/> that replays all emitted values to new subscribers.
     /// </value>
-    public ReplaySignal<T> Result { get; } = new();
+    internal ReplaySignal<T> Result { get; } = new();
 
     /// <summary>
     /// Evaluates the operation function and multicasts the result through <see cref="Result"/>.
@@ -36,7 +36,7 @@ internal sealed class KeyedOperation<T> : KeyedOperation
     /// An observable of <see cref="Unit"/> that completes when the operation finishes.
     /// Returns an empty observable if the function is null or the operation was cancelled early.
     /// </returns>
-    public override IObservable<Unit> EvaluateFunc()
+    internal override IObservable<Unit> EvaluateFunc()
     {
         if (Func is null)
         {
@@ -50,8 +50,8 @@ internal sealed class KeyedOperation<T> : KeyedOperation
 
         var signal = CancelSignal ?? Signal.None<Unit>();
         var ret = Func().TakeUntil(signal).Multicast(Result);
-        ret.Connect();
+        _ = ret.Connect();
 
-        return ret.Map(_ => Unit.Default);
+        return ret.Map(static _ => Unit.Default);
     }
 }

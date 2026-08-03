@@ -12,7 +12,7 @@
         "skipAutoProperties": true,
         "modulePaths": {
           "include": [ "Punchclock\\..*" ],
-          "exclude": [ ".*Tests.*", ".*TestRunner.*" ]
+          "exclude": [ ".*Tests.*", ".*TestRunner.*", ".*Benchmarks.*", ".*Examples.*" ]
         }
       }
     }

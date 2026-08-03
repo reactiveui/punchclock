@@ -18,6 +18,6 @@ internal sealed class NotNullWhenAttribute : Attribute
         ReturnValue = returnValue;
 
     /// <summary>Gets a value indicating whether the parameter is not <see langword="null"/>.</summary>
-    public bool ReturnValue { get; }
+    internal bool ReturnValue { get; }
 }
 #endif

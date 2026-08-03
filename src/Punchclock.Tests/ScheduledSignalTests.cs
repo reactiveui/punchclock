@@ -10,14 +10,19 @@ namespace Punchclock.Tests;
 /// <summary>Tests for <see cref="ScheduledSignal{T}"/>.</summary>
 public class ScheduledSignalTests
 {
+    /// <summary>Represents the value 1.</summary>
     private const int One = 1;
 
+    /// <summary>Represents the value 2.</summary>
     private const int Two = 2;
 
+    /// <summary>Represents the value 3.</summary>
     private const int Three = 3;
 
+    /// <summary>Represents the value 4.</summary>
     private const int Four = 4;
 
+    /// <summary>Represents the value 42.</summary>
     private const int FourtyTwo = 42;
 
     /// <summary>Verifies that the constructor throws <see cref="ArgumentNullException"/> when scheduler is null.</summary>
@@ -25,7 +30,7 @@ public class ScheduledSignalTests
     [Test]
     public async Task Constructor_WithNullSequencer_ThrowsArgumentNullException()
     {
-        var ex = await Assert.That(() => new ScheduledSignal<int>(null!))
+        var ex = await Assert.That(static () => new ScheduledSignal<int>(null!))
             .Throws<ArgumentNullException>();
         await Assert.That(ex!.ParamName).IsEqualTo("scheduler");
     }

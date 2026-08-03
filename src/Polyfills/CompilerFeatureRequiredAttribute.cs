@@ -16,10 +16,10 @@ namespace System.Runtime.CompilerServices;
 internal sealed class CompilerFeatureRequiredAttribute : Attribute
 {
     /// <summary>The <see cref="FeatureName"/> used for the ref structs C# feature.</summary>
-    public const string RefStructs = nameof(RefStructs);
+    internal const string RefStructs = nameof(RefStructs);
 
     /// <summary>The <see cref="FeatureName"/> used for the required members C# feature.</summary>
-    public const string RequiredMembers = nameof(RequiredMembers);
+    internal const string RequiredMembers = nameof(RequiredMembers);
 
     /// <summary>Initializes a new instance of the <see cref="CompilerFeatureRequiredAttribute"/> class.</summary>
     /// <param name="featureName">The name of the required compiler feature.</param>
@@ -27,6 +27,6 @@ internal sealed class CompilerFeatureRequiredAttribute : Attribute
         FeatureName = featureName;
 
     /// <summary>Gets the name of the required compiler feature.</summary>
-    public string FeatureName { get; }
+    internal string FeatureName { get; }
 }
 #endif
