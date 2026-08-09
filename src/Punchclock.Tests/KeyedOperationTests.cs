@@ -3,140 +3,157 @@
 // See the LICENSE file in the project root for full license information.
 
 using ReactiveUI.Primitives.Signals;
+#if REACTIVE_SHIM_TESTS
+using Unit = System.Reactive.Unit;
+#else
 using Unit = ReactiveUI.Primitives.RxVoid;
+#endif
 
 namespace Punchclock.Tests;
 
-/// <summary>Tests for <see cref="KeyedOperation"/> and related functionality.</summary>
+/// <summary>Tests for <see cref="KeyedOperation" /> and related functionality.</summary>
 public class KeyedOperationTests
 {
+    /// <summary>The default value emitted by helper observables.</summary>
     private const int DefaultValue = 42;
 
+    /// <summary>The first operation identifier used in tests.</summary>
+    private const int FirstOperationId = 1;
+
+    /// <summary>The second operation identifier used in tests.</summary>
+    private const int SecondOperationId = 2;
+
+    /// <summary>The lower random ordering value used in tiebreak tests.</summary>
+    private const int LowerRandomOrder = 10;
+
+    /// <summary>The higher random ordering value used in tiebreak tests.</summary>
+    private const int HigherRandomOrder = 20;
+
     /// <summary>Verifies that CompareTo returns 1 when other is null.</summary>
-    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    /// <returns>A <see cref="Task" /> representing the asynchronous unit test.</returns>
     [Test]
     public async Task CompareTo_WithNull_ReturnsOne()
     {
-        var op = CreateOperation(priority: 1, key: "test");
+        var op = CreateOperation(priority: FirstOperationId, key: "test");
         var result = op.CompareTo(null);
-        await Assert.That(result).IsEqualTo(1);
+        await Assert.That(result).IsEqualTo(FirstOperationId);
     }
 
     /// <summary>Verifies that non-keyed operations come before keyed operations.</summary>
-    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    /// <returns>A <see cref="Task" /> representing the asynchronous unit test.</returns>
     [Test]
     public async Task CompareTo_NonKeyedBeforeKeyed()
     {
         using (Assert.Multiple())
         {
-            var nonKeyed = CreateOperation(priority: 1, key: OperationQueue.DefaultKey);
-            var keyed = CreateOperation(priority: 1, key: "custom");
+            var nonKeyed = CreateOperation(priority: FirstOperationId, key: OperationQueue.DefaultKey);
+            var keyed = CreateOperation(priority: FirstOperationId, key: "custom");
 
             var result = nonKeyed.CompareTo(keyed);
-            await Assert.That(result).IsLessThan(0); // Non-keyed should come first
+            await Assert.That(result).IsLessThan(0);
         }
     }
 
     /// <summary>Verifies that higher priority operations come before lower priority ones.</summary>
-    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    /// <returns>A <see cref="Task" /> representing the asynchronous unit test.</returns>
     [Test]
     public async Task CompareTo_HigherPriorityFirst()
     {
         using (Assert.Multiple())
         {
-            var highPriority = CreateOperation(priority: 10, key: "test");
-            var lowPriority = CreateOperation(priority: 1, key: "test");
+            var highPriority = CreateOperation(priority: LowerRandomOrder, key: "test");
+            var lowPriority = CreateOperation(priority: FirstOperationId, key: "test");
 
             var result = highPriority.CompareTo(lowPriority);
-            await Assert.That(result).IsLessThan(0); // Higher priority should come first
+            await Assert.That(result).IsLessThan(0);
         }
     }
 
     /// <summary>Verifies that equal priority operations return 0 for FIFO handling.</summary>
-    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    /// <returns>A <see cref="Task" /> representing the asynchronous unit test.</returns>
     [Test]
     public async Task CompareTo_EqualPriority_ReturnsZero()
     {
         using (Assert.Multiple())
         {
-            var op1 = CreateOperation(priority: 5, key: "key1", id: 1);
-            var op2 = CreateOperation(priority: 5, key: "key2", id: 2);
+            var op1 = CreateOperation(priority: 5, key: "key1", id: FirstOperationId);
+            var op2 = CreateOperation(priority: 5, key: "key2", id: SecondOperationId);
 
             var result = op1.CompareTo(op2);
-            await Assert.That(result).IsEqualTo(0); // FIFO tiebreaker handled by PriorityQueue
+            await Assert.That(result).IsEqualTo(0);
         }
     }
 
     /// <summary>Verifies that random tiebreak works when enabled.</summary>
-    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    /// <returns>A <see cref="Task" /> representing the asynchronous unit test.</returns>
     [Test]
     public async Task CompareTo_WithRandomTiebreak_UsesRandomOrder()
     {
         using (Assert.Multiple())
         {
-            var op1 = CreateOperation(priority: 5, key: "key1", useRandom: true, randomOrder: 10);
-            var op2 = CreateOperation(priority: 5, key: "key2", useRandom: true, randomOrder: 20);
+            var op1 = CreateOperation(priority: 5, key: "key1", useRandom: true, randomOrder: LowerRandomOrder);
+            var op2 = CreateOperation(priority: 5, key: "key2", useRandom: true, randomOrder: HigherRandomOrder);
 
             var result = op1.CompareTo(op2);
-            await Assert.That(result).IsLessThan(0); // Lower random order comes first
+            await Assert.That(result).IsLessThan(0);
         }
     }
 
     /// <summary>Verifies that KeyIsDefault returns true for null key.</summary>
-    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    /// <returns>A <see cref="Task" /> representing the asynchronous unit test.</returns>
     [Test]
     public async Task KeyIsDefault_WithNullKey_ReturnsTrue()
     {
-        var op = CreateOperation(priority: 1, key: null);
+        var op = CreateOperation(priority: FirstOperationId, key: null);
         await Assert.That(op.KeyIsDefault).IsTrue();
     }
 
     /// <summary>Verifies that KeyIsDefault returns true for empty string.</summary>
-    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    /// <returns>A <see cref="Task" /> representing the asynchronous unit test.</returns>
     [Test]
     public async Task KeyIsDefault_WithEmptyKey_ReturnsTrue()
     {
-        var op = CreateOperation(priority: 1, key: string.Empty);
+        var op = CreateOperation(priority: FirstOperationId, key: string.Empty);
         await Assert.That(op.KeyIsDefault).IsTrue();
     }
 
     /// <summary>Verifies that KeyIsDefault returns true for DefaultKey.</summary>
-    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    /// <returns>A <see cref="Task" /> representing the asynchronous unit test.</returns>
     [Test]
     public async Task KeyIsDefault_WithDefaultKey_ReturnsTrue()
     {
-        var op = CreateOperation(priority: 1, key: OperationQueue.DefaultKey);
+        var op = CreateOperation(priority: FirstOperationId, key: OperationQueue.DefaultKey);
         await Assert.That(op.KeyIsDefault).IsTrue();
     }
 
     /// <summary>Verifies that KeyIsDefault returns false for custom key.</summary>
-    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    /// <returns>A <see cref="Task" /> representing the asynchronous unit test.</returns>
     [Test]
     public async Task KeyIsDefault_WithCustomKey_ReturnsFalse()
     {
-        var op = CreateOperation(priority: 1, key: "custom");
+        var op = CreateOperation(priority: FirstOperationId, key: "custom");
         await Assert.That(op.KeyIsDefault).IsFalse();
     }
 
     /// <summary>Verifies that EvaluateFunc returns empty when CancelledEarly is true.</summary>
-    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    /// <returns>A <see cref="Task" /> representing the asynchronous unit test.</returns>
     [Test]
     public async Task EvaluateFunc_WhenCancelledEarly_ReturnsEmpty()
     {
         using (Assert.Multiple())
         {
-            var op = CreateOperation(priority: 1, key: "test");
+            var op = CreateOperation(priority: FirstOperationId, key: "test");
             op.CancelledEarly = true;
 
             var results = new List<Unit>();
-            op.EvaluateFunc().Subscribe(results.Add);
+            using var subscription = op.EvaluateFunc().Subscribe(results.Add);
 
             await Assert.That(results).IsEmpty();
         }
     }
 
     /// <summary>Verifies that EvaluateFunc executes the function when not cancelled.</summary>
-    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    /// <returns>A <see cref="Task" /> representing the asynchronous unit test.</returns>
     [Test]
     public async Task EvaluateFunc_WhenNotCancelled_ExecutesFunction()
     {
@@ -144,109 +161,94 @@ public class KeyedOperationTests
         {
             var executed = false;
             var op = CreateOperation(
-                priority: 1,
+                priority: FirstOperationId,
                 key: "test",
                 func: () =>
                 {
                     executed = true;
-                    return Signal.Emit(42);
+                    return Signal.Emit(DefaultValue);
                 });
 
             var results = new List<Unit>();
-            op.EvaluateFunc().Subscribe(results.Add);
+            using var subscription = op.EvaluateFunc().Subscribe(results.Add);
 
             await Assert.That(executed).IsTrue();
         }
     }
 
     /// <summary>Verifies that EvaluateFunc respects cancel signal.</summary>
-    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    /// <returns>A <see cref="Task" /> representing the asynchronous unit test.</returns>
     [Test]
     public async Task EvaluateFunc_WithCancelSignal_Cancels()
     {
         using (Assert.Multiple())
         {
-            var cancelSubject = new Signal<Unit>();
+            using var cancelSubject = new Signal<Unit>();
             var completed = false;
             var op = CreateOperation(
-                priority: 1,
+                priority: FirstOperationId,
                 key: "test",
-                func: () => Signal.Silent<int>(),
+                func: static () => Signal.Silent<int>(),
                 cancelSignal: cancelSubject);
 
-            op.EvaluateFunc().Subscribe(_ => { }, () => completed = true);
+            using var subscription = op.EvaluateFunc().Subscribe(static _ => { }, () => completed = true);
 
             cancelSubject.OnNext(Unit.Default);
             cancelSubject.OnCompleted();
 
-            // TakeUntil completes synchronously when cancel signal completes
             await Assert.That(completed).IsTrue();
         }
     }
 
     /// <summary>Verifies that Result subject is created and accessible.</summary>
-    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    /// <returns>A <see cref="Task" /> representing the asynchronous unit test.</returns>
     [Test]
     public async Task Result_IsAccessible()
     {
-        var op = CreateOperation(priority: 1, key: "test");
+        var op = CreateOperation(priority: FirstOperationId, key: "test");
         await Assert.That(op.Result).IsNotNull();
     }
 
-    /// <summary>
-    /// Covers KeyedOperation.cs line 127 - keyed operation after non-keyed in comparison.
-    /// Verifies that when comparing two operations with equal priority, a keyed operation
-    /// returns positive (comes after) when compared to a non-keyed operation.
-    /// </summary>
-    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    /// <summary>Verifies that unmanaged-only disposal does not release the managed cancellation subscription.</summary>
+    /// <returns>A <see cref="Task" /> representing the asynchronous unit test.</returns>
+    [Test]
+    public async Task Dispose_WhenDisposingIsFalse_DoesNotDisposeManagedResources()
+    {
+        using var cancellationSubscription = new CancellationTokenSource();
+        using var operation = new TestKeyedOperation { CancelSubscription = cancellationSubscription };
+
+        operation.DisposeWithoutManagedResources();
+        await cancellationSubscription.CancelAsync();
+
+        await Assert.That(cancellationSubscription.IsCancellationRequested).IsTrue();
+    }
+
+    /// <summary>Verifies that keyed operations compare after non-keyed operations.</summary>
+    /// <returns>A <see cref="Task" /> representing the asynchronous unit test.</returns>
     [Test]
     public async Task CompareTo_KeyedAfterNonKeyed_ReturnsPositive()
     {
-        var keyed = new KeyedOperation<int>
-        {
-            Priority = 1,
-            Key = "custom-key",
-            Id = 1,
-            Func = () => Signal.Emit(1),
-        };
+        using var keyed = new KeyedOperation<int> { Priority = FirstOperationId, Key = "custom-key", Id = FirstOperationId, Func = static () => Signal.Emit(FirstOperationId) };
+        using var nonKeyed = new KeyedOperation<int> { Priority = FirstOperationId, Key = OperationQueue.DefaultKey, Id = SecondOperationId, Func = static () => Signal.Emit(SecondOperationId) };
 
-        var nonKeyed = new KeyedOperation<int>
-        {
-            Priority = 1,
-            Key = OperationQueue.DefaultKey,
-            Id = 2,
-            Func = () => Signal.Emit(2),
-        };
-
-        // keyed.CompareTo(nonKeyed) should return 1 (line 127: return 1)
         var result = keyed.CompareTo(nonKeyed);
         await Assert.That(result).IsGreaterThan(0);
     }
 
-    /// <summary>
-    /// Covers KeyedOperation.cs line 190 - EvaluateFunc with null Func.
-    /// Verifies that when Func is null, EvaluateFunc returns an empty observable.
-    /// </summary>
-    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    /// <summary>Verifies that a null Func causes EvaluateFunc to return an empty observable.</summary>
+    /// <returns>A <see cref="Task" /> representing the asynchronous unit test.</returns>
     [Test]
     public async Task EvaluateFunc_WithNullFunc_ReturnsEmpty()
     {
-        var op = new KeyedOperation<int>
-        {
-            Priority = 1,
-            Key = "test",
-            Id = 1,
-            Func = null, // Null func - should hit line 190
-        };
+        using var op = new KeyedOperation<int> { Priority = FirstOperationId, Key = "test", Id = FirstOperationId, Func = null };
 
         var results = new List<Unit>();
-        op.EvaluateFunc().Subscribe(results.Add);
+        using var subscription = op.EvaluateFunc().Subscribe(results.Add);
 
         await Assert.That(results).IsEmpty();
     }
 
-    /// <summary>Helper to create a KeyedOperation for testing.</summary>
-    /// <returns>A new instance of <see cref="KeyedOperation{T}"/>.</returns>
+    /// <summary>Helper to create a <see cref="KeyedOperation{T}" /> for testing.</summary>
     /// <param name="priority">The priority of the operation.</param>
     /// <param name="key">The key of the operation.</param>
     /// <param name="id">The ID of the operation.</param>
@@ -254,6 +256,7 @@ public class KeyedOperationTests
     /// <param name="randomOrder">The random order value.</param>
     /// <param name="func">The function to execute.</param>
     /// <param name="cancelSignal">The cancel signal observable.</param>
+    /// <returns>A new instance of <see cref="KeyedOperation{T}" />.</returns>
     private static KeyedOperation<int> CreateOperation(
         int priority,
         string? key,
@@ -268,7 +271,17 @@ public class KeyedOperationTests
             Id = id,
             UseRandomTiebreak = useRandom,
             RandomOrder = randomOrder,
-            Func = func ?? (() => Signal.Emit(DefaultValue)),
+            Func = func ?? (static () => Signal.Emit(DefaultValue)),
             CancelSignal = cancelSignal,
         };
+
+    /// <summary>Exposes the unmanaged-only disposal path for contract testing.</summary>
+    private sealed class TestKeyedOperation : KeyedOperation
+    {
+        /// <summary>Invokes the disposal path that must not release managed resources.</summary>
+        internal void DisposeWithoutManagedResources() => Dispose(false);
+
+        /// <inheritdoc />
+        internal override IObservable<Unit> EvaluateFunc() => Signal.None<Unit>();
+    }
 }

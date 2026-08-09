@@ -12,9 +12,9 @@ namespace System.Runtime.CompilerServices;
 /// <summary>Reserved for the compiler to track metadata for <see langword="init"/>-only members; not for use in source.</summary>
 [ExcludeFromCodeCoverage]
 [DebuggerNonUserCode]
-[SuppressMessage(
-    "Design",
-    "SST1436:Add members to this type or remove it; an empty type is rarely intentional",
-    Justification = "Compiler-recognized marker type for init-only members; it must remain empty.")]
-internal static class IsExternalInit;
+internal static class IsExternalInit
+{
+    /// <summary>Gets a value indicating that this is the compiler-recognized init-only marker type.</summary>
+    internal static bool IsCompilerMarker => true;
+}
 #endif

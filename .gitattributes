@@ -13,7 +13,7 @@
 *.png 	binary
 *.gif 	binary
 
-*.cs text diff=csharp 
+*.cs text eol=lf diff=csharp
 *.vb text
 *.c text
 *.cpp text
@@ -47,4 +47,3 @@
 *.fsproj text merge=union 
 *.dbproj text merge=union 
 *.sln text eol=crlf merge=union 
-

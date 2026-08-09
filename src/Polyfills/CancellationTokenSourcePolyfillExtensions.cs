@@ -15,7 +15,7 @@ internal static class CancellationTokenSourcePolyfillExtensions
     {
         /// <summary>Communicates a request for cancellation, completing synchronously.</summary>
         /// <returns>A completed task representing the cancellation request.</returns>
-        public Task CancelAsync()
+        internal Task CancelAsync()
         {
             source.Cancel();
             return Task.CompletedTask;

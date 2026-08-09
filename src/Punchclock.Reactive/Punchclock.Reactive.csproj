@@ -39,7 +39,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ReactiveUI.Primitives.Reactive" PrivateAssets="analyzers" />
+    <InternalsVisibleTo Include="Punchclock.Reactive.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ReactiveUI.Primitives.Reactive" />
     <Using Include="System.Reactive.Unit" Alias="Unit" />
     <Using Include="System.Reactive.Concurrency.IScheduler" Alias="IScheduler" />
     <Using Include="System.Reactive.Concurrency.Scheduler" Alias="Scheduler" />

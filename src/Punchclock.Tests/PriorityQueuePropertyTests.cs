@@ -2,22 +2,43 @@
 // ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
-using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
+using ReactiveUI.Primitives.Core;
 
 namespace Punchclock.Tests;
 
 /// <summary>
-/// Property-based tests for PriorityQueue that run multiple times with random data
+/// Property-based tests for <see cref="PriorityQueue{T}"/> that run multiple times with generated data
 /// to verify invariants hold under various conditions.
 /// </summary>
-[SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Random is used for test data generation, not for security purposes")]
 public class PriorityQueuePropertyTests
 {
-    private const int Two = 2;
+    /// <summary>Represents the enqueue operation kind.</summary>
+    private const int EnqueueOperationKind = 0;
 
-    private const int Three = 3;
+    /// <summary>Represents the dequeue operation kind.</summary>
+    private const int DequeueOperationKind = 1;
 
-    private const int OneHundred = 100;
+    /// <summary>Represents the remove operation kind.</summary>
+    private const int RemoveOperationKind = 2;
+
+    /// <summary>Represents the total number of operation kinds.</summary>
+    private const int OperationKindCount = 3;
+
+    /// <summary>Represents the lower bound for generated operation counts.</summary>
+    private const int MinimumOperationCount = 10;
+
+    /// <summary>Represents the upper bound for generated operation counts.</summary>
+    private const int MaximumOperationCountExclusive = 50;
+
+    /// <summary>Represents the upper bound for generated FIFO item counts.</summary>
+    private const int MaximumFifoItemCountExclusive = 30;
+
+    /// <summary>Represents the number of repetitions for property tests.</summary>
+    private const int PropertyTestIterationCount = 100;
+
+    /// <summary>Represents the exclusive upper bound for generated priorities.</summary>
+    private const int PriorityUpperBoundExclusive = 100;
 
     /// <summary>
     /// Property test: Heap invariant must hold after any sequence of operations.
@@ -25,37 +46,38 @@ public class PriorityQueuePropertyTests
     /// </summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
-    [Repeat(OneHundred)]
+    [Repeat(PropertyTestIterationCount)]
     public async Task PropertyTest_HeapInvariantAlwaysHolds()
     {
-        var queue = new ReactiveUI.Primitives.Core.PriorityQueue<TestItem>();
-        var operations = Random.Shared.Next(10, 50);
-        var items = new List<TestItem>();
+        PriorityQueue<TestItem> queue = new();
+        var operations = RandomNumberGenerator.GetInt32(MinimumOperationCount, MaximumOperationCountExclusive);
+        List<TestItem> items = new();
 
         for (var i = 0; i < operations; i++)
         {
-            switch (Random.Shared.Next(Three))
+            switch (RandomNumberGenerator.GetInt32(OperationKindCount))
             {
-                case 0: // Enqueue
+                case EnqueueOperationKind:
                     {
-                        var item = new TestItem(Random.Shared.Next(OneHundred));
+                        var item = new TestItem(RandomNumberGenerator.GetInt32(PriorityUpperBoundExclusive));
                         queue.Enqueue(item);
                         items.Add(item);
                         break;
                     }
 
-                case 1 when queue.Count > 0: // Dequeue
+                case DequeueOperationKind when queue.Count > 0:
                     {
-                        queue.Dequeue();
+                        var dequeuedItem = queue.Dequeue();
+                        _ = items.Remove(dequeuedItem);
                         break;
                     }
 
-                case Two when items.Count > 0: // Remove
+                case RemoveOperationKind when items.Count > 0:
                     {
-                        var toRemove = items[Random.Shared.Next(items.Count)];
+                        var toRemove = items[RandomNumberGenerator.GetInt32(items.Count)];
                         if (queue.Remove(toRemove))
                         {
-                            items.Remove(toRemove);
+                            _ = items.Remove(toRemove);
                         }
 
                         break;
@@ -67,24 +89,22 @@ public class PriorityQueuePropertyTests
     }
 
     /// <summary>
-    /// Property test: Items must be dequeued in non-increasing priority order (higher priority first).
+    /// Property test: Items must be dequeued in non-decreasing numeric priority order (lower values first).
     /// Runs 100 times with different random data sets.
     /// </summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
-    [Repeat(OneHundred)]
+    [Repeat(PropertyTestIterationCount)]
     public async Task PropertyTest_DequeueOrderIsNonIncreasing()
     {
-        var queue = new ReactiveUI.Primitives.Core.PriorityQueue<TestItem>();
-        var count = Random.Shared.Next(10, 50);
+        PriorityQueue<TestItem> queue = new();
+        var count = RandomNumberGenerator.GetInt32(MinimumOperationCount, MaximumOperationCountExclusive);
 
-        // Enqueue random items
         for (var i = 0; i < count; i++)
         {
-            queue.Enqueue(new TestItem(Random.Shared.Next(OneHundred)));
+            queue.Enqueue(new(RandomNumberGenerator.GetInt32(PriorityUpperBoundExclusive)));
         }
 
-        // Dequeue all items and verify priority order
         TestItem? previous = null;
         while (queue.Count > 0)
         {
@@ -104,38 +124,25 @@ public class PriorityQueuePropertyTests
     /// </summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
-    [Repeat(OneHundred)]
+    [Repeat(PropertyTestIterationCount)]
     public async Task PropertyTest_FIFO_OrderMaintained()
     {
-        var queue = new ReactiveUI.Primitives.Core.PriorityQueue<TestItem>();
-        var itemCount = Random.Shared.Next(10, 30);
-        var priority = Random.Shared.Next(OneHundred); // All items have same priority
+        PriorityQueue<TestItem> queue = new();
+        var itemCount = RandomNumberGenerator.GetInt32(MinimumOperationCount, MaximumFifoItemCountExclusive);
+        var priority = RandomNumberGenerator.GetInt32(PriorityUpperBoundExclusive);
 
-        // Enqueue items with sequential IDs
-        var items = Enumerable.Range(0, itemCount)
-            .Select(i => new TestItem(priority, Id: i))
-            .ToArray();
-
-        foreach (var item in items)
+        for (var i = 0; i < itemCount; i++)
         {
+            var item = new TestItem(priority, Id: i);
             queue.Enqueue(item);
         }
 
-        // Dequeue all items and verify FIFO order
-        var dequeued = new List<TestItem>();
-        while (queue.Count > 0)
-        {
-            dequeued.Add(queue.Dequeue());
-        }
-
-        await Assert.That(dequeued.Count).IsEqualTo(itemCount);
-
-        // Verify FIFO order: items should be dequeued in insertion order
         using (Assert.Multiple())
         {
-            for (var i = 0; i < dequeued.Count; i++)
+            for (var i = 0; i < itemCount; i++)
             {
-                await Assert.That(dequeued[i].Id).IsEqualTo(i);
+                var item = queue.Dequeue();
+                await Assert.That(item.Id).IsEqualTo(i);
             }
         }
     }
@@ -148,14 +155,6 @@ public class PriorityQueuePropertyTests
         /// <summary>Compares this instance with another TestItem based on Priority.</summary>
         /// <param name="other">The other TestItem to compare with.</param>
         /// <returns>A value indicating the relative order of the items.</returns>
-        public int CompareTo(TestItem? other)
-        {
-            if (other is null)
-            {
-                return -1;
-            }
-
-            return Priority.CompareTo(other.Priority);
-        }
+        public int CompareTo(TestItem? other) => other is null ? -1 : Priority.CompareTo(other.Priority);
     }
 }

@@ -22,13 +22,27 @@ namespace Punchclock.Benchmarks;
 [MarkdownExporterAttribute.GitHub]
 public class OperationQueueBenchmarks
 {
+    private const int MixedPriorityOperationCount = 100;
+
+    private const int PriorityLevelCount = 10;
+
+    private const int SerializedOperationCount = 50;
+
+    private const int ParallelOperationCount = 100;
+
+    private const int ObservableOperationCount = 10;
+
+    private const int PausedOperationCount = 20;
+
+    private const int RandomizedOperationCount = 50;
+
     private OperationQueue? _queue;
 
     /// <summary>Setup method called before each benchmark.</summary>
     [GlobalSetup]
     public void Setup()
     {
-        _queue = new OperationQueue(maximumConcurrent: 4);
+        _queue = new(maximumConcurrent: 4);
     }
 
     /// <summary>Cleanup method called after each benchmark.</summary>
@@ -46,11 +60,11 @@ public class OperationQueueBenchmarks
     [Benchmark(Description = "100 operations with mixed priorities")]
     public async Task MixedPrioritiesAsync()
     {
-        var tasks = new Task<int>[100];
-        for (var i = 0; i < 100; i++)
+        var tasks = new Task<int>[MixedPriorityOperationCount];
+        for (var i = 0; i < MixedPriorityOperationCount; i++)
         {
             var capturedI = i;
-            var priority = capturedI % 10; // Priorities 0-9
+            var priority = capturedI % PriorityLevelCount;
             tasks[i] = _queue!.Enqueue(
                 priority: priority,
                 asyncOperation: () => Task.FromResult(capturedI));
@@ -67,8 +81,8 @@ public class OperationQueueBenchmarks
     [Benchmark(Description = "50 serialized operations (same key)")]
     public async Task SerializedOperationsAsync()
     {
-        var tasks = new Task<int>[50];
-        for (var i = 0; i < 50; i++)
+        var tasks = new Task<int>[SerializedOperationCount];
+        for (var i = 0; i < SerializedOperationCount; i++)
         {
             var capturedI = i;
             tasks[i] = _queue!.Enqueue(
@@ -88,8 +102,8 @@ public class OperationQueueBenchmarks
     [Benchmark(Baseline = true, Description = "100 parallel operations (unique keys)")]
     public async Task ParallelOperationsAsync()
     {
-        var tasks = new Task<int>[100];
-        for (var i = 0; i < 100; i++)
+        var tasks = new Task<int>[ParallelOperationCount];
+        for (var i = 0; i < ParallelOperationCount; i++)
         {
             var capturedI = i;
             tasks[i] = _queue!.Enqueue(
@@ -101,13 +115,13 @@ public class OperationQueueBenchmarks
         await Task.WhenAll(tasks);
     }
 
-    /// <summary>Benchmark: Observable-based enqueue (10 operations). Tests the raw observable API performance.</summary>
+    /// <summary>Benchmarks 10 observable-based enqueue operations through the raw observable API.</summary>
     /// <returns>Task for async operation.</returns>
     [Benchmark(Description = "10 observable operations")]
     public async Task ObservableOperationsAsync()
     {
-        var tasks = new Task<int>[10];
-        for (var i = 0; i < 10; i++)
+        var tasks = new Task<int>[ObservableOperationCount];
+        for (var i = 0; i < ObservableOperationCount; i++)
         {
             var capturedI = i;
             var obs = _queue!.EnqueueObservableOperation(
@@ -129,8 +143,8 @@ public class OperationQueueBenchmarks
     {
         using var pause = _queue!.PauseQueue();
 
-        var tasks = new Task<int>[20];
-        for (var i = 0; i < 20; i++)
+        var tasks = new Task<int>[PausedOperationCount];
+        for (var i = 0; i < PausedOperationCount; i++)
         {
             var capturedI = i;
             tasks[i] = _queue.Enqueue(
@@ -144,7 +158,7 @@ public class OperationQueueBenchmarks
         await Task.WhenAll(tasks);
     }
 
-    /// <summary>Benchmark: Random priority with tie-breaking (deterministic seed). Tests randomization overhead.</summary>
+    /// <summary>Benchmarks random priority tie-breaking overhead with a deterministic seed.</summary>
     /// <returns>Task for async operation.</returns>
     [Benchmark(Description = "50 operations with random tie-breaking")]
     public async Task RandomPriorityTieBreakingAsync()
@@ -154,8 +168,8 @@ public class OperationQueueBenchmarks
             randomizeEqualPriority: true,
             seed: 42);
 
-        var tasks = new Task<int>[50];
-        for (var i = 0; i < 50; i++)
+        var tasks = new Task<int>[RandomizedOperationCount];
+        for (var i = 0; i < RandomizedOperationCount; i++)
         {
             var capturedI = i;
             tasks[i] = randomQueue.Enqueue(

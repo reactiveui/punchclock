@@ -10,16 +10,21 @@ namespace Punchclock.Tests;
 /// <summary>Tests for <see cref="PrioritySemaphoreSignal{T}"/>.</summary>
 public class PrioritySemaphoreSubjectTests
 {
+    /// <summary>The value two.</summary>
     private const int Two = 2;
 
+    /// <summary>The value three.</summary>
     private const int Three = 3;
+
+    /// <summary>The value five.</summary>
+    private const int Five = 5;
 
     /// <summary>Verifies that the constructor creates a subject with the specified max count.</summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [Test]
     public async Task Constructor_WithMaxCount_Succeeds()
     {
-        var subject = new PrioritySemaphoreSignal<TestItem>(Two);
+        using var subject = new PrioritySemaphoreSignal<TestItem>(Two);
         await Assert.That(subject.MaximumCount).IsEqualTo(Two);
     }
 
@@ -28,7 +33,7 @@ public class PrioritySemaphoreSubjectTests
     [Test]
     public async Task Constructor_WithScheduler_Succeeds()
     {
-        var subject = new PrioritySemaphoreSignal<TestItem>(Two, ImmediateSequencer.Instance);
+        using var subject = new PrioritySemaphoreSignal<TestItem>(Two, ImmediateSequencer.Instance);
         await Assert.That(subject.MaximumCount).IsEqualTo(Two);
     }
 
@@ -39,7 +44,7 @@ public class PrioritySemaphoreSubjectTests
     {
         using (Assert.Multiple())
         {
-            var subject = new PrioritySemaphoreSignal<TestItem>(1, ImmediateSequencer.Instance);
+            using var subject = new PrioritySemaphoreSignal<TestItem>(1, ImmediateSequencer.Instance);
             var received = new List<TestItem>();
 
             using var subscription = subject.Subscribe(received.Add);
@@ -69,12 +74,12 @@ public class PrioritySemaphoreSubjectTests
     {
         using (Assert.Multiple())
         {
-            var subject = new PrioritySemaphoreSignal<TestItem>(1, ImmediateSequencer.Instance);
+            using var subject = new PrioritySemaphoreSignal<TestItem>(1, ImmediateSequencer.Instance);
             var received = new List<TestItem>();
 
             using var subscription = subject.Subscribe(received.Add);
 
-            var item1 = new TestItem(5);
+            var item1 = new TestItem(Five);
             var item2 = new TestItem(1); // Higher priority (lower value)
             var item3 = new TestItem(Three);
 
@@ -101,7 +106,7 @@ public class PrioritySemaphoreSubjectTests
     {
         using (Assert.Multiple())
         {
-            var subject = new PrioritySemaphoreSignal<TestItem>(1, ImmediateSequencer.Instance);
+            using var subject = new PrioritySemaphoreSignal<TestItem>(1, ImmediateSequencer.Instance);
             await Assert.That(subject.MaximumCount).IsEqualTo(1);
 
             subject.MaximumCount = Three;
@@ -116,13 +121,13 @@ public class PrioritySemaphoreSubjectTests
     {
         using (Assert.Multiple())
         {
-            var subject = new PrioritySemaphoreSignal<TestItem>(0, ImmediateSequencer.Instance); // Start paused
+            using var subject = new PrioritySemaphoreSignal<TestItem>(0, ImmediateSequencer.Instance); // Start paused
             var received = new List<TestItem>();
 
             using var subscription = subject.Subscribe(received.Add);
 
-            subject.OnNext(new TestItem(1));
-            subject.OnNext(new TestItem(Two));
+            subject.OnNext(new(1));
+            subject.OnNext(new(Two));
 
             // ImmediateScheduler executes synchronously
             await Assert.That(received).IsEmpty();
@@ -141,13 +146,13 @@ public class PrioritySemaphoreSubjectTests
     {
         using (Assert.Multiple())
         {
-            var subject = new PrioritySemaphoreSignal<TestItem>(1, ImmediateSequencer.Instance);
+            using var subject = new PrioritySemaphoreSignal<TestItem>(1, ImmediateSequencer.Instance);
             var received = new List<TestItem>();
 
             using var subscription = subject.Subscribe(received.Add);
 
-            subject.OnNext(new TestItem(1));
-            subject.OnNext(new TestItem(Two));
+            subject.OnNext(new(1));
+            subject.OnNext(new(Two));
 
             // ImmediateScheduler executes synchronously
             await Assert.That(received).Count().IsEqualTo(1);
@@ -166,7 +171,7 @@ public class PrioritySemaphoreSubjectTests
     {
         using (Assert.Multiple())
         {
-            var subject = new PrioritySemaphoreSignal<TestItem>(1, ImmediateSequencer.Instance);
+            using var subject = new PrioritySemaphoreSignal<TestItem>(1, ImmediateSequencer.Instance);
             var received = new List<TestItem>();
             var completed = false;
 
@@ -174,9 +179,9 @@ public class PrioritySemaphoreSubjectTests
                 received.Add,
                 () => completed = true);
 
-            subject.OnNext(new TestItem(1));
-            subject.OnNext(new TestItem(Two));
-            subject.OnNext(new TestItem(Three));
+            subject.OnNext(new(1));
+            subject.OnNext(new(Two));
+            subject.OnNext(new(Three));
 
             subject.OnCompleted();
 
@@ -193,7 +198,7 @@ public class PrioritySemaphoreSubjectTests
     {
         using (Assert.Multiple())
         {
-            var subject = new PrioritySemaphoreSignal<TestItem>(1, ImmediateSequencer.Instance);
+            using var subject = new PrioritySemaphoreSignal<TestItem>(1, ImmediateSequencer.Instance);
             var received = new List<TestItem>();
             Exception? error = null;
 
@@ -201,8 +206,8 @@ public class PrioritySemaphoreSubjectTests
                 received.Add,
                 ex => error = ex);
 
-            subject.OnNext(new TestItem(1));
-            subject.OnNext(new TestItem(Two));
+            subject.OnNext(new(1));
+            subject.OnNext(new(Two));
 
             var expectedException = new InvalidOperationException("test error");
             subject.OnError(expectedException);
@@ -219,18 +224,18 @@ public class PrioritySemaphoreSubjectTests
     {
         using (Assert.Multiple())
         {
-            var subject = new PrioritySemaphoreSignal<TestItem>(Two, ImmediateSequencer.Instance);
+            using var subject = new PrioritySemaphoreSignal<TestItem>(Two, ImmediateSequencer.Instance);
             var received = new List<TestItem>();
 
             using var subscription = subject.Subscribe(received.Add);
 
-            subject.OnNext(new TestItem(1));
+            subject.OnNext(new(1));
             subject.OnCompleted();
 
             // ImmediateScheduler executes synchronously
             var countAfterComplete = received.Count;
 
-            subject.OnNext(new TestItem(Two)); // Should be ignored
+            subject.OnNext(new(Two)); // Should be ignored
 
             // ImmediateScheduler executes synchronously
             await Assert.That(received.Count).IsEqualTo(countAfterComplete);
@@ -244,20 +249,20 @@ public class PrioritySemaphoreSubjectTests
     {
         using (Assert.Multiple())
         {
-            var subject = new PrioritySemaphoreSignal<TestItem>(Two, ImmediateSequencer.Instance);
+            using var subject = new PrioritySemaphoreSignal<TestItem>(Two, ImmediateSequencer.Instance);
             var received = new List<TestItem>();
 
             using var subscription = subject.Subscribe(
                 received.Add,
-                _ => { });
+                static _ => { });
 
-            subject.OnNext(new TestItem(1));
+            subject.OnNext(new(1));
             subject.OnError(new InvalidOperationException("error"));
 
             // ImmediateScheduler executes synchronously
             var countAfterError = received.Count;
 
-            subject.OnNext(new TestItem(Two)); // Should be ignored
+            subject.OnNext(new(Two)); // Should be ignored
 
             // ImmediateScheduler executes synchronously
             await Assert.That(received.Count).IsEqualTo(countAfterError);
@@ -269,7 +274,7 @@ public class PrioritySemaphoreSubjectTests
     [Test]
     public async Task OnCompleted_CalledTwice_DoesNotThrow()
     {
-        var subject = new PrioritySemaphoreSignal<TestItem>(1, ImmediateSequencer.Instance);
+        using var subject = new PrioritySemaphoreSignal<TestItem>(1, ImmediateSequencer.Instance);
         subject.OnCompleted();
         subject.OnCompleted(); // Should not throw
         await Task.CompletedTask;
@@ -285,16 +290,16 @@ public class PrioritySemaphoreSubjectTests
     {
         using (Assert.Multiple())
         {
-            var subject = new PrioritySemaphoreSignal<TestItem>(Two, ImmediateSequencer.Instance);
+            using var subject = new PrioritySemaphoreSignal<TestItem>(Two, ImmediateSequencer.Instance);
             var received = new List<TestItem>();
 
-            subject.Subscribe(received.Add);
+            using var subscription = subject.Subscribe(received.Add);
 
-            subject.OnNext(new TestItem(1));
+            subject.OnNext(new(1));
             subject.OnCompleted();
 
             // This should hit line 94 - queue is null after completion
-            subject.OnNext(new TestItem(Two));
+            subject.OnNext(new(Two));
 
             // ImmediateScheduler executes synchronously
             await Assert.That(received).Count().IsEqualTo(1); // Only the first item
@@ -308,14 +313,6 @@ public class PrioritySemaphoreSubjectTests
         /// <summary>Compares this instance with another TestItem based on priority.</summary>
         /// <param name="other">The other TestItem to compare with.</param>
         /// <returns>A value indicating the relative order of the items.</returns>
-        public int CompareTo(TestItem? other)
-        {
-            if (other is null)
-            {
-                return 1;
-            }
-
-            return Priority.CompareTo(other.Priority);
-        }
+        public int CompareTo(TestItem? other) => other is null ? 1 : Priority.CompareTo(other.Priority);
     }
 }
