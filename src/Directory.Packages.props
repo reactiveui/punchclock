@@ -24,7 +24,7 @@
 	<ItemGroup>
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
     <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.10.0" />
-		<PackageVersion Include="TUnit" Version="1.65.51" />
+		<PackageVersion Include="TUnit" Version="1.65.63" />
     <PackageVersion Include="DynamicData" Version="9.4.33" />
 
 		<PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
