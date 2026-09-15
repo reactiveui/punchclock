@@ -30,7 +30,7 @@ jobs:
       solutionFile: Punchclock.slnx
       minverMinimumMajorMinor: '6.1'
       bump: ${{ inputs.bump }}
-      ref: ${{ inputs.sourceRef }}
+      sourceRef: ${{ inputs.sourceRef }}
     secrets:
       CERTUM_USER_ID: ${{ secrets.CERTUM_USER_ID }}
       CERTUM_OTP_URI: ${{ secrets.CERTUM_OTP_URI }}
