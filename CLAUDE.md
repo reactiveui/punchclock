@@ -234,7 +234,7 @@ Punchclock is a library for managing concurrent operations with priorities and k
 The project uses target framework definitions in `Directory.Build.props`:
 
 - `PunchclockModernTargets` - net10.0, net11.0 (cross-platform, AOT-compatible)
-- `PunchclockLegacyTargets` - net462, net47, net471, net472, net48, net481 (Windows-only, built only on Windows)
+- `PunchclockLegacyTargets` - net47, net471, net472, net48, net481 (Windows-only, built only on Windows)
 - `PunchclockCoreTargets` - Combines modern + legacy (when on Windows)
 
 **Platform Requirements:**
@@ -452,7 +452,7 @@ public class OperationQueue
 - **Source Location:** `src/` folder contains the solution and all projects
 - **Main Solution:** `Punchclock.slnx`
 - **Required .NET SDKs:** .NET 10.0 and 11.0
-- **Optional:** .NET Framework 4.6.2 to 4.8.1 SDKs (only needed on Windows for legacy targets)
+- **Optional:** .NET Framework 4.7 to 4.8.1 SDKs (only needed on Windows for legacy targets)
 - **Version Management:** Uses Nerdbank.GitVersioning for semantic versioning based on git history
 - **Package Management:** Central Package Management (CPM) via `Directory.Packages.props`
 

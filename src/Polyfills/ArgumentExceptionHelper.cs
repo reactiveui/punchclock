@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 namespace ReactiveUI.Primitives.Internal;
 
 /// <summary>
-/// Polyfill for <c>ArgumentNullException.ThrowIfNull</c> on target frameworks (net462-net481) that predate it.
+/// Polyfill for <c>ArgumentNullException.ThrowIfNull</c> on target frameworks (net47-net481) that predate it.
 /// On net8.0 and later this type is not compiled; consuming projects alias the <c>ArgumentExceptionHelper</c>
 /// identifier directly to <see cref="ArgumentNullException"/> so the call sites bind to the BCL method.
 /// </summary>
