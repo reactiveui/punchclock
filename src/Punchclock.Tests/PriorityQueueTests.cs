@@ -567,7 +567,8 @@ public class PriorityQueueTests
 
                 case 1 when queue.Count > 0: // Dequeue
                     {
-                        _ = queue.Dequeue();
+                        var dequeued = queue.Dequeue();
+                        _ = items.Remove(dequeued);
                         break;
                     }
 

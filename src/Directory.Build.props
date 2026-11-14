@@ -48,13 +48,13 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <NetTargetFrameworks>net8.0;net9.0;net10.0;net11.0</NetTargetFrameworks>
-    <NetFrameworkTargetFrameworks>net462;net472;net48;net481</NetFrameworkTargetFrameworks>
+    <NetTargetFrameworks>net10.0;net11.0</NetTargetFrameworks>
+    <NetFrameworkTargetFrameworks>net462;net47;net471;net472;net48;net481</NetFrameworkTargetFrameworks>
     <LibraryTargetFrameworks>$(NetTargetFrameworks);$(NetFrameworkTargetFrameworks)</LibraryTargetFrameworks>
   </PropertyGroup>
 
-  <!-- AOT/trim analyzers on net8.0+ (netfx doesn't support them). -->
-  <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
+  <!-- AOT/trim analyzers on net10.0+ (netfx doesn't support them). -->
+  <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net10.0'))">
     <IsAotCompatible>true</IsAotCompatible>
     <EnableAotAnalyzer>true</EnableAotAnalyzer>
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
@@ -120,10 +120,10 @@
   
   <!-- Alias Lock to the dedicated System.Threading.Lock on .NET 9+ (faster EnterScope fast path),
      and to a plain object elsewhere (the lock statement falls back to Monitor). -->
-  <ItemGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net9.0'))">
+  <ItemGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net10.0'))">
     <Using Include="System.Threading.Lock" Alias="Lock"/>
   </ItemGroup>
-  <ItemGroup Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net9.0'))">
+  <ItemGroup Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net10.0'))">
     <Using Include="System.Object" Alias="Lock"/>
   </ItemGroup>
 

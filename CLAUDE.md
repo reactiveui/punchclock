@@ -143,7 +143,7 @@ dotnet test --project Punchclock.Tests/Punchclock.Tests.csproj -- --disable-logo
 dotnet test --solution Punchclock.slnx --coverage --coverage-output-format cobertura -- --report-trx --output Detailed
 
 # Run tests using test modules (for already-built assemblies)
-dotnet test --test-modules "**/bin/**/Release/net9.0/Punchclock.Tests.dll"
+dotnet test --test-modules "**/bin/**/Release/net10.0/Punchclock.Tests.dll"
 
 # Run tests using test modules with root directory
 dotnet test --test-modules "**/Punchclock.Tests.dll" --root-directory "C:\source\punchclock\src"
@@ -233,18 +233,18 @@ Punchclock is a library for managing concurrent operations with priorities and k
 
 The project uses target framework definitions in `Directory.Build.props`:
 
-- `PunchclockModernTargets` - net8.0, net9.0, net10.0 (cross-platform, AOT-compatible)
-- `PunchclockLegacyTargets` - net462, net472, net481 (Windows-only, built only on Windows)
+- `PunchclockModernTargets` - net10.0, net11.0 (cross-platform, AOT-compatible)
+- `PunchclockLegacyTargets` - net462, net47, net471, net472, net48, net481 (Windows-only, built only on Windows)
 - `PunchclockCoreTargets` - Combines modern + legacy (when on Windows)
 
 **Platform Requirements:**
-- Modern targets (net8.0+) can be built on any platform
+- Modern targets (net10.0+) can be built on any platform
 - Legacy .NET Framework targets require Windows
 - Building on non-Windows will only produce modern targets (this is expected)
 
 ### AOT (Ahead-of-Time) Compilation Support
 
-All code targeting net8.0+ must be AOT-compatible (`IsAotCompatible=true`).
+All code targeting net10.0+ must be AOT-compatible (`IsAotCompatible=true`).
 
 **Key AOT Patterns:**
 - Prefer `DynamicallyAccessedMembersAttribute` over `UnconditionalSuppressMessage`
@@ -366,7 +366,7 @@ gate.Dispose(); // Queue resumes and drains according to priority/keys
 
 1. Create failing tests first
 2. Implement minimal functionality
-3. Ensure AOT compatibility for net8.0+
+3. Ensure AOT compatibility for net10.0+
 4. Update documentation if needed
 5. Add XML documentation to public APIs
 6. Verify all tests pass
@@ -440,7 +440,7 @@ public class OperationQueue
 
 ## What to Avoid
 
-- **Reflection** without proper AOT suppression (for net8.0+ targets)
+- **Reflection** without proper AOT suppression (for net10.0+ targets)
 - **Breaking changes** to public APIs without proper versioning
 - **Blocking operations** in async code paths
 - **Excessive allocations** in hot paths (this is a performance-critical library)
@@ -451,8 +451,8 @@ public class OperationQueue
 - **Repository Location:** Working directory is `C:\source\punchclock`
 - **Source Location:** `src/` folder contains the solution and all projects
 - **Main Solution:** `Punchclock.slnx`
-- **Required .NET SDKs:** .NET 8.0, 9.0, and 10.0 (all three required for modern targets)
-- **Optional:** .NET Framework 4.6.2, 4.7.2, 4.8.1 SDKs (only needed on Windows for legacy targets)
+- **Required .NET SDKs:** .NET 10.0 and 11.0
+- **Optional:** .NET Framework 4.6.2 to 4.8.1 SDKs (only needed on Windows for legacy targets)
 - **Version Management:** Uses Nerdbank.GitVersioning for semantic versioning based on git history
 - **Package Management:** Central Package Management (CPM) via `Directory.Packages.props`
 

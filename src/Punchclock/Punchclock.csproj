@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
 	</PropertyGroup>
@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <!-- ArgumentExceptionHelper is a polyfill for ArgumentNullException.ThrowIfNull: it is compiled only on
-       net462-net481 (above). On net8.0+ the BCL has the method, so alias the identifier straight to it. -->
+       net462-net481 (above). On net10.0+ the BCL has the method, so alias the identifier straight to it. -->
   <ItemGroup Condition="$(TargetFramework.StartsWith('net4'))">
     <Using Include="ReactiveUI.Primitives.Internal.ArgumentExceptionHelper" Alias="ArgumentExceptionHelper" />
     <Using Include="ReactiveUI.Primitives.Internal.ArgumentOutOfRangeExceptionHelper" Alias="ArgumentOutOfRangeExceptionHelper" />

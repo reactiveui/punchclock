@@ -41,8 +41,7 @@ figure out who's doing what. Let's figure out a better way.
 
 - NuGet: `dotnet add package Punchclock`
 
-Punchclock currently targets modern .NET (`net8.0`, `net9.0`, `net10.0`,
-`net11.0`) and .NET Framework (`net462`, `net472`, `net48`, `net481`).
+Punchclock currently targets modern .NET (`net10.0`, `net11.0`) and .NET Framework (`net462`, `net47`, `net471`, `net472`, `net48`, `net481`).
 
 Punchclock v7.0.0 moves the queue internals and observable examples onto
 `ReactiveUI.Primitives`. ReactiveUI.Primitives v5 keeps System.Reactive
