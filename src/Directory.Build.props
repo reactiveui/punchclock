@@ -1,14 +1,14 @@
 <Project>
 	<PropertyGroup>
-    <Authors>ReactiveUI Association Inc</Authors>
-    <Company>ReactiveUI Association Inc</Company>
-    <Copyright>Copyright (c) ReactiveUI Association Inc $([System.DateTime]::Now.ToString('yyyy'))</Copyright>
+    <Authors>ReactiveUI and Contributors</Authors>
+    <Company>ReactiveUI</Company>
+    <Copyright>Copyright (c) ReactiveUI and Contributors $([System.DateTime]::Now.ToString('yyyy'))</Copyright>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageProjectUrl>https://github.com/reactiveui/punchclock/</PackageProjectUrl>
-		<Description>Make sure your asynchronous operations show up to work on time</Description>
+		<Description>Priority-based asynchronous operation queues with bounded concurrency and key-based serialization for ReactiveUI applications.</Description>
+		<PackageTags>reactiveui;async;concurrency;scheduling;queue;priority;reactive</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>logo.png</PackageIcon>
-    <Owners>glennawatson;rlittlesii;chrispulman</Owners>
 		<PackageReleaseNotes>https://github.com/reactiveui/punchclock/releases</PackageReleaseNotes>
 		<RepositoryUrl>https://github.com/reactiveui/punchclock</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
@@ -18,7 +18,7 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<Platform>AnyCPU</Platform>
     <IsTestProject>$(MSBuildProjectName.EndsWith('.Tests'))</IsTestProject>
-		<DebugType>Embedded</DebugType>
+		<DebugType>embedded</DebugType>
 
     <!-- Analyzer + style enforcement. -->
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
@@ -45,6 +45,10 @@
     <TUnitImplicitUsings>true</TUnitImplicitUsings>
     <TUnitAssertionsImplicitUsings>true</TUnitAssertionsImplicitUsings>
 		<IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
   <PropertyGroup>

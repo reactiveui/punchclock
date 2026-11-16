@@ -4,17 +4,16 @@
       "parallel": false
     }
   },
-  "extensions": [
-    {
-      "extensionId": "Microsoft.Testing.Extensions.CodeCoverage",
-      "settings": {
-        "format": "cobertura",
-        "skipAutoProperties": true,
-        "modulePaths": {
-          "include": [ "Punchclock\\..*" ],
-          "exclude": [ ".*Tests.*", ".*TestRunner.*", ".*Benchmarks.*", ".*Examples.*" ]
+  "codeCoverage": {
+    "Configuration": {
+      "Format": "cobertura",
+      "CodeCoverage": {
+        "SkipAutoProperties": true,
+        "ModulePaths": {
+          "Include": [ "Punchclock\\..*" ],
+          "Exclude": [ ".*Tests.*", ".*TestRunner.*", ".*Benchmarks.*", ".*Examples.*" ]
         }
       }
     }
-  ]
+  }
 }
