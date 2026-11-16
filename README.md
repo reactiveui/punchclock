@@ -4,7 +4,7 @@
 
 <br />
 <a href="https://github.com/reactiveui/punchclock">
-  <img width="120" heigth="120" src="https://raw.githubusercontent.com/reactiveui/styleguide/master/logo_punchclock/main.png">
+  <img width="120" height="120" src="https://raw.githubusercontent.com/reactiveui/punchclock/main/images/logo.png" alt="Punchclock">
 </a>
 
 ## Punchclock: A library for managing concurrent operations
