@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Punchclock/Punchclock.csproj" />
+    <Using Include="Punchclock" />
+    <Using Include="ReactiveUI.Primitives" />
+    <Using Include="ReactiveUI.Primitives.Signals" />
+    <Using Include="ReactiveUI.Primitives.Signals.Signal&lt;bool&gt;" Alias="PreviewClosed" />
+    <Using Include="ReactiveUI.Primitives.Concurrency.Sequencer" Alias="QueueScheduler" />
+  </ItemGroup>
+</Project>

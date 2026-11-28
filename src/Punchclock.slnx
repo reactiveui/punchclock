@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/Examples/">
+    <Project Path="examples/Queue/Queue.csproj" />
+    <Project Path="examples/ReactiveQueue/ReactiveQueue.csproj" />
+  </Folder>
   <Folder Name="/Items/">
     <File Path="../.editorconfig" />
     <File Path="../.github/copilot-instructions.md" />
